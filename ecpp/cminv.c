@@ -111,7 +111,8 @@ static int cm_bipoly (mpz_t *J, int maxj, mpz_t X, mpz_t P, int inv, const char 
 	return nj;
 }
 
-int cm_j_from_inv (mpz_t *J, int maxj, mpz_t X, mpz_t P, int inv, const char *phidir)
+// The self-contained reference implementation (validated 120/120 vs invtoj).
+int cm_j_from_inv_ref (mpz_t *J, int maxj, mpz_t X, mpz_t P, int inv, const char *phidir)
 {
 	switch (inv) {
 	case INV_J:  mpz_set (J[0], X);            return 1;
@@ -129,4 +130,16 @@ int cm_j_from_inv (mpz_t *J, int maxj, mpz_t X, mpz_t P, int inv, const char *ph
 	case INV_U:  cm_j_from_u  (J[0],X,P);       return 1;
 	default:     return cm_bipoly (J, maxj, X, P, inv, phidir);   // Atkin / single+double eta
 	}
+}
+
+// Production entry point: classpoly's authoritative mpz_j_from_inv (class_inv_mpz.c
+// + zp_poly), with the fproot-based path covering the generic single-eta range it
+// does not handle.  mpz_j_from_inv returns a single j (for the jdeg-2 invariants
+// both Phi-roots are CM j-invariants, so one suffices).
+int cm_j_from_inv (mpz_t *J, int maxj, mpz_t X, mpz_t P, int inv, const char *phidir)
+{
+	if ( inv > INV_SINGLE_ETA && inv < INV_SINGLE_ETA_END )       // gap in class_inv_mpz.c
+		return cm_j_from_inv_ref (J, maxj, X, P, inv, phidir);
+	mpz_j_from_inv (J[0], X, P, inv);                             // aborts/exits on failure
+	return 1;
 }

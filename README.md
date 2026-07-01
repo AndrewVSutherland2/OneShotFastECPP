@@ -83,6 +83,7 @@ python3 ecpp/test_dscan.py        # discriminant scan vs PARI + brute force
 ```
 Makefile        setenv.sh          design.md
 ff_poly_v2.0.0/   classpoly_v1.0.3/    (vendored: word-size F_p / class polynomials)
+zp_poly/        (vendored: large-p F_p[x] library; classpoly's invariant->j needs it)
 phi_files/      (28 MB subset of modular polynomials; see INSTALL)
 ecpp/           (this project: discriminant search, smoothness, root-finding,
                  invariant->j, curve assembly, oneshot)

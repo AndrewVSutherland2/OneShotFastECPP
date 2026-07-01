@@ -145,11 +145,12 @@ void mpz_j_from_u8 (mpz_t J, mpz_t U8, mpz_t P)
 	static mpz_t T0,T1,T2,T3;
 	static int init;
 
-	if ( ! init ) { mpz_init(T0); mpz_init(T1); mpz_init(T2); init = 1; }
+	if ( ! init ) { mpz_init(T0); mpz_init(T1); mpz_init(T2); mpz_init(T3); init = 1; }	// bugfix: T3 was never initialized
 	mpz_mul(T2,U8,U8);
 	mpz_set_ui(T0,1); mpz_sub(T0,T0,U8);  mpz_add(T3,T0,T2); mpz_sub(T0,T3,U8); mpz_mul(T1,T2,T0);
 	mpz_invert(T0,T1,P);
 	mpz_mul(T1,T3,T3); mpz_mul(T2,T1,T3); mpz_mul(T1,T0,T2); mpz_mul_ui(J,T1,256);
+	mpz_mod(J,J,P);														// bugfix: J was returned unreduced
 }
 
 void mpz_j_from_u2 (mpz_t J, mpz_t U, mpz_t P)

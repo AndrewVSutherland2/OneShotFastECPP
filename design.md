@@ -355,12 +355,22 @@ invariant (Weber, Atkin, double-η) is **25–50× faster** to compute (measured
 h=609, 4.03→0.08 s) and often halves the degree. classpoly picks it with `inv=-1`.
 
 **Invariant→j over big F_p** (`cm_j_from_inv`): the value `f₀` maps to `j` = a root of `Φ_inv(f₀^e, ·)`
-with a per-invariant power `e`. We use Sutherland's exact pure-`mpz` formulas from `class_inv_mpz.c`
-(γ₂/f/t/u families + `mpz_inv_power`) and, for the Atkin/η modular-polynomial cases (which in
-classpoly need the `zp_poly` library, not in this tree), route the `Φ_inv(f₀^e,·)` root-find through
-`fproot` (`invj.{c,h}`). Validated against classpoly's word-size `invtoj` — **120/120** random cases
-across f, f2, f4, γ₂, f8, t, t2, t6, u, u2, u8, six ηs, and three Atkins. (This is the big-`F_p`
-`mpz_j_from_inv` the classpoly header declares.)
+with a per-invariant power `e`. **Now that the `zp_poly` library is in the tree (see below), the
+production path links classpoly's authoritative `mpz_j_from_inv` (`class_inv_mpz.c`) directly**; a
+self-contained `fproot`-based implementation (`cm_j_from_inv_ref`, Sutherland's formulas re-ported +
+`Φ_inv` root-find via `invj.{c,h}`) is retained as a cross-validation reference and covers the generic
+single-η range (400–499) that `class_inv_mpz.c` does not dispatch. **Three-way validated** — for 22
+invariant families × random `f₀` at word size, `mpz_j_from_inv` ∈ `invtoj`'s root set and the
+reference's root set == `invtoj`'s (81/81). Found & fixed in `class_inv_mpz.c`: `mpz_j_from_u8`
+returned `J` unreduced (≈7·|p| bits) and never `mpz_init`'d `T3` — flagged for upstream.
+
+**zp_poly** (Harvey–Sutherland large-`p` `F_p[x]` library, added to the tree with an in-tree makefile
+staging into `./local` like ff_poly): provides the `zp_poly_find_root`/`bipoly_eval_mod_mpz` machinery
+`class_inv_mpz.c` needs. Its `zp_poly_find_split_root` is the same EDS algorithm as `fproot`
+(plus radical shortcuts for deg ≤ 3). Head-to-head on identical split polys (`ecpp/zpbench`):
+zp_poly ~5–25% faster at 128/256-bit, parity at 384-bit (fproot slightly ahead at deg 800) — so
+**`fproot` is kept for the `H_D` root-find** (equal-or-better where it matters, Montgomery-form
+integration with `curve.c`), and zp_poly serves the invariant→j path.
 
 **`cm_method D p`** → the j-invariant of `E/F_p` with CM by `D` and trace ±t: Cornacchia → best-inv
 `H_D^inv` → `fproot` root f₀ → `cm_j_from_inv` → verify a candidate's curve has trace ±t (disambiguates

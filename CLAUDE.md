@@ -25,8 +25,14 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
 - **Full pipeline WORKS**: `git clone && make && . ./setenv.sh && ./ecpp/oneshot p=<prime>`. README+INSTALL.
 - Target `p`: small (128–384 bit), `D` up to `10^10`+.
 - **phi bundle**: only a 28 MB subset (`phi_files_manifest.txt`) is committed (git add -f); full DB (2.2 GB)
-  external. `mpz_j_from_inv` needs classpoly's missing `zp_poly` lib — we substitute `fproot`; if Drew
-  ships `zp_poly`+`bipoly_eval_mod_mpz`, `class_inv_mpz.c` (saved in tree) can be linked directly.
+  external.
+- **zp_poly landed** (Drew): in-tree at `zp_poly/`, staged into `./local` by the top-level make.
+  `cm_j_from_inv` now calls classpoly's **authoritative `mpz_j_from_inv`** (`class_inv_mpz.c`, linked
+  vs zp_poly + classpoly objects); the fproot-based `cm_j_from_inv_ref` is kept as cross-check + for
+  the generic single-η range class_inv_mpz.c doesn't dispatch. 3-way validated (81/81 vs `invtoj`).
+  Fixed in class_inv_mpz.c: `mpz_j_from_u8` unreduced J + uninit T3 (report upstream). Root-finding
+  stays on `fproot`: `ecpp/zpbench` shows zp_poly +5–25% at ≤256-bit, parity at 384-bit — not worth
+  switching (root-find is a minor pipeline cost; Montgomery form is integrated with curve.c).
 
 ## Build & test
 ```sh
