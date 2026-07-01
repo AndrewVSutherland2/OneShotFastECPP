@@ -297,10 +297,11 @@ typedef struct ppf_struct {
 } ppf_t[1];
 
 // This function does not check for overflow
-static unsigned long inline ppf_eval (ppf_t n)
+static inline unsigned long ppf_eval (ppf_t n)
 {
     register unsigned long x;
-    register int i, j;
+    register int i;
+    register unsigned long j;
     
     x = 1;
     for ( i = 0 ; i < n->w ; i++ ) for ( j = 0 ; j < n->h[i] ; j++ ) x *= n->p[i];

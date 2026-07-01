@@ -15,9 +15,9 @@ large smooth divisor**, so primality follows in one step (no downrun).
 For fixed `p`, iterate over fundamental imaginary-quadratic discriminants `D`:
 1. **D-search / Cornacchia** — find `D` with `4p = t² − v²D = t² + |D|v²` solvable. *(component a — DONE)*
 2. **Smoothness** — test whether the n⁴-smooth part of `p+1−t` or `p+1+t` exceeds `L≈√p`. *(component b — DONE)*
-3. **Class polynomial** — compute `H_D` (some class invariant) mod `p` with `classpoly`.
-4. **Root of `H_D` over `F_p`** — needs NEW code; `ff_poly` is word-size only, `p` is not. *(component c — TODO)*
-5. Build `E` with trace `±t` from the root, confirm the order.
+3. **Class polynomial** — compute `H_D` (best class invariant) mod `p` with `classpoly`. *(component d)*
+4. **Root of `H_D` over `F_p`** — big-`F_p` root-finding (`ff_poly` is word-size only). *(component c — DONE)*
+5. Build `E` with trace `±t` from the root, find a point of order `m`, emit the certificate. *(component d — DONE)*
 
 Time-critical pieces: (a) Cornacchia over *many* `D`, (b) smoothness of few-hundred-bit
 integers, (c) root-finding of a large `H_D` over `F_p`.
@@ -29,32 +29,36 @@ where the time goes (see below).
 ## Repo layout
 
 - `classpoly_v1.0.3/` — Drew's class-polynomial library (Hilbert CRT method + many class
-  invariants). Builds into `./local`. **Modified by us** (see "classpoly changes").
+  invariants). Builds into `./local`. **Modified by us** (see "classpoly changes"); also holds
+  Drew's `class_inv_mpz.c` (big-p invariant→j, linked by the ecpp tools).
 - `ff_poly_v2.0.0/` — word-size `F_p` / `F_p[x]` library; classpoly's dependency.
-- `phi_files/` — precomputed modular polynomials classpoly needs (2022 files).
-- `local/` — project-local install prefix for ff_poly (gitignored).
-- `work/` — scratch + class-poly output (gitignored).
+- `zp_poly/` — Drew's large-p `F_p[x]` library (Harvey–Sutherland); needed by `class_inv_mpz.c`.
+- `phi_files/` — modular polynomials. A 46 MB subset is committed (`phi_files_manifest.txt`);
+  the full 2.2 GB database stays external (see INSTALL).
+- `local/` — project-local install prefix for ff_poly + zp_poly (gitignored).
+- `work/` — scratch, class-poly output, and `pcache/` prime-product segments (gitignored).
 - `tests/` — classpoly correctness suite vs PARI/GP (Tests 1/2/3).
-- `ecpp/` — **new ECPP code**: Cornacchia solver + discriminant scan (component a).
-- `Makefile` (top level) — builds ff_poly → `local` → classpoly (`make`, `make test`).
-- `setenv.sh` — sets env vars to run classpoly entirely in-tree.
-- `fastecpp.pdf` — Enge's 2024 fastECPP-over-MPI paper (reference).
-
-Nothing is committed yet; the three vendored dirs + phi_files are large. `.gitignore`
-excludes build artifacts (`*.o`, `*.a`, `local/`, `work/`, binaries).
+- `ecpp/` — **the ECPP code**: dscan (a), smooth (b), fproot (c), cminv/cm_method + curve +
+  oneshot (d), plus validation drivers (roottest, invjtest, cmjtest, asmtest, zpbench).
+- `certs/` — voneshot-verified example certificates (2²⁵⁵−19, NIST P-256, secp256k1, 10⁸⁰/⁹⁰/¹⁰⁰+ε).
+- `Makefile` (top level) — `make -j`: ff_poly → classpoly → zp_poly → ecpp; `make test`.
+- `setenv.sh` — env vars to run everything in-tree (phi dir, PATH, `work/pcache`).
+- `fastecpp.pdf` — Enge's 2024 fastECPP-over-MPI paper (reference, not committed).
 
 ## Build & test
 
 ```sh
-make               # build ff_poly (-> ./local) + classpoly (+ invtoj)
+make -j            # ff_poly -> classpoly -> zp_poly -> ecpp tools (~15 s)
 make test          # classpoly suite vs PARI over |D|<=1000 (Tests 1/2/3); ~2.5 min
 make test MAXD=200 # smaller/faster
-cd ecpp && make    # build cmsearch, dscan, descent_bench
+. ./setenv.sh && ./ecpp/oneshot p=<prime>      # the headline tool
 python3 ecpp/test_dscan.py     # validate the discriminant scan vs brute force + PARI
+python3 ecpp/test_smooth.py    # validate the smoothness engine vs PARI
 ```
 
-Environment: `. ./setenv.sh` points classpoly at `phi_files/`, an output dir, and `/tmp`
-scratch. Toolchain: gcc 13, GMP 6, PARI/GP 2.18. Box: **16 physical cores** (32 vCPUs, HT).
+Environment: `. ./setenv.sh` points classpoly at `phi_files/`, sets `work/` output dirs and
+`work/pcache`, and puts the tools on PATH. Toolchain: gcc 13, GMP 6, PARI/GP 2.18.
+Box: **16 physical cores** (32 vCPUs, HT).
 
 ## Component (a): CM-discriminant search — DONE
 
@@ -397,3 +401,34 @@ builds `(A, x₀)`; emit `(p, A, x₀, m, q_i)`. Verified end-to-end by **`vones
    && . ./setenv.sh && ./ecpp/oneshot p=<prime>`.
 5. Deferred optimizations (do when obviously needed): bound the factor base; pack factor-base
    sqrts as contiguous limbs; hand-rolled 1-limb-quotient division; SIMD the per-D updates.
+
+### Prime-product cache ladder + near-miss top-up (2026-07-01, post-merge)
+`oneshot` no longer builds one exact-n⁴ `P` per bit-length. Policy: use any cached power-of-2
+product `2^j ≥ n⁴` (oversize primes are skipped by `build_m` when assembling `m`), else build and
+cache `y' = 2^⌊log₂ n⁴⌋ ≤ n⁴` — at most the exact cost, one file per octave of `n` (e.g. `P_2³²`
+serves every 227–304-bit prime). The gap `(y', n⁴]` is recovered by **near-miss top-up**: candidates
+with `S ∈ (L/n⁴², L]` get bounded Pollard rho on the cofactor `N/S` (a missing prime is ≤ n⁴ ≈ 2³⁴
+⇒ ~2¹⁷ mulmods), folding gap primes into `S` — no second prime product needed. Measured (10⁹⁰+289,
+loaded box): P 199 s → 0.3 s (reused `P_2³²`), 1236 near-misses rechecked, cert = the SAME winner as
+the exact-y run, voneshot True. Caches live in `$ONESHOT_PCACHE_DIR` (setenv.sh → `work/pcache`,
+survives reboots); sizes ~0.172·y bytes: 2³² → 739 MiB, 2³³ → 1.4 GiB, 2³⁴ → 2.9 GiB.
+Motivation: P build was 89%/74%/22% of the fresh-bit-length 10⁸⁰/10⁹⁰/10¹⁰⁰ runs — far above the
+"never spend more building P than on H_D + root-finding" balance point; with the ladder the
+amortized cost → 0. (10¹⁰⁰ breakdown, original run: P 247.5 s, dscan 597 s [~75% factor-base
+build/Tonelli, ~25% DFS scan], gate 26 s, H_D^f deg 35084 ≈ 80 s, root-find ≈ 170 s, assembly ~10 s.)
+
+### Adaptive smoothness ladder (2026-07-01, replaces the fixed-P flow in oneshot)
+Per Drew's proposal: instead of building `P = ∏_{q≤n⁴} q` up front, `oneshot` climbs a power-of-2
+ladder of prime-product **segments** `(y_{j-1}, y_j]` starting just above `n²` (final rung capped at
+`n⁴` exactly), keeping a running smooth part `S = ∏` per-segment parts for every candidate. The
+ladder deepens only when cumulative testing work ≥ `c`·(P bits so far + next segment), `c=1` default
+(work-normalized version of his bits-tested trigger); otherwise the pool widens via incremental
+`dscan Bmin=` chunks (both growths geometric ⇒ within a small constant of hindsight-optimal). A
+winner at any rung stops the run — and certificates rarely need primes near `n⁴` (measured on a
+256-bit pool: y=2²⁸→3, 2³⁰→6, 2³²→13 winners), so runs stop octaves early. Segments are
+bit-length independent and cached individually (`oneshot_Pseg_<lo>_<hi>.bin`); legacy full-P caches
+are used as the ladder base when present. The near-miss rho top-up is no longer needed in oneshot
+(the ladder reaches n⁴ exactly); `smooth_topup` remains available in smooth.{c,h}.
+**Measured cold runs** (no caches, loaded box): 256-bit 2.7 s (was ~65 s), 2²⁵⁵−19 quick-start 3.5 s,
+10⁸⁰+129 4.5 s (was 160 s), 10⁹⁰+289 23.6 s (was 269 s) — the 10⁹⁰ run stopped at y=2²⁸ with a
+14k pool instead of ever touching the 2³¹⁺ rungs. Warm ≈ cold now ("first run as fast as the nth").

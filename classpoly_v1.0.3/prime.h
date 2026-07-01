@@ -204,7 +204,7 @@ static inline long gap_table_count (gap_table_t tab, long x)
 
     p = gap_table_next_gap (tab, &gap, x);
     if ( ! p ) return 0;
-    return tab->si + gap-tab->gaps - ( p > x ? 1 : 0 );
+    return tab->si + gap-tab->gaps - ( p > (unsigned long)x ? 1 : 0 );
 }
 static inline long prime_table_pi (prime_table_t tab, long x)
     { return gap_table_count (tab, x); }

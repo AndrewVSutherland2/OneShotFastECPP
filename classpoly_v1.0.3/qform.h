@@ -33,11 +33,11 @@ void qform_square (long *pu3, long *pv3, long *pw3, long u, long v, long w, long
 static inline void qform_invert (long *pu3, long *pv3, long *pw3) { if ( *pu3 != *pv3 && *pu3 != *pw3 ) *pv3 = -*pv3; }
 static inline int qform_is_order2 (long a, long b, long c) { return ( a > 1 && ( b==0 || a==b || a==c ) ); }
 static inline int qform_is_2torsion (long a, long b, long c) { return ( a == 1 || b==0 || a==b || a==c ); }
-static inline int qform_is_identity (long a, long b, long c) { return (a==1); }
+static inline int qform_is_identity (long a, long b, long c) { (void)b; (void)c; return (a==1); }
 static inline void qform_set_identity (long *pa, long *pb, long *pc, long D) { if ( !(D&3) ) { *pa = 1; *pb = 0; *pc = -D/4; } else { *pa = 1; *pb = 1; *pc=(1-D)/4; } }
 static inline void qform_set (long *pa, long *pb, long *pc, long a, long b, long c) { *pa = a; *pb = b; *pc = c; }
-static inline int qform_equal (long a, long b, long c, long u, long v, long w) { return (a==u&&b==v); }
-static inline int qform_inverses (long a, long b, long c, long u, long v, long w) { return ( a==u && b==-v ? 1: 0 ); }
+static inline int qform_equal (long a, long b, long c, long u, long v, long w) { return (a==u&&b==v&&c==w); }
+static inline int qform_inverses (long a, long b, long c, long u, long v, long w) { return ( a==u && b==-v && c==w ? 1: 0 ); }
 void qform_exp (long *pu, long *pv, long *pw, long u, long v, long w, long e, long L);
 long qform_order (long a, long b, long c, long L);
 long qform_order_multiple (long a, long b, long c, long m, long m0, long m1, long L);   // given interval [m0,m1 containing ord([a,b,c]) returns multiple of order (start search at m)

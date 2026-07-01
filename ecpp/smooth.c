@@ -64,35 +64,36 @@ static void sieve_collect (uint64_t lo, uint64_t hi, const uint32_t *base, size_
     free (bits);
 }
 
-// All primes <= y into *out (malloc'd, ascending, incl. 2).  Returns count.
-static uint64_t sieve_primes_upto (uint64_t y, uint64_t **out, int nth)
+// All primes in (plo, y] into *out (malloc'd, ascending; incl. 2 iff plo < 2).
+static uint64_t sieve_primes_range (uint64_t plo, uint64_t y, uint64_t **out, int nth)
 {
     size_t nbase;
     uint64_t blim = (uint64_t) sqrtl ((long double) y) + 2;
     uint32_t *base = base_odd_primes (blim, &nbase);
+    uint64_t start = plo < 3 ? 3 : plo + 1;                // first candidate > plo, >= 3
 
     if ( nth <= 0 ) nth = omp_get_max_threads ();
-    // Split [3,y] into nth contiguous odd bands; each thread collects its band.
+    // Split [start,y] into nth contiguous odd bands; each thread collects its band.
     uint64_t **bv = calloc (nth, sizeof(*bv));
     size_t *bn = calloc (nth, sizeof(*bn));
     #pragma omp parallel num_threads(nth)
     {
         int tid = omp_get_thread_num ();
         int T   = omp_get_num_threads ();
-        uint64_t span = (y >= 3) ? (y - 3 + 1) : 0;
-        uint64_t lo = 3 + (uint64_t)((__uint128_t) span * tid / T);
-        uint64_t hi = 3 + (uint64_t)((__uint128_t) span * (tid+1) / T);
+        uint64_t span = (y >= start) ? (y - start + 1) : 0;
+        uint64_t lo = start + (uint64_t)((__uint128_t) span * tid / T);
+        uint64_t hi = start + (uint64_t)((__uint128_t) span * (tid+1) / T);
         if ( tid == T-1 ) hi = y + 1;
         size_t cap = 0, n = 0;  uint64_t *v = NULL;
-        if ( lo < hi ) sieve_collect (lo, hi, base, nbase, &v, &n, &cap);
+        if ( lo < hi && span ) sieve_collect (lo, hi, base, nbase, &v, &n, &cap);
         bv[tid] = v;  bn[tid] = n;
     }
-    // concatenate: 2, then bands in order
-    uint64_t total = 1;                                    // the prime 2
+    // concatenate: 2 (if in range), then bands in order
+    uint64_t total = 1;
     for ( int t = 0 ; t < nth ; t++ ) total += bn[t];
     uint64_t *all = malloc (total * sizeof(uint64_t));
     size_t k = 0;
-    if ( y >= 2 ) all[k++] = 2;
+    if ( plo < 2 && y >= 2 ) all[k++] = 2;
     for ( int t = 0 ; t < nth ; t++ ) {
         if ( bn[t] ) { memcpy (all + k, bv[t], bn[t]*sizeof(uint64_t)); k += bn[t]; }
         free (bv[t]);
@@ -137,11 +138,11 @@ static void prod_par (mpz_t out, const uint64_t *pr, size_t lo, size_t hi, size_
     mpz_clear (a);  mpz_clear (b);
 }
 
-void smooth_base_build (smooth_base *sb, uint64_t y, int nthreads)
+void smooth_base_build_range (smooth_base *sb, uint64_t lo, uint64_t y, int nthreads)
 {
-    sb->y = y;
+    sb->y = y;  sb->lo = lo;
     uint64_t *pr;
-    uint64_t np = sieve_primes_upto (y, &pr, nthreads);
+    uint64_t np = sieve_primes_range (lo, y, &pr, nthreads);
     sb->nprimes = np;
     mpz_init (sb->P);
     if ( nthreads <= 0 ) nthreads = omp_get_max_threads ();
@@ -155,6 +156,9 @@ void smooth_base_build (smooth_base *sb, uint64_t y, int nthreads)
     free (pr);
 }
 
+void smooth_base_build (smooth_base *sb, uint64_t y, int nthreads)
+{ smooth_base_build_range (sb, 0, y, nthreads); }
+
 void smooth_base_clear (smooth_base *sb)
 {
     mpz_clear (sb->P);
@@ -163,16 +167,25 @@ void smooth_base_clear (smooth_base *sb)
 
 int smooth_base_selfcheck (const smooth_base *sb)
 {
-    // 2*3*5*7*11*13*17*19*23*29*31*37*41*43*47 (fits in 64 bits); P | it when y>=47
-    unsigned long primorial15 = 614889782588491410UL;
-    if ( sb->y < 47 ) return 1;
-    return mpz_divisible_ui_p (sb->P, primorial15) != 0;
+    if ( sb->lo < 2 ) {
+        // full product: divisible by 2*3*...*47 (fits in 64 bits) when y>=47
+        unsigned long primorial15 = 614889782588491410UL;
+        if ( sb->y < 47 ) return 1;
+        return mpz_divisible_ui_p (sb->P, primorial15) != 0;
+    }
+    // segment (lo, y]: the first prime above lo must divide P
+    mpz_t q;  mpz_init_set_ui (q, sb->lo);
+    mpz_nextprime (q, q);
+    int ok = mpz_cmp_ui (q, sb->y) > 0 || mpz_divisible_p (sb->P, q);
+    mpz_clear (q);
+    return ok;
 }
 
 /* ===================================================================== *
  *  Disk cache of P.                                                     *
  * ===================================================================== */
-#define SMOOTH_MAGIC 0x534d5031554c3121ULL  /* "SMP1ULH!" (v1: 64-bit limb count) */
+#define SMOOTH_MAGIC   0x534d5031554c3121ULL  /* "SMP1..." v1: full products, no lo field */
+#define SMOOTH_MAGIC2  0x534d5032554c3121ULL  /* "SMP2..." v2: header carries lo (segments) */
 
 // Cache format: 4x uint64 header {magic, y, nprimes, nlimbs} then nlimbs native
 // mp_limb_t.  NOT mpz_out_raw -- its 4-byte size field overflows for P > 2^31
@@ -195,7 +208,7 @@ int smooth_base_save (const smooth_base *sb, const char *path)
     FILE *f = fopen (path, "wb");
     if ( ! f ) return 0;
     uint64_t nl = mpz_size (sb->P);
-    uint64_t hdr[4] = { SMOOTH_MAGIC, sb->y, sb->nprimes, nl };
+    uint64_t hdr[5] = { SMOOTH_MAGIC2, sb->y, sb->nprimes, nl, sb->lo };
     if ( fwrite (hdr, sizeof(hdr), 1, f) != 1 ) { fclose (f); return 0; }
     int ok = rw_chunks ((void*) mpz_limbs_read (sb->P), nl * sizeof(mp_limb_t), f, 1);
     fclose (f);
@@ -207,9 +220,10 @@ int smooth_base_load (smooth_base *sb, const char *path)
     FILE *f = fopen (path, "rb");
     if ( ! f ) return 0;
     uint64_t hdr[4];
-    if ( fread (hdr, sizeof(hdr), 1, f) != 1 || hdr[0] != SMOOTH_MAGIC ) { fclose (f); return 0; }
-    sb->y = hdr[1];  sb->nprimes = hdr[2];
+    if ( fread (hdr, sizeof(hdr), 1, f) != 1 || (hdr[0] != SMOOTH_MAGIC && hdr[0] != SMOOTH_MAGIC2) ) { fclose (f); return 0; }
+    sb->y = hdr[1];  sb->nprimes = hdr[2];  sb->lo = 0;
     uint64_t nl = hdr[3];
+    if ( hdr[0] == SMOOTH_MAGIC2 && fread (&sb->lo, sizeof(uint64_t), 1, f) != 1 ) { fclose (f); return 0; }
     mpz_init (sb->P);
     mp_limb_t *ld = mpz_limbs_write (sb->P, nl);
     int ok = rw_chunks (ld, nl * sizeof(mp_limb_t), f, 0);
@@ -438,6 +452,83 @@ int factor_smooth (const mpz_t S, uint64_t *pr, int *ex, int cap)
     return k;
 }
 
+// Brent rho with an iteration budget; returns 1 with a nontrivial factor in d,
+// 0 if the budget ran out (whp no factor <= ~budget^2 exists).
+static int rho_bounded (mpz_t d, const mpz_t n, long budget)
+{
+    if ( mpz_even_p (n) ) { mpz_set_ui (d, 2); return 1; }
+    mpz_t x, y, c, t, q, g, ys;
+    mpz_inits (x, y, c, t, q, g, ys, NULL);
+    long spent = 0;  int found = 0;
+    for ( unsigned long seed = 2 ; spent < budget && ! found ; seed++ ) {
+        mpz_set_ui (c, seed);  mpz_set_ui (y, 2);  mpz_set_ui (q, 1);  mpz_set_ui (g, 1);
+        long r = 1, mstep = 128;
+        while ( mpz_cmp_ui (g, 1) == 0 && spent < budget ) {
+            mpz_set (x, y);
+            for ( long i = 0 ; i < r ; i++ ) { mpz_mul (t, y, y); mpz_add (t, t, c); mpz_mod (y, t, n); }
+            spent += r;
+            long k = 0;
+            while ( k < r && mpz_cmp_ui (g, 1) == 0 ) {
+                mpz_set (ys, y);
+                long lim = (r - k < mstep) ? (r - k) : mstep;
+                for ( long i = 0 ; i < lim ; i++ ) {
+                    mpz_mul (t, y, y); mpz_add (t, t, c); mpz_mod (y, t, n);
+                    mpz_sub (t, x, y);  mpz_abs (t, t);
+                    mpz_mul (q, q, t);  mpz_mod (q, q, n);
+                }
+                spent += lim;
+                mpz_gcd (g, q, n);
+                k += mstep;
+            }
+            r <<= 1;
+        }
+        if ( mpz_cmp_ui (g, 1) > 0 && mpz_cmp (g, n) < 0 ) { mpz_set (d, g);  found = 1; }
+        else if ( mpz_cmp (g, n) == 0 ) {                       // backtrack for the exact factor
+            do { mpz_mul (t, ys, ys); mpz_add (t, t, c); mpz_mod (ys, t, n);
+                 mpz_sub (t, x, ys); mpz_abs (t, t); mpz_gcd (g, t, n);  spent++; }
+            while ( mpz_cmp_ui (g, 1) == 0 && spent < budget );
+            if ( mpz_cmp_ui (g, 1) > 0 && mpz_cmp (g, n) < 0 ) { mpz_set (d, g);  found = 1; }
+        }
+    }
+    mpz_clears (x, y, c, t, q, g, ys, NULL);
+    return found;
+}
+
+void smooth_topup (mpz_t S, const mpz_t N, uint64_t n4)
+{
+    mpz_t c, d, q;  mpz_inits (c, d, q, NULL);
+    mpz_divexact (c, N, S);                                   // cofactor: all prime factors > y'
+    long budget = 3L << 18;                                   // total rho iterations; a <=2^34 factor
+    long cap = 1L << 18;                                      // costs ~2^17 expected, so cap each try
+    while ( mpz_cmp_ui (c, 1) > 0 && budget > 0 ) {
+        if ( mpz_probab_prime_p (c, 15) ) {                   // prime cofactor: take it iff <= n4
+            if ( mpz_cmp_ui (c, n4) <= 0 ) mpz_mul (S, S, c);
+            break;
+        }
+        if ( ! rho_bounded (d, c, budget < cap ? budget : cap) ) break;   // whp no factor <= n4 remains
+        budget -= 1L << 17;                                   // charge one factor's expected cost
+        // d may be composite (product of small primes): peel its primes
+        uint64_t pr[64];  int ex[64];
+        if ( mpz_sizeinbase (d, 2) <= 80 ) {                  // small enough to factor fully
+            int k = factor_smooth (d, pr, ex, 64);
+            for ( int i = 0 ; i < k ; i++ )
+                for ( int e = 0 ; e < ex[i] ; e++ ) {
+                    if ( pr[i] <= n4 ) mpz_mul_ui (S, S, pr[i]);
+                    mpz_divexact_ui (c, c, pr[i]);
+                }
+            // fold in any extra powers of the found primes remaining in c
+            for ( int i = 0 ; i < k ; i++ )
+                while ( mpz_divisible_ui_p (c, pr[i]) ) {
+                    mpz_divexact_ui (c, c, pr[i]);
+                    if ( pr[i] <= n4 ) mpz_mul_ui (S, S, pr[i]);
+                }
+        } else {                                              // big composite chunk: just remove it
+            mpz_divexact (c, c, d);
+        }
+    }
+    mpz_clears (c, d, q, NULL);
+}
+
 int build_m (mpz_t m, uint64_t *qs, int *nq,
              const mpz_t S, const mpz_t L, uint64_t n2, uint64_t n4)
 {
@@ -446,14 +537,19 @@ int build_m (mpz_t m, uint64_t *qs, int *nq,
     if ( k == 0 ) return 0;
 
     // Accumulate prime factors largest-first until the product first exceeds L.
+    // Primes above n4 are skipped: S may have been extracted with a smoothness
+    // bound above n4 (a rounded-up cached prime product); such primes cannot
+    // appear in a valid certificate, so m must clear L without them.
     mpz_set_ui (m, 1);
     uint64_t rleast = 0;  int done = 0;
-    for ( int j = k - 1 ; j >= 0 && ! done ; j-- )
+    for ( int j = k - 1 ; j >= 0 && ! done ; j-- ) {
+        if ( pr[j] > n4 ) continue;
         for ( int e = 0 ; e < ex[j] && ! done ; e++ ) {
             mpz_mul_ui (m, m, pr[j]);  rleast = pr[j];
             if ( mpz_cmp (m, L) > 0 ) done = 1;
         }
-    if ( ! done ) return 0;                                // S <= L (gate should prevent)
+    }
+    if ( ! done ) return 0;                                // n4-smooth part <= L
 
     mpz_t Lr;  mpz_init (Lr);  mpz_mul_ui (Lr, L, rleast);
     int ok = mpz_cmp (m, Lr) < 0;                          // need m < L*r

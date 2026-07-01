@@ -78,6 +78,7 @@ static void fb_push (fbase *fb, long sval)
 static fbase oddfb;                 // odd prime discriminants with (q*/p)=1, ascending |q*|
 static long  tp_val[4]; static mpz_t tp_sq[4]; static int n_tp;  // 2-part options incl. "1"
 static unsigned long Bbound;
+static unsigned long Bminb;         // emit only d >= Bminb (incremental rescans)
 static int do_dump, do_verify, no_corn, do_dumpscan;
 
 // Per-thread scan state.  The DFS partitions cleanly by the smallest prime factor
@@ -110,6 +111,7 @@ static void try_D (scanstate *S, unsigned long absprod, int sign, const mpz_t xp
         int dsign = sign * (tp_val[j] < 0 ? -1 : 1);
         if ( dsign >= 0 ) continue;                          // need D = -dabs < 0
         S->n_scan++;
+        if ( dabs < Bminb ) continue;                        // below the incremental lower bound
         if ( do_dumpscan ) { char b[24]; int n = snprintf (b, sizeof b, "%lu\n", dabs); obuf_add (S, b, n); }
         if ( no_corn ) continue;
         mpz_mul (S->x0, xprod, tp_sq[j]);  mpz_mod (S->x0, S->x0, S->cc.p);   // sqrt(D mod p)
@@ -190,6 +192,7 @@ int main (int argc, char *argv[])
         if ( ! strncmp (argv[i], "p=", 2) ) mpz_set_str (p, argv[i] + 2, 10);
         else if ( ! strncmp (argv[i], "pbits=", 6) ) pbits = strtoul (argv[i] + 6, 0, 10);
         else if ( ! strncmp (argv[i], "B=", 2) ) Bbound = strtoul (argv[i] + 2, 0, 10);
+        else if ( ! strncmp (argv[i], "Bmin=", 5) ) Bminb = strtoul (argv[i] + 5, 0, 10);
         else if ( ! strncmp (argv[i], "seed=", 5) ) seed = strtoul (argv[i] + 5, 0, 10);
         else if ( ! strncmp (argv[i], "threads=", 8) ) n_threads = atoi (argv[i] + 8);
         else if ( ! strncmp (argv[i], "sd=", 3) ) SEED_D = strtoul (argv[i] + 3, 0, 10);

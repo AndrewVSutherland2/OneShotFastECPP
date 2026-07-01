@@ -15,9 +15,10 @@ _oneshot_here="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
 export CLASSPOLY_PHI_DIR="$_oneshot_here/phi_files"   # modular polynomial files phi_*_*.txt
 export CLASSPOLY_H_DIR="$_oneshot_here/work/H_files"  # default class-polynomial output dir
+export ONESHOT_PCACHE_DIR="$_oneshot_here/work/pcache" # prime-product caches (survive reboots)
 export PATH="$_oneshot_here/classpoly_v1.0.3:$_oneshot_here/ecpp:$PATH"
 
-mkdir -p "$CLASSPOLY_H_DIR"
+mkdir -p "$CLASSPOLY_H_DIR" "$ONESHOT_PCACHE_DIR"
 
 echo "classpoly environment configured:"
 echo "  CLASSPOLY_PHI_DIR = $CLASSPOLY_PHI_DIR"

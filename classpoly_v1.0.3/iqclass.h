@@ -84,7 +84,8 @@ static inline int discriminant_factor_conductor (unsigned long p[], unsigned lon
 static inline long discriminant_conductor (long D)
 {
     unsigned long p[MAX_UI_PP_FACTORS], h[MAX_UI_PP_FACTORS];
-    register long i, j, k, v;
+    register long i, k, v;
+    register unsigned long j;
     
     k = discriminant_factor_conductor (p, h, D);
     if ( k < 0 ) return 0;
