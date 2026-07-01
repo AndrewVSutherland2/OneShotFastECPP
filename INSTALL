@@ -53,9 +53,13 @@ Everything builds and runs *inside the project tree*; nothing is written to
       ./ecpp/oneshot pbits=256 seed=1              # a random 256-bit prime
       ./ecpp/oneshot p=... threads=16 pcache=P.bin # cache the prime-product P
 
-  The first run at a given bit-length builds the prime-product
-  P = prod_{q <= n^4} q  (n = bitlength(p)); this is cached (default
-  /tmp/oneshot_P_<y>.bin) and reused, so later runs at the same size are fast.
+  The smoothness bound climbs a power-of-2 ladder starting just above n^2
+  (n = bitlength(p)): prime-product segments are built on demand and cached in
+  work/pcache/ (segments are bit-length independent, so every prime size shares
+  them), the discriminant-scan bound widens geometrically in between, and the
+  run stops at the first rung that yields a certificate.  Cold first runs cost
+  seconds at 256 bits; the c= knob (default 1) sets how much testing work must
+  accumulate before the next segment is built.
   Output is one line "p A x0 m q1 ... qk"; verify with voneshot.py from
   https://github.com/AndrewVSutherland/OneShotPrimalityProofs .
 

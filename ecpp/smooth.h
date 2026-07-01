@@ -26,16 +26,22 @@
     reduction P mod (prod N_i) plus cheap descent, amortized over the whole batch.
 */
 
-// ---- prime product  P = prod_{prime q <= y} q  ----
+// ---- prime product  P = prod_{prime q in (lo, y]} q  (lo = 0: all q <= y) ----
 typedef struct {
     mpz_t P;              // the product (squarefree)
-    uint64_t y;           // smoothness bound
-    uint64_t nprimes;     // number of primes <= y (for introspection)
+    uint64_t y;           // upper smoothness bound
+    uint64_t lo;          // lower bound (exclusive); 0 for a full product
+    uint64_t nprimes;     // number of primes in the product (for introspection)
 } smooth_base;
 
 // Build P = prod_{q<=y} q by a segmented sieve + parallel product tree.
 // nthreads<=0 => use omp default.
 void smooth_base_build (smooth_base *sb, uint64_t y, int nthreads);
+
+// Build the SEGMENT product P = prod_{lo < q <= y} q (a progressive-smoothness
+// ladder rung; segments for different bit-lengths are shared since they depend
+// only on (lo, y]).
+void smooth_base_build_range (smooth_base *sb, uint64_t lo, uint64_t y, int nthreads);
 
 // Cache P to / from disk (raw GMP export, with a small header).  Return 1 on ok.
 int  smooth_base_save (const smooth_base *sb, const char *path);

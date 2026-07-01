@@ -31,10 +31,13 @@ python3 voneshot.py 578960446186580977117854925043439539266349923328202820197287
 ```
 
 `oneshot` accepts `p=<decimal>` or `pbits=<n> [seed=<s>]` (a random n-bit prime),
-plus `threads=<t>`, `B=<discriminant-scan bound>`, and `pcache=<file>`.  The
-prime-product `P = ∏_{q≤y} q` is built once per power-of-2 smoothness bound and
-cached in `work/pcache/` (one file serves a whole octave of bit-lengths), so
-repeat runs in a familiar size range take seconds.
+plus `threads=<t>`, `c=<work ratio>`, `B0=`/`B=` (initial/max discriminant-scan
+bounds), and `pcache=<file>`.  The smoothness bound climbs a power-of-2 ladder
+starting just above n² — prime-product *segments* are built on demand (and cached
+in `work/pcache/`, shared across all prime sizes), the candidate pool widens
+geometrically in between, and the run stops at the first rung that yields a
+certificate.  Certificates rarely need primes anywhere near n⁴, so even a fully
+cold run takes seconds at 256 bits.
 
 ## What it does
 

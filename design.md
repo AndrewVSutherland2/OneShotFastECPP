@@ -412,3 +412,19 @@ Motivation: P build was 89%/74%/22% of the fresh-bit-length 10⁸⁰/10⁹⁰/10
 "never spend more building P than on H_D + root-finding" balance point; with the ladder the
 amortized cost → 0. (10¹⁰⁰ breakdown, original run: P 247.5 s, dscan 597 s [~75% factor-base
 build/Tonelli, ~25% DFS scan], gate 26 s, H_D^f deg 35084 ≈ 80 s, root-find ≈ 170 s, assembly ~10 s.)
+
+### Adaptive smoothness ladder (2026-07-01, replaces the fixed-P flow in oneshot)
+Per Drew's proposal: instead of building `P = ∏_{q≤n⁴} q` up front, `oneshot` climbs a power-of-2
+ladder of prime-product **segments** `(y_{j-1}, y_j]` starting just above `n²` (final rung capped at
+`n⁴` exactly), keeping a running smooth part `S = ∏` per-segment parts for every candidate. The
+ladder deepens only when cumulative testing work ≥ `c`·(P bits so far + next segment), `c=1` default
+(work-normalized version of his bits-tested trigger); otherwise the pool widens via incremental
+`dscan Bmin=` chunks (both growths geometric ⇒ within a small constant of hindsight-optimal). A
+winner at any rung stops the run — and certificates rarely need primes near `n⁴` (measured on a
+256-bit pool: y=2²⁸→3, 2³⁰→6, 2³²→13 winners), so runs stop octaves early. Segments are
+bit-length independent and cached individually (`oneshot_Pseg_<lo>_<hi>.bin`); legacy full-P caches
+are used as the ladder base when present. The near-miss rho top-up is no longer needed in oneshot
+(the ladder reaches n⁴ exactly); `smooth_topup` remains available in smooth.{c,h}.
+**Measured cold runs** (no caches, loaded box): 256-bit 2.7 s (was ~65 s), 2²⁵⁵−19 quick-start 3.5 s,
+10⁸⁰+129 4.5 s (was 160 s), 10⁹⁰+289 23.6 s (was 269 s) — the 10⁹⁰ run stopped at y=2²⁸ with a
+14k pool instead of ever touching the 2³¹⁺ rungs. Warm ≈ cold now ("first run as fast as the nth").
