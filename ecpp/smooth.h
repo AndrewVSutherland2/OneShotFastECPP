@@ -70,8 +70,17 @@ int  factor_smooth (const mpz_t S, uint64_t *pr, int *ex, int cap);
 // Given the y-smooth part S of a candidate N with S>L, choose m | S with
 // L < m < L*r (r = least prime of m), and list the distinct primes of m lying in
 // (n2, n4] into qs[] (ascending).  Sets *m and *nq (count of qs).  Returns 1 on
-// success, 0 if no valid m could be formed (rare edge cases).
+// success, 0 if no valid m could be formed (rare edge cases).  Primes of S above
+// n4 (possible when S came from a rounded-up cached prime product) are skipped.
 int  build_m (mpz_t m, uint64_t *qs, int *nq,
               const mpz_t S, const mpz_t L, uint64_t n2, uint64_t n4);
+
+// Near-miss top-up: S is the y'-smooth part of N for some y' < n4.  Search the
+// cofactor N/S (whose prime factors all exceed y') for primes q <= n4 with
+// bounded Pollard rho -- a factor q <= n4 ~ 2^34 costs ~sqrt(q) ~ 2^17 mulmods,
+// so this is milliseconds per candidate -- and fold q^v_q(N) into S.  Stops
+// when the remaining cofactor (whp) has no factor <= n4 or the iteration budget
+// is exhausted.  Never overshoots: only primes <= n4 are multiplied in.
+void smooth_topup (mpz_t S, const mpz_t N, uint64_t n4);
 
 #endif

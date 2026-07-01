@@ -397,3 +397,18 @@ builds `(A, x₀)`; emit `(p, A, x₀, m, q_i)`. Verified end-to-end by **`vones
    && . ./setenv.sh && ./ecpp/oneshot p=<prime>`.
 5. Deferred optimizations (do when obviously needed): bound the factor base; pack factor-base
    sqrts as contiguous limbs; hand-rolled 1-limb-quotient division; SIMD the per-D updates.
+
+### Prime-product cache ladder + near-miss top-up (2026-07-01, post-merge)
+`oneshot` no longer builds one exact-n⁴ `P` per bit-length. Policy: use any cached power-of-2
+product `2^j ≥ n⁴` (oversize primes are skipped by `build_m` when assembling `m`), else build and
+cache `y' = 2^⌊log₂ n⁴⌋ ≤ n⁴` — at most the exact cost, one file per octave of `n` (e.g. `P_2³²`
+serves every 227–304-bit prime). The gap `(y', n⁴]` is recovered by **near-miss top-up**: candidates
+with `S ∈ (L/n⁴², L]` get bounded Pollard rho on the cofactor `N/S` (a missing prime is ≤ n⁴ ≈ 2³⁴
+⇒ ~2¹⁷ mulmods), folding gap primes into `S` — no second prime product needed. Measured (10⁹⁰+289,
+loaded box): P 199 s → 0.3 s (reused `P_2³²`), 1236 near-misses rechecked, cert = the SAME winner as
+the exact-y run, voneshot True. Caches live in `$ONESHOT_PCACHE_DIR` (setenv.sh → `work/pcache`,
+survives reboots); sizes ~0.172·y bytes: 2³² → 739 MiB, 2³³ → 1.4 GiB, 2³⁴ → 2.9 GiB.
+Motivation: P build was 89%/74%/22% of the fresh-bit-length 10⁸⁰/10⁹⁰/10¹⁰⁰ runs — far above the
+"never spend more building P than on H_D + root-finding" balance point; with the ladder the
+amortized cost → 0. (10¹⁰⁰ breakdown, original run: P 247.5 s, dscan 597 s [~75% factor-base
+build/Tonelli, ~25% DFS scan], gate 26 s, H_D^f deg 35084 ≈ 80 s, root-find ≈ 170 s, assembly ~10 s.)

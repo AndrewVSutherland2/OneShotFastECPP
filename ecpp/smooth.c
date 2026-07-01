@@ -438,6 +438,83 @@ int factor_smooth (const mpz_t S, uint64_t *pr, int *ex, int cap)
     return k;
 }
 
+// Brent rho with an iteration budget; returns 1 with a nontrivial factor in d,
+// 0 if the budget ran out (whp no factor <= ~budget^2 exists).
+static int rho_bounded (mpz_t d, const mpz_t n, long budget)
+{
+    if ( mpz_even_p (n) ) { mpz_set_ui (d, 2); return 1; }
+    mpz_t x, y, c, t, q, g, ys;
+    mpz_inits (x, y, c, t, q, g, ys, NULL);
+    long spent = 0;  int found = 0;
+    for ( unsigned long seed = 2 ; spent < budget && ! found ; seed++ ) {
+        mpz_set_ui (c, seed);  mpz_set_ui (y, 2);  mpz_set_ui (q, 1);  mpz_set_ui (g, 1);
+        long r = 1, mstep = 128;
+        while ( mpz_cmp_ui (g, 1) == 0 && spent < budget ) {
+            mpz_set (x, y);
+            for ( long i = 0 ; i < r ; i++ ) { mpz_mul (t, y, y); mpz_add (t, t, c); mpz_mod (y, t, n); }
+            spent += r;
+            long k = 0;
+            while ( k < r && mpz_cmp_ui (g, 1) == 0 ) {
+                mpz_set (ys, y);
+                long lim = (r - k < mstep) ? (r - k) : mstep;
+                for ( long i = 0 ; i < lim ; i++ ) {
+                    mpz_mul (t, y, y); mpz_add (t, t, c); mpz_mod (y, t, n);
+                    mpz_sub (t, x, y);  mpz_abs (t, t);
+                    mpz_mul (q, q, t);  mpz_mod (q, q, n);
+                }
+                spent += lim;
+                mpz_gcd (g, q, n);
+                k += mstep;
+            }
+            r <<= 1;
+        }
+        if ( mpz_cmp_ui (g, 1) > 0 && mpz_cmp (g, n) < 0 ) { mpz_set (d, g);  found = 1; }
+        else if ( mpz_cmp (g, n) == 0 ) {                       // backtrack for the exact factor
+            do { mpz_mul (t, ys, ys); mpz_add (t, t, c); mpz_mod (ys, t, n);
+                 mpz_sub (t, x, ys); mpz_abs (t, t); mpz_gcd (g, t, n);  spent++; }
+            while ( mpz_cmp_ui (g, 1) == 0 && spent < budget );
+            if ( mpz_cmp_ui (g, 1) > 0 && mpz_cmp (g, n) < 0 ) { mpz_set (d, g);  found = 1; }
+        }
+    }
+    mpz_clears (x, y, c, t, q, g, ys, NULL);
+    return found;
+}
+
+void smooth_topup (mpz_t S, const mpz_t N, uint64_t n4)
+{
+    mpz_t c, d, q;  mpz_inits (c, d, q, NULL);
+    mpz_divexact (c, N, S);                                   // cofactor: all prime factors > y'
+    long budget = 3L << 18;                                   // total rho iterations; a <=2^34 factor
+    long cap = 1L << 18;                                      // costs ~2^17 expected, so cap each try
+    while ( mpz_cmp_ui (c, 1) > 0 && budget > 0 ) {
+        if ( mpz_probab_prime_p (c, 15) ) {                   // prime cofactor: take it iff <= n4
+            if ( mpz_cmp_ui (c, n4) <= 0 ) mpz_mul (S, S, c);
+            break;
+        }
+        if ( ! rho_bounded (d, c, budget < cap ? budget : cap) ) break;   // whp no factor <= n4 remains
+        budget -= 1L << 17;                                   // charge one factor's expected cost
+        // d may be composite (product of small primes): peel its primes
+        uint64_t pr[64];  int ex[64];
+        if ( mpz_sizeinbase (d, 2) <= 80 ) {                  // small enough to factor fully
+            int k = factor_smooth (d, pr, ex, 64);
+            for ( int i = 0 ; i < k ; i++ )
+                for ( int e = 0 ; e < ex[i] ; e++ ) {
+                    if ( pr[i] <= n4 ) mpz_mul_ui (S, S, pr[i]);
+                    mpz_divexact_ui (c, c, pr[i]);
+                }
+            // fold in any extra powers of the found primes remaining in c
+            for ( int i = 0 ; i < k ; i++ )
+                while ( mpz_divisible_ui_p (c, pr[i]) ) {
+                    mpz_divexact_ui (c, c, pr[i]);
+                    if ( pr[i] <= n4 ) mpz_mul_ui (S, S, pr[i]);
+                }
+        } else {                                              // big composite chunk: just remove it
+            mpz_divexact (c, c, d);
+        }
+    }
+    mpz_clears (c, d, q, NULL);
+}
+
 int build_m (mpz_t m, uint64_t *qs, int *nq,
              const mpz_t S, const mpz_t L, uint64_t n2, uint64_t n4)
 {
@@ -446,14 +523,19 @@ int build_m (mpz_t m, uint64_t *qs, int *nq,
     if ( k == 0 ) return 0;
 
     // Accumulate prime factors largest-first until the product first exceeds L.
+    // Primes above n4 are skipped: S may have been extracted with a smoothness
+    // bound above n4 (a rounded-up cached prime product); such primes cannot
+    // appear in a valid certificate, so m must clear L without them.
     mpz_set_ui (m, 1);
     uint64_t rleast = 0;  int done = 0;
-    for ( int j = k - 1 ; j >= 0 && ! done ; j-- )
+    for ( int j = k - 1 ; j >= 0 && ! done ; j-- ) {
+        if ( pr[j] > n4 ) continue;
         for ( int e = 0 ; e < ex[j] && ! done ; e++ ) {
             mpz_mul_ui (m, m, pr[j]);  rleast = pr[j];
             if ( mpz_cmp (m, L) > 0 ) done = 1;
         }
-    if ( ! done ) return 0;                                // S <= L (gate should prevent)
+    }
+    if ( ! done ) return 0;                                // n4-smooth part <= L
 
     mpz_t Lr;  mpz_init (Lr);  mpz_mul_ui (Lr, L, rleast);
     int ok = mpz_cmp (m, Lr) < 0;                          // need m < L*r

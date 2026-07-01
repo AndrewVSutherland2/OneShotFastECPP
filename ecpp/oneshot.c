@@ -68,16 +68,44 @@ int main (int argc, char **argv)
     if ( ! B ) B = 30000000UL;
     fprintf (stderr, "p: %lu bits, n=%lu, n^4=%lu, B=%lu\n", (unsigned long) mpz_sizeinbase (p, 2), n, (unsigned long) n4, B);
 
-    // prime-product P for y = n^4 (cached and reused across runs)
+    // Prime-product cache policy: a power-of-2 ladder, so one cached P serves a
+    // whole octave of bit-lengths instead of one file per n.  Preference order:
+    //   (1) an explicit pcache= file (any y);
+    //   (2) an exact-y cache /tmp/oneshot_P_<n4>.bin (legacy naming);
+    //   (3) the smallest CACHED power of two >= n4 (superset: primes above n4 are
+    //       skipped by build_m when assembling m -- never built fresh);
+    //   (4) y' = 2^floor(log2 n4) <= n4, cached or freshly built+saved -- the
+    //       cheapest build (<= the exact-n4 cost).  The uncovered gap (y', n4] is
+    //       recovered by near-miss top-up: bounded Pollard rho on the cofactor
+    //       (a missing prime is <= n4 ~ 2^34, ~2^17 mulmods to find).
+    // Cache directory: ONESHOT_PCACHE_DIR if set (setenv.sh points it at
+    // <repo>/work/pcache so caches survive reboots), else /tmp.
+    const char *cdir = getenv ("ONESHOT_PCACHE_DIR");  if ( ! cdir ) cdir = "/tmp";
     char cachebuf[512];
-    if ( ! pcache ) { snprintf (cachebuf, sizeof cachebuf, "/tmp/oneshot_P_%lu.bin", (unsigned long) n4);  pcache = cachebuf; }
-    smooth_base sb;  double t0 = wall ();
-    if ( ! smooth_base_load (&sb, pcache) || sb.y != n4 ) {
-        fprintf (stderr, "building prime-product P (y=%lu, ~%.0f MiB, one-time)...\n", (unsigned long) n4, 1.44*n4/8/1048576.0);
-        smooth_base_build (&sb, n4, nth);  smooth_base_save (&sb, pcache);
+    smooth_base sb;  double t0 = wall ();  int have = 0;
+    if ( pcache ) have = smooth_base_load (&sb, pcache);
+    if ( ! have ) {
+        snprintf (cachebuf, sizeof cachebuf, "%s/oneshot_P_%lu.bin", cdir, (unsigned long) n4);
+        have = smooth_base_load (&sb, cachebuf);                     // (2) exact
+    }
+    int j0 = 63;  while ( ! ((n4 >> j0) & 1) ) j0--;                 // floor(log2 n4)
+    for ( int j = ((1ULL << j0) == n4 ? j0 : j0 + 1) ; ! have && j <= j0 + 2 ; j++ ) {
+        snprintf (cachebuf, sizeof cachebuf, "%s/oneshot_P_%llu.bin", cdir, 1ULL << j);
+        have = smooth_base_load (&sb, cachebuf);                     // (3) cached >= n4
+    }
+    if ( ! have ) {
+        uint64_t yp = 1ULL << j0;                                    // (4) round down
+        snprintf (cachebuf, sizeof cachebuf, "%s/oneshot_P_%llu.bin", cdir, (unsigned long long) yp);
+        if ( ! smooth_base_load (&sb, cachebuf) ) {
+            fprintf (stderr, "building prime-product P (y=2^%d=%llu, ~%.0f MiB, one-time)...\n",
+                     j0, (unsigned long long) yp, 1.44*yp/8/1048576.0);
+            smooth_base_build (&sb, yp, nth);  smooth_base_save (&sb, cachebuf);
+        }
     }
     if ( ! smooth_base_selfcheck (&sb) ) { fprintf (stderr, "P self-check failed (corrupt cache?)\n"); return 1; }
-    fprintf (stderr, "P ready (%.1fs)\n", wall () - t0);
+    int topup = (sb.y < n4);                                         // gap (y', n4] handled by rho
+    fprintf (stderr, "P ready (y=%lu%s, %.1fs)\n", (unsigned long) sb.y,
+             topup ? ", near-miss top-up on" : (sb.y > n4 ? ", oversize primes trimmed" : ""), wall () - t0);
 
     // (a,b) dscan -> solvable (d,t,v); keep N = p+1-/+t with N = 0 mod 4
     char cmd[16384];
@@ -101,11 +129,31 @@ int main (int argc, char **argv)
     t_scan = wall () - t_scan;
     fprintf (stderr, "candidates (N=0 mod 4): %zu   [scan %.2fs]\n", nc, t_scan);
 
-    // (c) batch n^4-smooth part
+    // (c) batch y-smooth part (y = sb.y)
     mpz_t *S = malloc (nc * sizeof(mpz_t));  for ( size_t i=0;i<nc;i++ ) mpz_init (S[i]);
     double t_sm = wall ();
     smooth_parts (&sb, (const mpz_t*) cN, nc, S, nth);
     t_sm = wall () - t_sm;
+
+    // near-miss top-up (only when sb.y < n4): a candidate whose y-smooth part
+    // falls short of L by less than n4^2 could be pushed over by one or two
+    // primes in (y, n4]; find them with bounded rho on the cofactor.
+    int nnm = 0, nconv = 0;
+    if ( topup ) {
+        mpz_t nmband;  mpz_init (nmband);
+        mpz_fdiv_q_ui (nmband, L, (unsigned long) n4);  mpz_fdiv_q_ui (nmband, nmband, (unsigned long) n4);
+        double t_nm = wall ();
+        #pragma omp parallel for num_threads(nth > 0 ? nth : 8) schedule(dynamic,8) reduction(+:nnm,nconv)
+        for ( size_t i = 0 ; i < nc ; i++ ) {
+            if ( mpz_cmp (S[i], L) > 0 || mpz_cmp (S[i], nmband) <= 0 ) continue;
+            nnm++;
+            smooth_topup (S[i], cN[i], n4);
+            if ( mpz_cmp (S[i], L) > 0 ) nconv++;
+        }
+        mpz_clear (nmband);
+        fprintf (stderr, "near-miss top-up: %d rechecked, %d converted to winners [%.2fs]\n",
+                 nnm, nconv, wall () - t_nm);
+    }
 
     // (d) winners -> cm_method -> assemble.  Process winners smallest |D| first:
     // h(D) ~ sqrt(|D|) drives both the H_D computation and the degree-h(D)
