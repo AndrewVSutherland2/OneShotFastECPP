@@ -1,0 +1,357 @@
+# OneShotFastECPP — design notes
+
+Working notes for a CM-method ("fast ECPP" of Atkin–Morain + Shallit; see Morain
+arXiv:math/0502097 and Enge arXiv:2404.05506, `fastecpp.pdf`) approach to the
+one-shot elliptic-curve primality-proving challenge
+(https://github.com/AndrewVSutherland/OneShotPrimalityProofs).
+
+## Goal & algorithm
+
+Given a probable prime `p` (target sizes here are **small**, ~128–384 bits, and
+eventually larger), produce a *one-shot* primality certificate: a single CM
+discriminant `D<0` and curve `E/F_p` whose order `p+1∓t` contains a **sufficiently
+large smooth divisor**, so primality follows in one step (no downrun).
+
+For fixed `p`, iterate over fundamental imaginary-quadratic discriminants `D`:
+1. **D-search / Cornacchia** — find `D` with `4p = t² − v²D = t² + |D|v²` solvable. *(component a — DONE)*
+2. **Smoothness** — test whether the n⁴-smooth part of `p+1−t` or `p+1+t` exceeds `L≈√p`. *(component b — DONE)*
+3. **Class polynomial** — compute `H_D` (some class invariant) mod `p` with `classpoly`.
+4. **Root of `H_D` over `F_p`** — needs NEW code; `ff_poly` is word-size only, `p` is not. *(component c — TODO)*
+5. Build `E` with trace `±t` from the root, confirm the order.
+
+Time-critical pieces: (a) Cornacchia over *many* `D`, (b) smoothness of few-hundred-bit
+integers, (c) root-finding of a large `H_D` over `F_p`.
+
+**Key difference from textbook fastECPP:** their `p` is thousands of bits and `D` is
+tiny relative to `p`; ours is the opposite (`p` small, `D` up to `10^10`+), which moves
+where the time goes (see below).
+
+## Repo layout
+
+- `classpoly_v1.0.3/` — Drew's class-polynomial library (Hilbert CRT method + many class
+  invariants). Builds into `./local`. **Modified by us** (see "classpoly changes").
+- `ff_poly_v2.0.0/` — word-size `F_p` / `F_p[x]` library; classpoly's dependency.
+- `phi_files/` — precomputed modular polynomials classpoly needs (2022 files).
+- `local/` — project-local install prefix for ff_poly (gitignored).
+- `work/` — scratch + class-poly output (gitignored).
+- `tests/` — classpoly correctness suite vs PARI/GP (Tests 1/2/3).
+- `ecpp/` — **new ECPP code**: Cornacchia solver + discriminant scan (component a).
+- `Makefile` (top level) — builds ff_poly → `local` → classpoly (`make`, `make test`).
+- `setenv.sh` — sets env vars to run classpoly entirely in-tree.
+- `fastecpp.pdf` — Enge's 2024 fastECPP-over-MPI paper (reference).
+
+Nothing is committed yet; the three vendored dirs + phi_files are large. `.gitignore`
+excludes build artifacts (`*.o`, `*.a`, `local/`, `work/`, binaries).
+
+## Build & test
+
+```sh
+make               # build ff_poly (-> ./local) + classpoly (+ invtoj)
+make test          # classpoly suite vs PARI over |D|<=1000 (Tests 1/2/3); ~2.5 min
+make test MAXD=200 # smaller/faster
+cd ecpp && make    # build cmsearch, dscan, descent_bench
+python3 ecpp/test_dscan.py     # validate the discriminant scan vs brute force + PARI
+```
+
+Environment: `. ./setenv.sh` points classpoly at `phi_files/`, an output dir, and `/tmp`
+scratch. Toolchain: gcc 13, GMP 6, PARI/GP 2.18. Box: **16 physical cores** (32 vCPUs, HT).
+
+## Component (a): CM-discriminant search — DONE
+
+Code: `ecpp/cornacchia.{c,h}` (solver) + `ecpp/dscan.c` (the scan) + `ecpp/cmsearch.c`
+(a simpler baseline that enumerates *all* fundamental D and Legendre-filters).
+
+### Cornacchia (`cornacchia.{c,h}`)
+Per-`p` context precomputes `4p`, `L=⌊2√p⌋`, and Tonelli-Shanks data. `cornacchia_solve(d)`
+does Legendre filter → modular sqrt → Euclidean descent → square test, for `4p=t²+d·v²`,
+`d=|D|` (`d ≡ 0 or 3 mod 4`). `cornacchia_solve_x0(d, x0)` takes a **precomputed** `√(−d) mod p`
+(so the scan supplies the multiplicative root and never runs a per-D Tonelli). Follows
+classpoly's `mpz_cornacchia4` but is thread-safe (all scratch in the ctx, one ctx/thread).
+
+**Descent is mpn + a small-quotient fast path**: `(2p, x0)` reduced by Euclid until `b≤L`;
+most quotients are 1 or 2, done by `mpn_sub_n`, only q≥3 uses `mpn_tdiv_qr`; pointer-rotated,
+no allocation. Root recovered from `(4p−b²)/d` being a perfect square (divisibility-by-`d`
+is the cheap common-case filter). ~1.7–1.9× over the mpz version.
+
+### The scan (`dscan.c`) — fastECPP substeps 1+2, residue-factor variant
+Given `p` and bound `B`, enumerates **every negative fundamental `D` with `|D|<B` all of
+whose prime-discriminant factors `q*` are QR mod p** and reports solvable traces `t`.
+
+- **Factor base** = QR prime discriminants: `q* = q` if `q≡1 (4)`, `−q` if `q≡3 (4)`, plus
+  `−4, ±8`, keeping those with `(q*/p)=1`. Crucial identity: `(q*/p) = (p mod q / q)`
+  (small Legendre) — determination uses **Legendre symbols, never Tonelli**.
+- **Multiplicative sqrt**: precompute `√(q*) mod p` for each factor-base element (the *only*
+  Tonelli-Shanks). A DFS over products of distinct factor-base primes maintains
+  `√(D mod p) = ∏ √(q*)` incrementally (one modmul per D); Cornacchia runs with that root.
+- **Why residue-factor restriction (not F_p² for all D):** genus theory — if all `(qᵢ*/p)=1`
+  then `p` splits in the genus field and `Pr[4p=t²+|D|v² solvable] = g/h = 2^(t−1)/h` (t =
+  #prime-disc factors), a `2^t` boost over the generic `1/(2h)`. So all-QR-factor D are the
+  *highest-yield* ones AND keep `√` in `F_p`. Observed yield ~10% at small B (vs ~0.6% for
+  arbitrary D).
+
+Validated by `test_dscan.py`: DFS enumeration == an independent linear brute force (0
+missing/extra) and solvability == PARI's principal-form oracle (`qfbsolve`), both p mod 4.
+
+### Parallelism (both substeps)
+- **Substep 1 (factor-base build)**: sieve → parallel Legendre determination → parallel
+  Tonelli roots (per-thread `cornacchia_ctx`). ~16× on the roots.
+- **Substep 2 (scan)**: parallelized by **seed-based load balancing**. A naive parallel-for
+  over the first prime plateaus at 3.6× (the smallest-prime subtree is ~27% of the work). Fix:
+  a cheap serial `gen_seeds` recurses only into big subtrees and emits `~SEED_D`-sized
+  independent "seed" chunks (batching the millions of tiny large-prime subtrees), then a flat
+  `omp parallel for` over seeds (each a pure serial `dfs_serial`, no shared state, no task
+  suspension). **13.5× @32 threads** (~85% of the 16-core ceiling; `SEED_D=2000` default, `sd=` to tune).
+
+### Benchmarks (32 threads, B=1e8, seed=1)
+| p bits | build (substep 1) | scan (substep 2) | scan µs/D | solvable rate |
+|---|---|---|---|---|
+| 128 | 0.61 s | 0.26 s | 0.049 (20 M D/s) | 1/601 |
+| 256 | 2.10 s | 0.63 s | 0.102 (9.8 M D/s) | 1/523 |
+| 384 | 3.10 s | 0.75 s | 0.176 (5.7 M D/s) | 1/708 |
+
+Scan is ~24× faster than the original mpz-serial baseline (mpn descent ×1.7 · parallel ×13.5).
+
+### Findings & open levers (for component a)
+- **Substep 1 now dominates** (Tonelli roots ~π(B)/2). Cause: enumerating *all* D<B pushes
+  the factor base up to B. **Bounding the factor base** (small primes + products, à la fastECPP)
+  would slash it and focus the scan on high-yield D — **deferred by user until obviously needed.**
+- Yield falls ~`1/√B` (small D far higher-yield; `Pr[solvable]≈2^(t−1)/√|D|`).
+- **Lehmer/half-gcd does NOT help our descent**: it's short (avg steps `≈0.29·bits`, over a
+  1–2 limb span), so there's no span to batch. Half-gcd is a big win only at their 1000s-of-bits
+  `p`. Per-step small-operand division is our cost; mpn+fast-path is the right tool. A hand-rolled
+  1-limb-quotient division could add ~2× per descent (fiddly, deferred).
+- Scan scaling likely capped by memory bandwidth on the `mpz` sqrt array (~800 MB @B=1e8);
+  **packing sqrts as contiguous limbs** would help — deferred.
+- The "à la Bach" the user first mentioned is actually **Shallit** (the L⁴ fastECPP idea);
+  the multiplicative-sqrt is credited to Crandall–Pomerance §8.4.3.
+- Remainder-tree for `p mod q`: measured negligible at our small `p` (`p mod q` is 0.014 µs/prime
+  @256-bit, ~9% of the already-cheap determine phase). Worth it only at much larger `p`. Deferred.
+
+## Component (b): n⁴-smoothness testing — DONE (v1, validated)
+
+Code: `ecpp/smooth.{c,h}` (engine) + `ecpp/smoothtest.c` (driver) + `ecpp/test_smooth.py`.
+
+### The requirement changed: n⁴-smooth one-shot certificates
+The challenge (github.com/AndrewVSutherland/OneShotPrimalityProofs, verifier `voneshot.py`)
+now accepts an **n⁴-smooth** certificate `(p, A, x₀, m, q₁…q_k)`: `m = ord(P)` on a Montgomery
+curve `E/F_p`, with
+- **`m` is n⁴-smooth**, `n = bitlength(p)` (every prime factor of `m` is `≤ n⁴`);
+- **`L < m < L·r`**, `L = ⌊√p⌋+1+⌊√(4⌊√p⌋)⌋ = (p^{1/4}+1)²`, `r` = least prime of `m`;
+- `m ≤ p+1+⌊2√p⌋` (Hasse); `q₁<…<q_k` = the primes of `m` in `(n², n⁴)` (verifier trial-divides
+  only to `n²` and needs the larger primes listed).
+
+Since `m | #E = p+1∓t`, a valid `m` exists **iff the n⁴-smooth part `S` of `p+1−t` or `p+1+t`
+exceeds `L`** (then `m` = smallest divisor of `S` above `L` lands in `(L,L·r)`; proof: `m/r ≤ L`
+by minimality). **So component (b) = for each solvable `(t,v)`, compute the n⁴-smooth part of the
+two candidate orders and test `S > L`.** This is a big relaxation vs. full smoothness (only ~half
+the bits of `#E` need be smooth), which is why usable `D` are now far more common — but we run the
+test on *every* candidate, so it must be fast.
+
+### Sizing (n = bitlength(p), y = n⁴ = smoothness bound)
+| p | n²=trial bd | y=n⁴ | ‖P‖=∏_{q≤y}q | need S > | u=logN/logy | est. yield/candidate |
+|---|---|---|---|---|---|---|
+| 128b | 2¹⁴ | 2²⁸ | 48 MiB | 2⁶⁴ | 4.6 | ~6% (measured 6.3%) |
+| 256b | 2¹⁶ | 2³² | 738 MiB | 2¹²⁸ | 8 | **~1.3×10⁻³ (measured)** |
+| 384b | 2¹⁷·² | 2³⁴·³ | 3.7 GiB | 2¹⁹² | 11.2 | **< 3×10⁻⁶ (measured, 0/326222)** |
+
+Yield = Pr[n⁴-smooth part of a ~random `#E` exceeds `√p`]. Harder as `p` grows (`y=n⁴` is only
+polynomial in `n`). So we need ~`1/yield` candidates → 128b: tens; 256b: ~10³–10⁴; 384b: **~2×10⁵**.
+2 candidates per solvable `D`. At 128/256-bit the `dscan` scan is cheap (≪1 s) so **smoothness
+testing is the cost**, as the user flagged. **At 384-bit the picture shifts**: the number of solvable
+`D` up to `B` grows only like `~0.6·√B` (yield ∝ 1/√B — small `|D|` dominate), so ~10⁵ candidates
+needs `B≈10¹⁰` and ~2×10⁵ needs `B≈2.5×10¹⁰` — a `dscan` whose factor-base build (π(B) Tonelli
+roots, tens of GB of √-table) becomes the bottleneck. So at the frontier, *producing* candidates
+(component a) costs as much as testing them; the deferred "bound the factor base / favor small |D|"
+lever starts to matter. Smoothness testing itself stays cheap (measured 262 µs/candidate @384-bit).
+
+### Algorithm: Bernstein batched remainder tree (chosen over Pollard–Strassen)
+Per-candidate single-number smoothness (Pollard–Strassen with a wheel) costs `Õ(√y)` modmuls
+≈ `√(2³²)=2¹⁶` × log ≈ 10⁶–10⁷ modmuls ≈ 0.1–1 s **each** — a non-starter at 256/384-bit scale.
+Instead, **batch** with Bernstein ("How to find smooth parts of integers"):
+1. Precompute the single big integer `P = ∏_{prime q≤y} q` (‖P‖ ≈ 1.44·y bits). Depends only on
+   `n`, so **built once per bit-length and cached to disk** (`smooth_base_save/load`).
+2. For a batch `N₀…N_{k-1}`, a **remainder tree** gives `rᵢ = P mod Nᵢ` for all `i`: build the
+   product tree of the `Nᵢ` (root `X=∏Nᵢ`), reduce `P mod X` **once**, then descend.
+3. The y-smooth part is `Sᵢ = gcd(Nᵢ, rᵢ^{2^s} mod Nᵢ)` with `2^s ≥ bitlen(Nᵢ)` (`s≈9`; ~9
+   squarings + a gcd per candidate). **Exact & deterministic**: for a prime `q|Nᵢ`, `q|rᵢ ⇔ q|P
+   ⇔ q≤y`, so the gcd captures exactly the primes `≤y` with full multiplicity.
+
+Cost per candidate ≈ (one big `P mod X`, `Õ(‖P‖)`, amortized over the batch) + `Õ(bitlen·log k)`
+descent + ~9 modmuls. The only step scaling with `y` is `P` (built once) and the top reduction
+(per batch); everything else is quasi-linear in the number size. Crossover vs Pollard–Strassen is
+~400 candidates; at 10³–10⁵ batches this is ~25–300× faster. **This is the same primitive the
+verifier uses** (remainder tree + repeated-squaring `is_smooth`), so the generator mirrors it.
+
+Why not a QS/NFS-style sieve over candidates: our solvable `t` are sparse and scattered over a
+`~2^{129}`-wide range, so there's no contiguous array to step primes through. Small primes *could*
+be stripped by the `t ≡ p+1 (mod q)` test, but the cost is dominated by the many primes near `y`,
+which the remainder tree handles anyway — so a sieve pre-pass buys little. (Deferred.)
+
+### Implementation (`smooth.{c,h}`)
+- `smooth_base_build(y, nth)` — parallel segmented sieve (banded, chunked, `2` + odd wheel) →
+  `uint64` prime array → parallel product tree (OpenMP tasks). `smooth_base_save/load` cache `P`.
+- `smooth_parts(sb, N[], k, S[], nth)` — the remainder tree (parallel level-by-level build +
+  descent) then parallel extraction. Reduces `P mod X` once at the root.
+- `cert_bounds(p, …)` → `L`, Hasse, `n`, `n²`, `n⁴`. `factor_smooth` (trial + Brent-rho) and
+  `build_m` (assemble `m∈(L,L·r)` largest-prime-first, list `q_i∈(n²,n⁴)`) for the rare winners.
+- **Cache gotcha (fixed):** the `P` disk cache uses native limbs + a 64-bit count, NOT
+  `mpz_out_raw` — the latter's **4-byte size field silently overflows for P > 2³¹ bytes** (i.e.
+  p ≳ 384-bit), yielding a corrupt `P` that's missing primes. 256-bit P (0.8 GiB) is under the cap;
+  384-bit P (3.7 GiB) is over it, so this bit the first 384-bit cache. Native-limb format has no cap.
+- Driver `smoothtest`: `pbuild` (build/cache `P`), `parts` (stdin ints → smooth parts; unit test),
+  `gate` (reads `dscan … dump`, forms `N=p+1∓t`, batch-gates, prints winners, self-checks each).
+
+### Validation (`make -C ecpp && python3 ecpp/test_smooth.py`)
+- **Test A**: batched smooth-part vs PARI factor-based smooth part over mixed random integers
+  (y ∈ {10³,10⁶,2²⁸}, batches ≤ 400) — exact.
+- **Test B (end-to-end, 128-bit)**: 872 candidates from `dscan`; every reported winner
+  **independently verified with PARI** (`m|N`, n⁴-smooth, `L<m<L·r≤`Hasse, `q_i` exact) and the
+  gate decision (`S>L`) matches PARI on the full candidate set. 55/55 winners OK, 0 mismatches.
+- Disk-cache round-trip (fresh `P` vs loaded `P`) bit-identical. Every winner is also self-checked
+  in C (`check_winner`, PARI-independent). Algorithm is size-independent (only `n²,n⁴` are `uint64`
+  — fine to ≫1000-bit), so correctness carries to 256/384-bit.
+
+### Measured performance (32 vCPU box, **heavily contended** during these runs — lower bounds)
+- Build+cache `P` (y=2³², 203 280 221 primes → 738 MiB), 16 threads: **62 s one-time** (reused
+  across all `p` of that bit-length; `mpz_out_raw` cache loads in 0.17 s). π(2³²) exact.
+- 256-bit gate, cached `P`, `smooth_parts` on a batch:
+  - 10 514 candidates: **3.5 s** (338 µs/candidate) — was 17.7 s before the parallel reduction.
+  - 28 984 candidates: **4.6 s** (160 µs/candidate) — the top reduction is ~batch-independent, so
+    per-candidate cost falls with batch size (amortization confirmed).
+- 384-bit gate, cached `P` (3.7 GiB, loads 0.66 s), validated vs PARI. Amortization scales with batch:
+  60 196 cand → 385 µs, 141 114 → 262 µs, **326 222 → 181 µs/candidate** (59 s). Over 326 222 real
+  candidates: **0 winners ⇒ yield < 3×10⁻⁶**. So smoothness testing at 384-bit is cheap and correct,
+  but **no certificate was found** — the frontier bottleneck is producing enough candidates: the
+  B=2.5×10¹⁰ `dscan` needed to make 3×10⁵ of them peaked at **58 GiB** (its √-table), and can't push
+  much past B≈4×10¹⁰ without OOM. Finding a 384-bit certificate needs the factor-base-bounding lever
+  (or a lower-RAM scan), not faster smoothness testing.
+- The single `P mod X` top reduction dominates a batch; it's now parallel (`reduce_big_mod`):
+  limb-aligned zero-copy chunks reduced mod `X` concurrently, recombined with `2^{g·chunk} mod X`.
+  ~5× here (contended); ~16× on an idle box. Extraction (≈9 squarings+gcd/candidate) is ~free.
+- Practical upshot: finding a 256-bit certificate's `(D,t,m)` needs a batch of ~few×10³ candidates
+  (yield 1.3×10⁻³) → **~1–2 s** of smoothness work after the one-time `P` build.
+
+### Open levers (component b)
+- **Prefer large batches** (amortize the ~batch-independent top reduction): one batch of all
+  candidates for a given `p`; per-candidate cost then → the quasi-linear descent + squarings.
+- **384-bit**: `P` = 3.7 GiB (955 576 801 primes; measured build 6:53 at 8 threads, contended, 28 GiB
+  peak from the top FFT multiply). Fits in RAM, cached to disk; yield ~10⁻⁵ ⇒ ~10⁵-candidate batches
+  where the parallel `reduce_big_mod` matters most. (Build peak RAM = the top product-tree multiply;
+  a streaming "binary-counter" merge would cut it — deferred, fine to 384-bit.)
+- Tune `y` below `n⁴` if the yield/‖P‖ trade favors it (smaller `P`, fewer qualifying `N`).
+- Extra candidates from `D=−3` (6 twists) / `D=−4` (4 twists) — more orders per solvable `t`.
+- Strip tiny primes with the `t ≡ p+1 (mod q)` sieve test only if profiling shows it helps.
+- Squeeze the last of the 16× on the top reduction (serial `pw`-chain + recombine are small but
+  nonzero); revisit on an idle box.
+
+### Scaling ceiling (for "eventually larger" p)
+`‖P‖ ≈ 1.44·n⁴` bits, so `P` in RAM caps out around **~900-bit p** (n⁴≈2³⁸, P≈40 GiB); at 1024-bit
+n⁴≈2⁴⁰ ⇒ P≈200 GiB > 128 GiB. Past that, `reduce_big_mod` already shows the fix: it consumes `P` as
+independent limb-chunks, so a **disk-resident `P` streamed in chunks** (accumulating `Σ Bⱼ·(2^{jw}
+mod X)`) gives the same result with O(‖X‖) RAM. Also, as p grows the yield falls (n⁴ only polynomial
+in n), so we need more candidates — which stresses `dscan` too (its factor-base build ~π(B)); the
+deferred "bound the factor base / prefer small |D|" lever then starts to matter. 128–384-bit (the
+current target) is comfortable: P ≤ ~4 GiB, fully in RAM.
+
+## Component (c): root of H_D over F_p — DONE (core, validated)
+
+Code: `ecpp/fproot.{c,h}` (engine) + `ecpp/roottest.c` (validation) + `ecpp/hdroot.c` (end-to-end).
+
+`H_D` is degree `d = h(D)` over `F_p`, `p` few-hundred bits (beyond `ff_poly`'s word size). We need
+**one** root `j₀` (a valid j-invariant with CM by D). Because `D` was chosen with `4p = t²+|D|v²`
+solvable, `p` splits in the ring class field and **`H_D` splits completely over `F_p`** — so there is
+no distinct-degree step; we go straight to **equal-degree splitting** for linear factors.
+
+### The inner loop (per the user's recipe)
+Pick random `a`, form `b = (x+a)^{(p−1)/2} mod h`, split by `g = gcd(h, b−1)`, keep the
+smaller-degree side, recurse to degree 1 → root `= −h₀`.
+- **`(x+a)·f mod h`** (h = xᵈ + h′ monic): a shift, a scalar multiply, and subtracting `lead·h` —
+  **no polynomial multiplication**. `O(d)` per step; negligible.
+- **`f² mod h`** dominates. `f²` is formed by **Kronecker substitution** (pack coefficients into one
+  big integer at limb-aligned slots, square with GMP `mpn_sqr`, unpack), then each coefficient is
+  reduced mod p by **Montgomery REDC**, then the degree-(2d−2) result is reduced mod h.
+- **All scalar F_p arithmetic is Montgomery** (multi-limb REDC), coefficients kept in Montgomery
+  form throughout. The Montgomery limb count `s` is padded (`64s ≥ n+34`) so a Kronecker product
+  coefficient (a sum of ≤ d products, `< d·p²`) still lies below `p·R` and REDC returns it directly.
+- **mod-h reduction is Barrett/Newton** (not schoolbook): precompute `rev_d(h)⁻¹ mod x^{d−1}` once
+  per h (Newton), then reduce with two short Kronecker products. This makes the squaring the
+  dominant cost (as intended); schoolbook is kept for `d < 48` (faster there) and as a reference.
+
+### Getting H_D mod p (classpoly)
+`compute_classpoly(D, inv=0, p, file)` (the validated Test-3 ECRT path) writes monic `H_D mod p`
+in the **j-invariant** (`inv=0`), degree `h(D)`, coeffs in `[0,p)`, low-degree-first. `hdroot`
+invokes the `classpoly` binary, parses the file, loads into the Montgomery poly, and finds a root.
+(For smaller class invariants — Weber, double-eta — `H_D` is smaller but a big-`F_p` invariant→j
+map would be needed; j-invariant first keeps the root == j₀ directly. Deferred.)
+
+### Validation & performance (`make -C ecpp && ecpp/roottest`)
+- **`roottest`**: builds `h = ∏(x−rᵢ)` from known roots, finds a root, checks membership + an
+  independent Horner root check; a `pari` mode cross-checks the *entire* root set vs `polrootsmod`.
+  Green over p ∈ {128,160,256,384}-bit, d ∈ {5…640}, the schoolbook/Barrett boundary, 20-trial
+  sweeps. Montgomery layer separately checked vs GMP (200k random mul/add/sub/inv).
+- **Barrett speedup**: d=640 root-find dropped 5.1→0.81 s (256-bit) / 12.6→1.85 s (384-bit), ~6–7×;
+  scaling is now near-linear in d.
+- **End-to-end (`hdroot`, 256-bit p, real class polynomials)**: D=−24447 (h=92) root in 0.069 s,
+  D=−1274827 (h=102) in 0.063 s, D=−103044 (h=104) in 0.072 s — every root verified `H_D(j₀)≡0`.
+  (`H_D mod p` itself via classpoly is 0.05–0.7 s here, depending on |D|.)
+
+### Full pipeline verified end-to-end (certificate assembly prototyped in PARI)
+From `j₀`: build `E/F_p` with that j-invariant, take the twist of order `N=p+1∓t`, put it in
+Montgomery form (2-torsion root `α` with `3α²+a₄` a QR ⇒ `s=1/√(3α²+a₄)`, `A=3αs`), find a point of
+order `m` (random `Q`, `[N/m]Q`, check order), and emit `(p, A, x₀=s(x_P−α), m, q_i)`. Prototyped in
+PARI over three 256-bit smoothness winners, feeding **j₀ straight from the C root-finder** →
+**`voneshot.py` returns True** (p proven prime) for D=−15607 (h=39) and D=−2390772 (**h=528**).
+
+**Two compatibility filters the assembly needs** (both number-theoretic, characterized on the 13
+winners): the Montgomery model exists iff **N ≡ 0 mod 4** (6/13 winners; the N≡2-mod-4 ones have no
+2-torsion QR); and a point of order `m` exists iff **m | exponent(E)** (fails when `E` is
+`Z/2 × Z/(N/2)` and `m`'s 2-part = v₂(N)). So a Montgomery one-shot cert wants `N≡0 mod 4` and an `m`
+whose 2-part ≤ v₂(N)−1 — cheap extra filters for component (b)/the assembler. This validates the whole
+chain **a→b→c→certificate**; the remaining work is a C implementation of the assembly (Montgomery
+x-only ladder over big `F_p`, reusing `fp_ctx`) for speed — the math is confirmed correct.
+
+## classpoly integration & validation
+
+Builds/runs entirely in-tree (no `/usr/local`). `make test` runs three suites (green over
+|D|≤1000):
+- **Test 1** (`compare_pari.py`): classpoly vs PARI `polclass` over Z for every shared invariant
+  — 3037/3037 exact.
+- **Test 2** (`verify_jinv.py`): PARI-unsupported invariants (Atkin A₄₁/₄₇/₅₉/₇₁, Ramanujan t,
+  single-eta, w₃,₁₃) — map class-poly roots mod a split prime to j via `invtoj`, check they cover
+  the Hilbert roots — 1450/1450.
+- **Test 3** (`compare_modp.py`): `H_D mod (2²⁵⁵−19)` == `(H_D over Z) mod (2²⁵⁵−19)` — 3792/3792.
+  This validates the large-modulus ECRT path that component (c) will consume.
+
+### classpoly changes we made
+- Env-var directory hooks: `CLASSPOLY_PHI_DIR`, `CLASSPOLY_H_DIR`, and `CLASSPOLY_TMPDIR` (now a
+  *base* dir; classpoly makes a private per-process `mkdtemp` subdir under it, default `/tmp`).
+- **Parallel-safety fix**: CRT scratch was deterministic per-computation → concurrent runs in a
+  shared dir clobbered each other (SIGABRT). Now self-isolating (per-process /tmp dir, auto-cleaned).
+- Added `invtoj` binary + `ff_all_j_from_inv()` (invariant→j over F_p, power-aware, non-aborting).
+- Code-review fixes: an 864-byte-per-mod-p-run ECRT leak (`ecrt_clear` never called + missing
+  `free(ecrt->m)`); a 5×`mpz_t` leak + a stray cwd-writing "hack" in `classpoly_inv_setup`;
+  `bach_gcd` `abs`→`labs` (long truncation); a missing `break` in `classpoly_load`.
+- Invariant codes match PARI's `polclass` except w₅,₇ (PARI 35 / cp 535) and w₃,₁₃ (39 / 539).
+
+## Gotchas / conventions
+
+- **PARI/GP via subprocess**: pipe the script on **stdin** (`gp -q < script`), NOT `gp file.gp`
+  (that drops into interactive mode and hangs). One statement per line (gp reads line-by-line).
+  `polclass` needs a big stack: `default(parisizemax,"8G")`.
+- **classpoly not parallel-safe across a shared cwd/TMPDIR** unless self-isolating (now fixed);
+  any harness running many instances still runs each in its own dir out of habit.
+- **Build with `-Wall -Wextra`** (the vendored makefiles didn't; that's how we found the bugs).
+  `-march=native` is fine (fixed box).
+- Fundamental discriminant `d=|D|`: `d≡3 mod4` squarefree, OR `d≡0 mod4` with `d/4≡1,2 mod4`
+  squarefree. Prime-discriminant 2-part `∈ {1,−4,8,−8}`.
+
+## Roadmap
+1. ~~Cornacchia + discriminant scan (a)~~ — DONE, parallel, validated.
+2. ~~n⁴-smoothness testing (b)~~ — DONE: Bernstein batched remainder tree (`smooth.{c,h}`),
+   parallel, cached `P`, validated vs PARI (128/256-bit end-to-end, all winners checked).
+3. ~~Root-finding of large `H_D` over `F_p` (c)~~ — DONE: Montgomery + Kronecker + Barrett EDS
+   (`fproot.{c,h}`), validated vs PARI, wired to classpoly end-to-end (`hdroot`).
+4. Wire it together: for each solvable `D`, smoothness-gate `p+1∓t`; on a hit, compute `H_D mod p`,
+   find a root, build `E`, emit the certificate.
+5. Deferred optimizations (do when obviously needed): bound the factor base; pack factor-base
+   sqrts as contiguous limbs; hand-rolled 1-limb-quotient division; SIMD the per-D updates.
