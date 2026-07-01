@@ -22,7 +22,7 @@ Everything builds and runs *inside the project tree*; nothing is written to
 --------
   From the repository root:
 
-      make
+      make -j
 
   This does four things, in order:
     (a) builds ff_poly_v2.0.0 and stages it into ./local  (a project-local prefix),
@@ -31,8 +31,6 @@ Everything builds and runs *inside the project tree*; nothing is written to
         conversion) and stages it into ./local,
     (d) builds the ecpp/ tools (oneshot, cm_method, dscan, smoothtest, roottest, ...)
         against classpoly's headers/objects and ./local.
-
-  Parallel build:  make -j
 
   Clean:      make clean
   Full clean: make distclean          (also removes ./local and ./work)

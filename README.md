@@ -9,7 +9,7 @@ prime and is verifiable in quasi-quadratic time by
 
 ```sh
 git clone <this repo> && cd OneShotFastECPP
-make                              # ff_poly -> classpoly -> ecpp tools  (a few minutes)
+make -j                           # ff_poly -> classpoly -> zp_poly -> ecpp tools (~1 min)
 . ./setenv.sh                     # point classpoly at the bundled modular polynomials
 ./ecpp/oneshot p=$(python3 -c 'print(2**255-19)')
 ```
@@ -32,8 +32,9 @@ python3 voneshot.py 578960446186580977117854925043439539266349923328202820197287
 
 `oneshot` accepts `p=<decimal>` or `pbits=<n> [seed=<s>]` (a random n-bit prime),
 plus `threads=<t>`, `B=<discriminant-scan bound>`, and `pcache=<file>`.  The
-prime-product `P = ∏_{q≤n⁴} q` is built once per bit-length and cached (default
-`/tmp/oneshot_P_<y>.bin`), so repeat runs at the same size take a few seconds.
+prime-product `P = ∏_{q≤y} q` is built once per power-of-2 smoothness bound and
+cached in `work/pcache/` (one file serves a whole octave of bit-lengths), so
+repeat runs in a familiar size range take seconds.
 
 ## What it does
 
@@ -78,7 +79,7 @@ Verify any of them with `python3 voneshot.py $(cat certs/<file>)`.
 
 - **gcc** 13+ and **GMP** 6+ (the build and `oneshot` itself).
 - **PARI/GP** 2.x — only for the correctness test suites, *not* for `oneshot`.
-- Modular polynomials: a **28 MB subset** is bundled (`phi_files/`, see
+- Modular polynomials: a **46 MB subset** is bundled (`phi_files/`, see
   [`INSTALL`](INSTALL)); it covers the class invariants and levels the CM method
   uses over the 128–384-bit range.
 
