@@ -15,9 +15,9 @@ large smooth divisor**, so primality follows in one step (no downrun).
 For fixed `p`, iterate over fundamental imaginary-quadratic discriminants `D`:
 1. **D-search / Cornacchia** — find `D` with `4p = t² − v²D = t² + |D|v²` solvable. *(component a — DONE)*
 2. **Smoothness** — test whether the n⁴-smooth part of `p+1−t` or `p+1+t` exceeds `L≈√p`. *(component b — DONE)*
-3. **Class polynomial** — compute `H_D` (some class invariant) mod `p` with `classpoly`.
-4. **Root of `H_D` over `F_p`** — needs NEW code; `ff_poly` is word-size only, `p` is not. *(component c — TODO)*
-5. Build `E` with trace `±t` from the root, confirm the order.
+3. **Class polynomial** — compute `H_D` (best class invariant) mod `p` with `classpoly`. *(component d)*
+4. **Root of `H_D` over `F_p`** — big-`F_p` root-finding (`ff_poly` is word-size only). *(component c — DONE)*
+5. Build `E` with trace `±t` from the root, find a point of order `m`, emit the certificate. *(component d — DONE)*
 
 Time-critical pieces: (a) Cornacchia over *many* `D`, (b) smoothness of few-hundred-bit
 integers, (c) root-finding of a large `H_D` over `F_p`.
@@ -29,32 +29,36 @@ where the time goes (see below).
 ## Repo layout
 
 - `classpoly_v1.0.3/` — Drew's class-polynomial library (Hilbert CRT method + many class
-  invariants). Builds into `./local`. **Modified by us** (see "classpoly changes").
+  invariants). Builds into `./local`. **Modified by us** (see "classpoly changes"); also holds
+  Drew's `class_inv_mpz.c` (big-p invariant→j, linked by the ecpp tools).
 - `ff_poly_v2.0.0/` — word-size `F_p` / `F_p[x]` library; classpoly's dependency.
-- `phi_files/` — precomputed modular polynomials classpoly needs (2022 files).
-- `local/` — project-local install prefix for ff_poly (gitignored).
-- `work/` — scratch + class-poly output (gitignored).
+- `zp_poly/` — Drew's large-p `F_p[x]` library (Harvey–Sutherland); needed by `class_inv_mpz.c`.
+- `phi_files/` — modular polynomials. A 46 MB subset is committed (`phi_files_manifest.txt`);
+  the full 2.2 GB database stays external (see INSTALL).
+- `local/` — project-local install prefix for ff_poly + zp_poly (gitignored).
+- `work/` — scratch, class-poly output, and `pcache/` prime-product segments (gitignored).
 - `tests/` — classpoly correctness suite vs PARI/GP (Tests 1/2/3).
-- `ecpp/` — **new ECPP code**: Cornacchia solver + discriminant scan (component a).
-- `Makefile` (top level) — builds ff_poly → `local` → classpoly (`make`, `make test`).
-- `setenv.sh` — sets env vars to run classpoly entirely in-tree.
-- `fastecpp.pdf` — Enge's 2024 fastECPP-over-MPI paper (reference).
-
-Nothing is committed yet; the three vendored dirs + phi_files are large. `.gitignore`
-excludes build artifacts (`*.o`, `*.a`, `local/`, `work/`, binaries).
+- `ecpp/` — **the ECPP code**: dscan (a), smooth (b), fproot (c), cminv/cm_method + curve +
+  oneshot (d), plus validation drivers (roottest, invjtest, cmjtest, asmtest, zpbench).
+- `certs/` — voneshot-verified example certificates (2²⁵⁵−19, NIST P-256, secp256k1, 10⁸⁰/⁹⁰/¹⁰⁰+ε).
+- `Makefile` (top level) — `make -j`: ff_poly → classpoly → zp_poly → ecpp; `make test`.
+- `setenv.sh` — env vars to run everything in-tree (phi dir, PATH, `work/pcache`).
+- `fastecpp.pdf` — Enge's 2024 fastECPP-over-MPI paper (reference, not committed).
 
 ## Build & test
 
 ```sh
-make               # build ff_poly (-> ./local) + classpoly (+ invtoj)
+make -j            # ff_poly -> classpoly -> zp_poly -> ecpp tools (~15 s)
 make test          # classpoly suite vs PARI over |D|<=1000 (Tests 1/2/3); ~2.5 min
 make test MAXD=200 # smaller/faster
-cd ecpp && make    # build cmsearch, dscan, descent_bench
+. ./setenv.sh && ./ecpp/oneshot p=<prime>      # the headline tool
 python3 ecpp/test_dscan.py     # validate the discriminant scan vs brute force + PARI
+python3 ecpp/test_smooth.py    # validate the smoothness engine vs PARI
 ```
 
-Environment: `. ./setenv.sh` points classpoly at `phi_files/`, an output dir, and `/tmp`
-scratch. Toolchain: gcc 13, GMP 6, PARI/GP 2.18. Box: **16 physical cores** (32 vCPUs, HT).
+Environment: `. ./setenv.sh` points classpoly at `phi_files/`, sets `work/` output dirs and
+`work/pcache`, and puts the tools on PATH. Toolchain: gcc 13, GMP 6, PARI/GP 2.18.
+Box: **16 physical cores** (32 vCPUs, HT).
 
 ## Component (a): CM-discriminant search — DONE
 

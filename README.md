@@ -23,6 +23,7 @@ Output is a single line `p A x₀ m q₁ … q_k`:
 260621764559582591965379563027288448623 342527 864107 1396061 15802043 177075901
 ```
 
+(Certificates are not unique — your run may print a different valid one.)
 Verify it with the challenge repo's verifier:
 
 ```sh
