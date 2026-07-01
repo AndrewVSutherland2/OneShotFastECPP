@@ -1,0 +1,45 @@
+# build artifacts
+*.o
+*.a
+local/
+work/
+
+# compiled binaries (no extension)
+classpoly_v1.0.3/classpoly
+classpoly_v1.0.3/invtoj
+ecpp/cmsearch
+ecpp/dscan
+ecpp/smoothtest
+ecpp/roottest
+ecpp/hdroot
+ecpp/cm_method
+ecpp/oneshot
+ecpp/descent_bench
+ecpp/invjtest
+ecpp/cmjtest
+ecpp/asmtest
+ecpp/zpbench
+zp_poly/zp_poly_*_test
+zp_poly/zp_poly_find_split_root_cost
+zp_poly/multune
+zp_poly/mulmodtune
+
+# modular-polynomial data (phi_files/).  A 46 MB subset is bundled via git add -f
+# (see phi_files_manifest.txt): for EVERY class-invariant family, the modular
+# polynomials Phi_{l,f} for l <= 71 (enumeration) plus the invariant->j polynomial
+# Psi_f; the classical Phi_l (the phi_j_* files) are included on the same rule --
+# they are needed at the primes dividing the LEVEL of the chosen invariant (e.g.
+# phi_j_59 for Atkin A_59) to derive the starting f-value from the starting
+# j-invariant, not for enumeration.  The full ~2.2 GB database (all levels) is NOT
+# redistributed -- see INSTALL.  Missing files degrade gracefully (oneshot skips
+# that discriminant and tries the next winner).
+phi_files/*
+
+# reference paper + attached notes (not redistributed here)
+fastecpp.pdf
+classinv.tex
+classinv.bbl
+
+# editor/OS cruft
+*.swp
+.DS_Store

@@ -1,0 +1,91 @@
+OneShotFastECPP -- installation
+===============================
+
+Everything builds and runs *inside the project tree*; nothing is written to
+/usr/local or installed system-wide.
+
+
+1. Dependencies
+---------------
+  * gcc  13 or newer          (C11, OpenMP, __int128, -march=native)
+  * GMP  6 or newer           (libgmp, with headers)
+  * make
+  * PARI/GP 2.x               -- ONLY for the correctness test suites; the
+                                 oneshot certificate generator does NOT need it.
+  * python3                   -- for the test scripts and to run voneshot.py.
+
+  On Debian/Ubuntu:
+      sudo apt-get install build-essential libgmp-dev pari-gp python3
+
+
+2. Build
+--------
+  From the repository root:
+
+      make
+
+  This does four things, in order:
+    (a) builds ff_poly_v2.0.0 and stages it into ./local  (a project-local prefix),
+    (b) builds classpoly_v1.0.3 against ./local,
+    (c) builds zp_poly (large-p F_p[x] library; used by classpoly's invariant->j
+        conversion) and stages it into ./local,
+    (d) builds the ecpp/ tools (oneshot, cm_method, dscan, smoothtest, roottest, ...)
+        against classpoly's headers/objects and ./local.
+
+  Parallel build:  make -j
+
+  Clean:      make clean
+  Full clean: make distclean          (also removes ./local and ./work)
+
+
+3. Environment
+--------------
+  Before running the tools, source the environment file once per shell:
+
+      . ./setenv.sh
+
+  It sets CLASSPOLY_PHI_DIR to the bundled ./phi_files, sets an output directory
+  (CLASSPOLY_H_DIR = ./work/H_files), and puts ./classpoly_v1.0.3 and ./ecpp on
+  PATH so the tools can find classpoly, dscan, cm_method, etc.
+
+
+4. Run
+------
+      ./ecpp/oneshot p=<decimal-prime>
+      ./ecpp/oneshot pbits=256 seed=1              # a random 256-bit prime
+      ./ecpp/oneshot p=... threads=16 pcache=P.bin # cache the prime-product P
+
+  The first run at a given bit-length builds the prime-product
+  P = prod_{q <= n^4} q  (n = bitlength(p)); this is cached (default
+  /tmp/oneshot_P_<y>.bin) and reused, so later runs at the same size are fast.
+  Output is one line "p A x0 m q1 ... qk"; verify with voneshot.py from
+  https://github.com/AndrewVSutherland/OneShotPrimalityProofs .
+
+
+5. Modular polynomials (phi_files/)
+-----------------------------------
+  Computing H_D mod p needs modular polynomials.  We bundle a 46 MB subset (the
+  files in phi_files_manifest.txt): for EVERY class-invariant family f, the
+  enumeration polynomials Phi_{l,f} for primes l <= 71 and the invariant->j
+  polynomial Psi_f.  The classical polynomials Phi_l (phi_j_* files) fall under
+  the same rule; they are not used for enumeration (an invariant better than j is
+  always chosen) but ARE needed at the primes dividing the LEVEL of the chosen
+  invariant -- e.g. phi_j_59 when Atkin A_59 is picked -- to derive the starting
+  f-value from the starting j-invariant (see Enge-Sutherland, "Class invariants
+  by the CRT method", Lemma on Psi_f roots), plus phi_j_2 for 2-volcano
+  orientation.  l <= 71 covers every level and enumeration prime observed across
+  extensive traces (128-384-bit p, |D| up to 10^10).
+
+  This is sufficient for oneshot in that range: if a particular discriminant needs
+  a modular polynomial that is not bundled, classpoly reports it and oneshot simply
+  tries the next smoothness winner.  For the full database of modular polynomials
+  (all levels, ~2.2 GB), see A. Sutherland's modular polynomial database; drop the
+  files into phi_files/ (or point CLASSPOLY_PHI_DIR elsewhere).
+
+
+6. Tests (optional, need PARI/GP)
+---------------------------------
+      make test                     # classpoly vs PARI over |D| <= 1000 (~2.5 min)
+      python3 ecpp/test_dscan.py    # CM-discriminant scan vs PARI + brute force
+      python3 ecpp/test_smooth.py   # n^4-smoothness engine vs PARI
+      ./ecpp/roottest pari 256 200  # big-F_p root finder vs PARI polrootsmod
