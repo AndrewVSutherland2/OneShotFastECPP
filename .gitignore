@@ -12,13 +12,24 @@ ecpp/dscan
 ecpp/smoothtest
 ecpp/roottest
 ecpp/hdroot
+ecpp/cm_method
+ecpp/oneshot
 ecpp/descent_bench
+ecpp/invjtest
+ecpp/cmjtest
+ecpp/asmtest
 
-# large precomputed modular-polynomial data (2.2 GB; obtain separately, see design.md)
-phi_files/
+# modular-polynomial data (phi_files/).  A 28 MB subset is bundled via git add -f
+# (see phi_files_manifest.txt): the classical Phi_l (l<=97) plus the class-invariant
+# navigation and invariant->j polynomials the CM method uses over 128-384 bits.  The
+# full ~2.2 GB database (all invariants/levels) is NOT redistributed -- see INSTALL.
+phi_files/*
+!phi_files/phi_j_*.txt
 
-# reference paper (third-party; not redistributed here)
+# reference paper + attached notes (not redistributed here)
 fastecpp.pdf
+classinv.tex
+classinv.bbl
 
 # editor/OS cruft
 *.swp

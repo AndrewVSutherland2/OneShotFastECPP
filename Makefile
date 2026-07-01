@@ -4,7 +4,7 @@
 # written to /usr/local.  ff_poly is compiled and "installed" into ./local
 # (a project-local prefix), and classpoly is then compiled against it.
 #
-#   make              # build ff_poly + classpoly (+ invtoj)
+#   make              # build ff_poly + classpoly + the ecpp tools (incl. oneshot)
 #   make test         # build, then run ALL unit tests over |D| <= 1000
 #   make test MAXD=200 # run the tests over a smaller range (faster)
 #   make test-quick   # run the tests over |D| <= 200
@@ -18,9 +18,16 @@ CPDIR  := $(ROOT)/classpoly_v1.0.3
 WORK   := $(ROOT)/work
 MAXD   ?= 1000
 
-.PHONY: all ff_poly classpoly dirs test test-quick clean distclean
+ECPPDIR := $(ROOT)/ecpp
 
-all: classpoly
+.PHONY: all ff_poly classpoly ecpp dirs test test-quick clean distclean
+
+all: classpoly ecpp
+
+# ---- ecpp: the ECPP tools (dscan, smoothtest, roottest, cm_method, oneshot) ----
+# built against classpoly's class_inv.h and the staged ff_poly.h.
+ecpp: classpoly
+	$(MAKE) -C $(ECPPDIR)
 
 # ---- ff_poly: build the static library and stage it under $(PREFIX) ----
 ff_poly:
@@ -45,6 +52,7 @@ test-quick: classpoly
 clean:
 	$(MAKE) -C $(FFDIR) clean
 	$(MAKE) -C $(CPDIR) clean
+	$(MAKE) -C $(ECPPDIR) clean
 
 distclean: clean
 	rm -rf $(PREFIX) $(WORK)

@@ -65,4 +65,12 @@ void fpoly_clear (fp_poly *f);
 // Returns the root in Montgomery form (root, s limbs).  seed drives the RNG.
 void fp_find_root (const fp_ctx *C, fp_poly *h, mp_limb_t *root, uint64_t seed);
 
+// Find ALL distinct roots of h in F_p (h need NOT split completely).  Writes up
+// to maxr roots (Montgomery form) into roots[i*s]; returns the count.  Works by
+// g = gcd(h, x^p - x) then peeling linear factors.  h is not modified.
+int  fp_find_all_roots (const fp_ctx *C, const fp_poly *h, mp_limb_t *roots, int maxr, uint64_t seed);
+
+// low-level pieces reused by the certificate assembly:
+void fp_pow (const fp_ctx *C, mp_limb_t *r, const mp_limb_t *a, const mpz_t e);  // Montgomery a^e
+
 #endif

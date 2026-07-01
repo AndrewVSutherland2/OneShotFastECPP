@@ -16,9 +16,17 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   gcd, keep smaller side, to degree 1. Big-`F_p` **Montgomery** arithmetic; `f² mod h` via **Kronecker**
   squaring + **Barrett/Newton** reduction; cheap `(x+a)·f` (shift+scalar+adds). Validated vs PARI;
   end-to-end via classpoly (`inv=0` = Hilbert/j). ~0.07 s/root at degree 100, 256-bit.
-- **Next: certificate assembly** — curve `E` from `j₀`, twist of order `p+1∓t`, point of order `m`,
-  Montgomery `(A,x₀)`, emit `(p,A,x₀,m,q_i)` for `voneshot.py`.
+- **Component (d) CM engine + assembly + oneshot**: DONE. `cm_method D p` → j-invariant of `E/F_p`
+  with CM by D (picks the **best class invariant**, `inv=-1`, 25–50× faster than j; converts back to j
+  via `cminv.{c,h}` = Sutherland's `class_inv_mpz.c` formulas + `fproot` for the Atkin/η modular-poly
+  root-find; validated 120/120 vs word-size `invtoj`). `mont_assemble` (`curve.{c,h}`) builds the
+  Montgomery `(A,x₀)` with a point of order `m` (needs `N≡0 mod4` + `m|exponent`). **`oneshot p`** ties
+  it all together → certificate verified by `voneshot.py` (2²⁵⁵−19 in ~6 s w/ cached P).
+- **Full pipeline WORKS**: `git clone && make && . ./setenv.sh && ./ecpp/oneshot p=<prime>`. README+INSTALL.
 - Target `p`: small (128–384 bit), `D` up to `10^10`+.
+- **phi bundle**: only a 28 MB subset (`phi_files_manifest.txt`) is committed (git add -f); full DB (2.2 GB)
+  external. `mpz_j_from_inv` needs classpoly's missing `zp_poly` lib — we substitute `fproot`; if Drew
+  ships `zp_poly`+`bipoly_eval_mod_mpz`, `class_inv_mpz.c` (saved in tree) can be linked directly.
 
 ## Build & test
 ```sh

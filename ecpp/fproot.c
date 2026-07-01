@@ -408,6 +408,64 @@ void fp_find_root (const fp_ctx *C, fp_poly *h, mp_limb_t *root, uint64_t seed)
     fpoly_clear (&b);  fpoly_clear (&g);  fpoly_clear (&q);
 }
 
+void fp_pow (const fp_ctx *C, mp_limb_t *r, const mp_limb_t *a, const mpz_t e)
+{
+    mp_limb_t acc[MAXLIMB], base[MAXLIMB];
+    mpn_copyi (acc, C->R1, C->s);  mpn_copyi (base, a, C->s);
+    for ( int i = 0 ; i < (int) mpz_sizeinbase (e, 2) ; i++ ) {
+        if ( mpz_tstbit (e, i) ) fp_mul (C, acc, acc, base);
+        fp_mul (C, base, base, base);
+    }
+    mpn_copyi (r, acc, C->s);
+}
+
+// g <- g/(x-r) by synthetic division (r a root of g); degree drops by one.
+static void fpoly_div_root (const fp_ctx *C, fp_poly *g, const mp_limb_t *r)
+{
+    int s = C->s, d = g->deg;
+    mp_limb_t carry[MAXLIMB];  mpn_copyi (carry, CF(g, d), s);   // q_{d-1} = g_d
+    for ( int i = d - 1 ; i >= 0 ; i-- ) {
+        mp_limb_t qi[MAXLIMB], t[MAXLIMB];
+        mpn_copyi (qi, carry, s);
+        fp_mul (C, t, r, qi);  fp_add (C, carry, CF(g, i), t);   // next carry = g_i + r*q_i (reads old g_i)
+        mpn_copyi (CF(g, i), qi, s);                            // store q_i
+    }
+    g->deg = d - 1;
+}
+
+int fp_find_all_roots (const fp_ctx *C, const fp_poly *hin, mp_limb_t *roots, int maxr, uint64_t seed)
+{
+    int s = C->s;
+    if ( hin->deg < 1 ) return 0;
+    fp_poly h, xp, g;
+    fpoly_init (C, &h, hin->deg + 2);  fpoly_copy (C, &h, hin);
+    fpoly_make_monic (C, &h);                                  // powmod/gcd/EDS need h monic
+    fpoly_init (C, &xp, hin->deg + 2);  fpoly_init (C, &g, hin->deg + 2);
+    mp_limb_t zero[MAXLIMB];  memset (zero, 0, (size_t) s * sizeof(mp_limb_t));
+    fpoly_powmod_linear (C, &xp, zero, C->pz, &h);              // x^p mod h
+    if ( xp.deg < 0 ) { memset (CF(&xp, 0), 0, (size_t) s * sizeof(mp_limb_t));  xp.deg = 0; }
+    if ( xp.deg < 1 ) { memset (CF(&xp, 1), 0, (size_t) s * sizeof(mp_limb_t));  xp.deg = 1; }
+    fp_sub (C, CF(&xp, 1), CF(&xp, 1), C->R1);                  // xp -= x
+    fpoly_trim (C, &xp);
+    fpoly_gcd (C, &g, &h, &xp);                                 // completely-split part
+    int nr = 0;
+    while ( g.deg >= 1 && nr < maxr ) {
+        mp_limb_t r[MAXLIMB];
+        if ( g.deg == 1 ) {                                    // g1 x + g0 -> root -g0/g1
+            mp_limb_t g1inv[MAXLIMB];  fp_inv (C, g1inv, CF(&g, 1));
+            fp_mul (C, r, CF(&g, 0), g1inv);  fp_sub (C, r, zero, r);
+            mpn_copyi (roots + (size_t) nr * s, r, s);  nr++;  break;
+        }
+        fp_poly gc;  fpoly_init (C, &gc, g.deg + 2);  fpoly_copy (C, &gc, &g);
+        fp_find_root (C, &gc, r, seed + nr);
+        mpn_copyi (roots + (size_t) nr * s, r, s);  nr++;
+        fpoly_div_root (C, &g, r);
+        fpoly_clear (&gc);
+    }
+    fpoly_clear (&h);  fpoly_clear (&xp);  fpoly_clear (&g);
+    return nr;
+}
+
 #ifdef FP_TEST_MAIN
 /* self-test: Montgomery ops vs GMP mpz over random inputs */
 int main (int argc, char **argv)

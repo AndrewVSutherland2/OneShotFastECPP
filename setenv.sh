@@ -4,7 +4,8 @@
 #     classpoly -23 0
 #
 # It points classpoly at the project's modular-polynomial files and a project
-# output directory, and puts the classpoly binary on your PATH.
+# output directory, and puts the classpoly and ecpp binaries (oneshot, cm_method,
+# dscan, ...) on your PATH so they can find each other.
 #
 # CRT scratch files are handled by classpoly itself: it creates a private
 # per-process directory under /tmp (override the base with CLASSPOLY_TMPDIR),
@@ -14,7 +15,7 @@ _oneshot_here="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 
 export CLASSPOLY_PHI_DIR="$_oneshot_here/phi_files"   # modular polynomial files phi_*_*.txt
 export CLASSPOLY_H_DIR="$_oneshot_here/work/H_files"  # default class-polynomial output dir
-export PATH="$_oneshot_here/classpoly_v1.0.3:$PATH"
+export PATH="$_oneshot_here/classpoly_v1.0.3:$_oneshot_here/ecpp:$PATH"
 
 mkdir -p "$CLASSPOLY_H_DIR"
 

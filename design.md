@@ -345,13 +345,45 @@ Builds/runs entirely in-tree (no `/usr/local`). `make test` runs three suites (g
 - Fundamental discriminant `d=|D|`: `d≡3 mod4` squarefree, OR `d≡0 mod4` with `d/4≡1,2 mod4`
   squarefree. Prime-discriminant 2-part `∈ {1,−4,8,−8}`.
 
+## Component (d): best invariant, invariant→j, curve assembly, and `oneshot` — DONE
+
+Code: `ecpp/cminv.{c,h}` (invariant→j) + `ecpp/cm_method.c` + `ecpp/curve.{c,h}` (assembly) +
+`ecpp/oneshot.c`; classpoly's `class_inv_mpz.c` (Sutherland) is used for the hardwired formulas.
+
+**Best invariant, not j.** Forcing the Hilbert (j) class polynomial is wasteful: the best class
+invariant (Weber, Atkin, double-η) is **25–50× faster** to compute (measured: h=528, 1.53→0.06 s;
+h=609, 4.03→0.08 s) and often halves the degree. classpoly picks it with `inv=-1`.
+
+**Invariant→j over big F_p** (`cm_j_from_inv`): the value `f₀` maps to `j` = a root of `Φ_inv(f₀^e, ·)`
+with a per-invariant power `e`. We use Sutherland's exact pure-`mpz` formulas from `class_inv_mpz.c`
+(γ₂/f/t/u families + `mpz_inv_power`) and, for the Atkin/η modular-polynomial cases (which in
+classpoly need the `zp_poly` library, not in this tree), route the `Φ_inv(f₀^e,·)` root-find through
+`fproot` (`invj.{c,h}`). Validated against classpoly's word-size `invtoj` — **120/120** random cases
+across f, f2, f4, γ₂, f8, t, t2, t6, u, u2, u8, six ηs, and three Atkins. (This is the big-`F_p`
+`mpz_j_from_inv` the classpoly header declares.)
+
+**`cm_method D p`** → the j-invariant of `E/F_p` with CM by `D` and trace ±t: Cornacchia → best-inv
+`H_D^inv` → `fproot` root f₀ → `cm_j_from_inv` → verify a candidate's curve has trace ±t (disambiguates
+the ≤2 j-roots and self-checks). Every output verified to be a genuine Hilbert `H_D` root.
+
+**`mont_assemble` (`curve.{c,h}`)**: j₀ → Montgomery `A` (solve `256(A²−3)³=j₀(A²−4)` for `A²`,
+`A=√u`); Montgomery x-only ladder; determine which of `E_A`/twist has order `N`; find `x₀` = x-coord
+of `[N/m]·`(random point on that curve) with order exactly `m`. Produces the `(A, x₀)` voneshot wants.
+
+**`oneshot p`** ties it together (all C; shells to `dscan`, `cm_method`, `classpoly`): scan → keep
+`N≡0 mod 4` orders → batch n⁴-smoothness → for a winner, `cm_method` gives j₀ and `mont_assemble`
+builds `(A, x₀)`; emit `(p, A, x₀, m, q_i)`. Verified end-to-end by **`voneshot.py`** for 2²⁵⁵−19
+(~6 s with cached P) and fresh random primes. Montgomery needs `N≡0 mod 4` and `m|exponent(E)`;
+`oneshot` filters the former and skips winners failing the latter.
+
 ## Roadmap
 1. ~~Cornacchia + discriminant scan (a)~~ — DONE, parallel, validated.
 2. ~~n⁴-smoothness testing (b)~~ — DONE: Bernstein batched remainder tree (`smooth.{c,h}`),
    parallel, cached `P`, validated vs PARI (128/256-bit end-to-end, all winners checked).
 3. ~~Root-finding of large `H_D` over `F_p` (c)~~ — DONE: Montgomery + Kronecker + Barrett EDS
-   (`fproot.{c,h}`), validated vs PARI, wired to classpoly end-to-end (`hdroot`).
-4. Wire it together: for each solvable `D`, smoothness-gate `p+1∓t`; on a hit, compute `H_D mod p`,
-   find a root, build `E`, emit the certificate.
+   (`fproot.{c,h}`), validated vs PARI, wired to classpoly end-to-end.
+4. ~~Wire it together (d)~~ — DONE: best invariant + invariant→j (`cm_method`) + Montgomery curve
+   assembly (`mont_assemble`) + `oneshot`; certificates verified by `voneshot.py`. `git clone && make
+   && . ./setenv.sh && ./ecpp/oneshot p=<prime>`.
 5. Deferred optimizations (do when obviously needed): bound the factor base; pack factor-base
    sqrts as contiguous limbs; hand-rolled 1-limb-quotient division; SIMD the per-D updates.
