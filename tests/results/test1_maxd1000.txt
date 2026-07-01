@@ -1,0 +1,62 @@
+Enumerating fundamental discriminants with |D| <= 1000 ...
+  305 fundamental discriminants
+  8235 candidate (D, invariant) pairs to check
+Running classpoly (24 parallel jobs) ...
+    500/8235 classpoly runs done
+    1000/8235 classpoly runs done
+    1500/8235 classpoly runs done
+    2000/8235 classpoly runs done
+    2500/8235 classpoly runs done
+    3000/8235 classpoly runs done
+    3500/8235 classpoly runs done
+    4000/8235 classpoly runs done
+    4500/8235 classpoly runs done
+    5000/8235 classpoly runs done
+    5500/8235 classpoly runs done
+    6000/8235 classpoly runs done
+    6500/8235 classpoly runs done
+    7000/8235 classpoly runs done
+    7500/8235 classpoly runs done
+    8000/8235 classpoly runs done
+Running PARI polclass (single gp process) ...
+
+========================================================================
+RESULTS
+========================================================================
+compared (both tools produced a polynomial): 3037
+  exact matches : 3037
+  MISMATCHES    : 0
+validity differences (only one tool accepted): 17 PARI-only, 42 classpoly-only
+
+per-invariant pass/compared:
+  j            (pari   0 / cp   0): 305/305
+  f (Weber)    (pari   1 / cp   1): 72/72
+  f^2          (pari   2 / cp   2): 78/78
+  gamma_2      (pari   5 / cp   5): 229/229
+  w_{2,3}      (pari   6 / cp   6): 35/35
+  w_{3,3}      (pari   9 / cp   9): 70/70
+  w_{2,5}      (pari  10 / cp  10): 76/76
+  w_{2,7}      (pari  14 / cp  14): 46/46
+  w_{3,5}      (pari  15 / cp  15): 52/52
+  w_{3,7}      (pari  21 / cp  21): 56/56
+  w_{2,3}^2    (pari  23 / cp  23): 71/71
+  w_{2,5}^2    (pari  24 / cp  24): 83/83
+  w_{2,13}     (pari  26 / cp  26): 85/85
+  w_{2,7}^2    (pari  27 / cp  27): 91/91
+  w_{3,3}^2    (pari  28 / cp  28): 104/104
+  w_{5,7}      (pari  35 / cp 535): 78/78
+  w_{3,13}     (pari  39 / cp 539): 35/35
+  A_3          (pari 103 / cp 103): 186/186
+  A_5          (pari 105 / cp 105): 173/173
+  A_7          (pari 107 / cp 107): 160/160
+  A_11         (pari 111 / cp 111): 145/145
+  A_13         (pari 113 / cp 113): 144/144
+  A_17         (pari 117 / cp 117): 138/138
+  A_19         (pari 119 / cp 119): 136/136
+  A_23         (pari 123 / cp 123): 132/132
+  A_29         (pari 129 / cp 129): 127/127
+  A_31         (pari 131 / cp 131): 130/130
+
+summary written to /home/claude/OneShotFastECPP/work/test1_summary.txt
+
+OK -- all compared polynomials agree.

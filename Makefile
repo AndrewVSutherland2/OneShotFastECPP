@@ -1,0 +1,50 @@
+# Top-level build for the OneShotFastECPP dependencies.
+#
+# Everything builds and installs *within this project tree* -- nothing is
+# written to /usr/local.  ff_poly is compiled and "installed" into ./local
+# (a project-local prefix), and classpoly is then compiled against it.
+#
+#   make              # build ff_poly + classpoly (+ invtoj)
+#   make test         # build, then run ALL unit tests over |D| <= 1000
+#   make test MAXD=200 # run the tests over a smaller range (faster)
+#   make test-quick   # run the tests over |D| <= 200
+#   make clean        # remove object files and binaries
+#   make distclean    # also remove the ./local prefix and ./work scratch dirs
+
+ROOT   := $(abspath $(CURDIR))
+PREFIX := $(ROOT)/local
+FFDIR  := $(ROOT)/ff_poly_v2.0.0
+CPDIR  := $(ROOT)/classpoly_v1.0.3
+WORK   := $(ROOT)/work
+MAXD   ?= 1000
+
+.PHONY: all ff_poly classpoly dirs test test-quick clean distclean
+
+all: classpoly
+
+# ---- ff_poly: build the static library and stage it under $(PREFIX) ----
+ff_poly:
+	$(MAKE) -C $(FFDIR)
+	$(MAKE) -C $(FFDIR) install PREFIX=$(PREFIX)
+
+# ---- classpoly: build against the staged ff_poly ----
+classpoly: ff_poly dirs
+	$(MAKE) -C $(CPDIR) PREFIX=$(PREFIX)
+
+# ---- default class-polynomial output directory (CRT scratch is per-process /tmp) ----
+dirs:
+	mkdir -p $(WORK)/H_files
+
+# Run the full test suite (Test 1: classpoly vs PARI; Test 2: invariant->j checks).
+test: classpoly
+	cd $(ROOT)/tests && ./run_tests.sh $(MAXD)
+
+test-quick: classpoly
+	cd $(ROOT)/tests && ./run_tests.sh 200
+
+clean:
+	$(MAKE) -C $(FFDIR) clean
+	$(MAKE) -C $(CPDIR) clean
+
+distclean: clean
+	rm -rf $(PREFIX) $(WORK)

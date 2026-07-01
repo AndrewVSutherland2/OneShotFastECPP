@@ -1,0 +1,25 @@
+# build artifacts
+*.o
+*.a
+local/
+work/
+
+# compiled binaries (no extension)
+classpoly_v1.0.3/classpoly
+classpoly_v1.0.3/invtoj
+ecpp/cmsearch
+ecpp/dscan
+ecpp/smoothtest
+ecpp/roottest
+ecpp/hdroot
+ecpp/descent_bench
+
+# large precomputed modular-polynomial data (2.2 GB; obtain separately, see design.md)
+phi_files/
+
+# reference paper (third-party; not redistributed here)
+fastecpp.pdf
+
+# editor/OS cruft
+*.swp
+.DS_Store
