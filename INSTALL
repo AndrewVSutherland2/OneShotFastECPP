@@ -64,16 +64,23 @@ Everything builds and runs *inside the project tree*; nothing is written to
 
 5. Modular polynomials (phi_files/)
 -----------------------------------
-  Computing H_D mod p needs modular polynomials.  We bundle a 28 MB subset (the
-  files in phi_files_manifest.txt): all classical polynomials Phi_l (l <= 97) plus
-  the class-invariant navigation and invariant->j polynomials at the levels the CM
-  method uses over the 128-384-bit range.
+  Computing H_D mod p needs modular polynomials.  We bundle a 46 MB subset (the
+  files in phi_files_manifest.txt): for EVERY class-invariant family f, the
+  enumeration polynomials Phi_{l,f} for primes l <= 71 and the invariant->j
+  polynomial Psi_f.  The classical polynomials Phi_l (phi_j_* files) fall under
+  the same rule; they are not used for enumeration (an invariant better than j is
+  always chosen) but ARE needed at the primes dividing the LEVEL of the chosen
+  invariant -- e.g. phi_j_59 when Atkin A_59 is picked -- to derive the starting
+  f-value from the starting j-invariant (see Enge-Sutherland, "Class invariants
+  by the CRT method", Lemma on Psi_f roots), plus phi_j_2 for 2-volcano
+  orientation.  l <= 71 covers every level and enumeration prime observed across
+  extensive traces (128-384-bit p, |D| up to 10^10).
 
   This is sufficient for oneshot in that range: if a particular discriminant needs
   a modular polynomial that is not bundled, classpoly reports it and oneshot simply
   tries the next smoothness winner.  For the full database of modular polynomials
-  (all invariants and levels, ~2.2 GB), see A. Sutherland's modular polynomial
-  database; drop the files into phi_files/ (or point CLASSPOLY_PHI_DIR elsewhere).
+  (all levels, ~2.2 GB), see A. Sutherland's modular polynomial database; drop the
+  files into phi_files/ (or point CLASSPOLY_PHI_DIR elsewhere).
 
 
 6. Tests (optional, need PARI/GP)

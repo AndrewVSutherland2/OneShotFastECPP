@@ -107,13 +107,21 @@ int main (int argc, char **argv)
     smooth_parts (&sb, (const mpz_t*) cN, nc, S, nth);
     t_sm = wall () - t_sm;
 
-    // (d) winners -> cm_method -> assemble
+    // (d) winners -> cm_method -> assemble.  Process winners smallest |D| first:
+    // h(D) ~ sqrt(|D|) drives both the H_D computation and the degree-h(D)
+    // root-find, so a small-|D| winner is vastly cheaper (and gives a nicer cert).
     cornacchia_ctx cc;  cornacchia_init (&cc, p);
     fp_ctx C;  fp_init (&C, p);
     mpz_t A, x0, jj, mm;  mpz_inits (A, x0, jj, mm, NULL);
     uint64_t qs[64];  int nq, done = 0, nwin = 0, ntry = 0;
-    for ( size_t i = 0 ; i < nc && ! done ; i++ ) {
-        if ( mpz_cmp (S[i], L) <= 0 ) continue;
+    size_t *order = malloc (nc * sizeof(size_t));
+    size_t nord = 0;
+    for ( size_t i = 0 ; i < nc ; i++ ) if ( mpz_cmp (S[i], L) > 0 ) order[nord++] = i;
+    for ( size_t a = 0 ; a + 1 < nord ; a++ )                  // tiny insertion sort by |D|
+        for ( size_t b = a + 1 ; b < nord ; b++ )
+            if ( cd[order[b]] < cd[order[a]] ) { size_t t2 = order[a]; order[a] = order[b]; order[b] = t2; }
+    for ( size_t k = 0 ; k < nord && ! done ; k++ ) {
+        size_t i = order[k];
         nwin++;
         if ( ! build_m (mm, qs, &nq, S[i], L, n2, n4) ) continue;
         ntry++;
@@ -129,7 +137,7 @@ int main (int argc, char **argv)
     if ( ! done ) fprintf (stderr, "no certificate (%d smoothness winners, none Montgomery-compatible); increase B\n", nwin);
 
     for ( size_t i=0;i<nc;i++ ) { mpz_clear (cN[i]); mpz_clear (ct[i]); mpz_clear (cNp[i]); mpz_clear (S[i]); }
-    free (cd); free (cN); free (ct); free (cNp); free (S);
+    free (cd); free (cN); free (ct); free (cNp); free (S); free (order);
     mpz_clears (t, v, np1, Nm, A, x0, jj, mm, L, Hass, p, NULL);
     smooth_base_clear (&sb);  cornacchia_clear (&cc);  fp_clear (&C);
     return done ? 0 : 2;

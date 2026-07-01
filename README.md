@@ -61,6 +61,19 @@ See **[`design.md`](design.md)** for the full technical writeup and performance.
 | `smoothtest` | batched n⁴-smoothness testing (Bernstein remainder tree) |
 | `roottest` | validate the big-`F_p` root finder against PARI |
 
+## Example certificates (`certs/`, all verified by `voneshot.py`)
+
+| prime | file | notes |
+|---|---|---|
+| 2²⁵⁵ − 19 | `certs/25519.txt` | Curve25519 field prime |
+| 2²⁵⁶ − 2²²⁴ + 2¹⁹² + 2⁹⁶ − 1 | `certs/p256.txt` | NIST P-256 field prime |
+| 2²⁵⁶ − 2³² − 977 | `certs/k256.txt` | secp256k1 (Bitcoin) field prime |
+| 10⁸⁰ + 129 | `certs/1e80p129.txt` | |
+| 10⁹⁰ + 289 | `certs/1e90p289.txt` | |
+| 10¹⁰⁰ + 267 | `certs/1e100p267.txt` | |
+
+Verify any of them with `python3 voneshot.py $(cat certs/<file>)`.
+
 ## Requirements
 
 - **gcc** 13+ and **GMP** 6+ (the build and `oneshot` itself).
