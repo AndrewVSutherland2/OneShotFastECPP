@@ -124,7 +124,7 @@ int main (int argc, char **argv)
     // 2. best-invariant H_D^inv mod p (classpoly inv=-1); parse I=<code> and coeffs
     char pdec[8192];  gmp_snprintf (pdec, sizeof pdec, "%Zd", p);
     char outf[256];   snprintf (outf, sizeof outf, "/tmp/cm_%ld.txt", -D);
-    char cmd[16384];
+    char cmd[24576];
     double t0 = wall (), t_hd;
     // Parallel classpoly only pays off when H_D is large: each worker repeats the
     // setup (class group, phi loads, ECRT precomputation), so for small h(D) the
@@ -142,7 +142,8 @@ int main (int argc, char **argv)
             jobs, edir, jobs, D, pdec, outf, D, pdec, outf);
         int rc = system (cmd);
         t_hd = wall () - t0;
-        snprintf (cmd, sizeof cmd, "rm -rf %s", edir);  system (cmd);
+        snprintf (cmd, sizeof cmd, "rm -rf %s", edir);
+        if ( system (cmd) != 0 ) fprintf (stderr, "warning: cleanup of %s failed\n", edir);
         if ( rc != 0 ) { fprintf (stderr, "parallel classpoly failed\n"); return 1; }
     } else {
         snprintf (cmd, sizeof cmd, "classpoly %ld -1 %s %s -1", D, pdec, outf);
