@@ -84,18 +84,18 @@ they depend only on the prime range, not the bit-length).  Certificates verified
 
 | p | bits | wall time | D | certificate |
 |---|---|---|---|---|
-| 10⁶⁰ + 7 | 200 | 14.9 s | −74777567 | `certs/1e60p7.txt` |
-| 10⁷⁰ + 33 | 233 | 3.0 s | −2334607 | `certs/1e70p33.txt` |
+| 10⁶⁰ + 7 | 200 | 14.4 s | −74777567 | `certs/1e60p7.txt` |
+| 10⁷⁰ + 33 | 233 | 3.5 s | −2334607 | `certs/1e70p33.txt` |
 | 10⁸⁰ + 129 | 266 | 6.0 s | −15682116 | `certs/1e80p129.txt` |
-| 10⁹⁰ + 289 | 299 | 25.7 s | −103904536 | `certs/1e90p289.txt` |
-| 10¹⁰⁰ + 267 | 333 | 13.3 min | −2557415807 | `certs/1e100p267.txt` |
+| 10⁹⁰ + 289 | 299 | 24.7 s | −103904536 | `certs/1e90p289.txt` |
+| 10¹⁰⁰ + 267 | 333 | 8.6 min | −2557415807 | `certs/1e100p267.txt` |
 
 The 10¹⁰⁰ run climbs to the full n⁴ smoothness bound and a discriminant-scan bound
-of 4×10⁹, and its only winner has h(D) = 35085 — a degree-35085 class polynomial.
-(That case motivated two subsequent improvements already in this repo: `cm_method
-jobs=N` computes H_D with N parallel ECRT workers — 158 s → 29 s at h=35085,
-byte-identical output — and the large-degree root-finder now uses zp_poly's
-sub-quadratic half-gcd.)
+of 4×10⁹, and its only winner has h(D) = 35085 — a degree-35085 class polynomial
+(computed with parallel ECRT workers, 158 s → 29 s, and root-found with the
+OpenMP/half-gcd root finder).  Roughly half of the remaining time is the
+discriminant scan and a third is the one-time prime-product segment builds,
+which later runs load from `work/pcache/`.
 
 ## Some cryptographically relevant certificates (`certs/`)
 
