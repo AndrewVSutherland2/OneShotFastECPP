@@ -469,3 +469,74 @@ degree ~4096. OpenMP is safe here since ff_poly is not involved (its globals are
 Validated: membership + PARI cross-checks across the serial/parallel threshold and the nested-task
 depths. Benchmarks deferred (box busy); expected ~3–5× wall on the deg-35085 root-find, on top of
 the hybrid gcd.
+
+### Montgomery representability is a class invariant; exponent-aware m; winner polish (2026-07-02)
+Investigating why nextprime(10⁶⁰) was slow relative to its neighbors uncovered three things:
+
+**A representability criterion.** The `N ≡ 0 mod 4` filter is necessary but not sufficient for a
+Montgomery model, and representability turns out to be a **class-wide invariant** of (D, p) (checked:
+0 of 204 H_D roots representable for a failing case — it is determined by E(F_p) ≅ O/(π−1), not by
+the individual curve). Empirically (27,843 CM classes, no exceptions) plus the parity argument
+(∏ᵢ f′(eᵢ) = −□ over the three 2-torsion shifts):
+> **A Montgomery model exists ⟺ 4 | N, and additionally 8 | N when p ≡ 3 (mod 4).**
+For p ≡ 3 (mod 4) this removes half the candidate pool at intake (`oneshot` now filters
+`N ≡ 4 mod 8` immediately); for p ≡ 1 (mod 4) every 4 | N class is representable. Both traces
+±t share the twist pair, so the other sign never rescues a filtered class.
+
+**Exponent-aware m.** A point of order m needs `m | exponent(E) = N/n₁` where
+E(F_p) ≅ Z/n₁ × Z/(N/n₁) and `n₁ = gcd(a−1, b)` for π−1 = a+bω (computable directly from
+(t, v, D); validated against PARI `ellgroup`, D < −4). `oneshot` now gates winners on (and builds m
+from) `S` with the n₁-supported part divided out, so `m | exponent` holds by construction and the
+assembly point-search cannot fail on torsion structure. (Previously such failures permanently
+discarded good winners — e.g. an h=645 winner was skipped for an h=6122 one.)
+
+**Winner polish.** Committing to a winner costs ~cm_method(h(D)), h ≈ √|D|·L(1,χ)/π, while one more
+ladder rung is often far cheaper — so when the best current winner is expensive and a rung is cheap,
+`oneshot` deepens first and re-collects (a smaller-|D| winner may gate at the next rung). Cost model:
+t_cm ≈ (0.35√|D|/2000)^1.6·(n/256) vs t_rung ≈ 1.44(y′−y)/10⁸ s.
+
+Also: assembly failures no longer kill a candidate permanently (retry when S grows), and the
+j-invariant is cached per candidate so retries never recompute H_D.
+
+### Walk-to-the-floor: isogeny-volcano descent instead of filtering (2026-07-02)
+Drew's observation, replacing both the representability filter and the conservative exponent
+reduction above: representability and torsion structure are properties of the *curve*, not the
+isogeny class — and every N with 4 | N has an isogenous curve with a Montgomery model. For each
+prime ℓ where the ℓ-torsion is non-cyclic (exactly the ℓ | n₁, all of which divide v), descend the
+ℓ-volcano to its **floor**: Φ_ℓ(X, j(E)) splits completely there (rank-2 ℓ-torsion), pick three
+roots, walk each non-backtracking (divide out X − j_prev, i.e. pick any other root) in lockstep; at
+most two initial edges run along the crater, so at least one path descends and reaches the floor —
+detected by Φ_ℓ(X, j)/(X − j_prev) having no F_p-rational root — within depth v_ℓ(v) (walkers are
+capped at v_ℓ(v)+2 steps, which cuts off crater loops).
+
+At the floor the ℓ-Sylow subgroup is cyclic, for both twists (v_ℓ(b′) = 0 in π = a + b′ω′ over the
+floor order). Consequences: (1) for ℓ=2 with 4 | N, the unique 2-torsion point sits under a point of
+order 4, hence is halvable, hence f′(e₁) = □ — **always Montgomery-representable**, killing the
+p ≡ 3 (mod 4), N ≡ 4 (mod 8) obstruction (PoC + production validated: the descended curves of the
+previously-failing classes all assemble); (2) for odd ℓ | n₁, the certificate m may use the full
+ℓ-power of N — `oneshot` now reduces S only by the part of n₁ at primes > 97 (no classical Φ_ℓ in
+the bundle; such n₁ parts are ~1/ℓ² rare anyway).
+
+Implementation: `invj_load_phi` parses the classical `phi_j_<ell>.txt` (symmetric `[a,b] c` format,
+all ℓ ≤ 97 committed); `volcano_floor` in `cm_method.c` reuses `invj_jroots` (bipoly eval at the
+current j + `fp_find_all_roots`) as the neighbor oracle; `cm_method ells=2,7` descends after the
+usual trace verification and re-verifies the floor curve (the k-formula model may land on the other
+twist, so only |trace| is checked). `oneshot` passes `ells=` = the primes ℓ ≤ 97 dividing n₁ at
+commit time and no longer filters at intake. Isogenous curves share N, so certificates are unchanged
+in form. Validated vs PARI: floor detection (1 rational Φ_ℓ-neighbor), H_D-root ancestry, trace,
+cyclic ℓ-Sylow (both twists), representability — for the single (ℓ=2) and double (ℓ=2,7) descents.
+
+Impact (clean-cache protocol; the pool for p ≡ 3 mod 4 doubles back, and cheap previously-filtered
+D return): nextprime(10⁶⁰) 10.8 s → **0.8 s** (winner D=−1165507, a previously-filtered class);
+P-256 12 → 11.1 s, secp256k1 9 → 7.7 s (both p ≡ 3 mod 4, new smaller-|D| winners); 10⁷⁰/10⁸⁰/10⁹⁰
+unchanged (p ≡ 1 mod 4, same winners). nextprime(10¹⁰⁰) went 5.3 → 7.9 min with the same winner: it
+only enters the pool at the final B=4.1×10⁹ widen, and the doubled pool doubles Wtest per rung, so
+the c=1 trigger buys the three top rungs (~135 s of segment builds) before that widen — the extra
+depth bought nothing here. The dominant cost either way is the discriminant scan (the deferred
+factor-base/Tonelli item); `c` could also be scaled by pool growth, but that's untuned speculation
+and is left alone.
+
+Also removed: the automatic pickup of legacy full-product caches (`oneshot_P_<y>.bin`) as the ladder
+base — a 2³² base rung front-loads the entire testing cost per candidate and defeats the ladder's
+amortization (measured 3× slower at 299 bits when one was lying around); explicit `pcache=` still
+works. Benchmark protocol = fresh `ONESHOT_PCACHE_DIR`.

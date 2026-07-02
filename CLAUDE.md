@@ -3,11 +3,11 @@
 CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
 **Read `design.md` for the full technical picture, decisions, and roadmap.**
 
-## Status (2026-07-01) — COMPLETE, end to end
+## Status (2026-07-02) — COMPLETE, end to end
 - **`oneshot p=<prime>` → n⁴-smooth one-shot ECPP certificate**, verified by the challenge's
-  `voneshot.py`. Cold runs (no caches): 256-bit ~3 s, 10⁸⁰+129 4.5 s, 10⁹⁰+289 24 s,
-  10¹⁰⁰+267 ~19 min (B=10¹⁰ scan + a degree-35085 H_D). Verified certs in `certs/`
-  (2²⁵⁵−19, NIST P-256, secp256k1, 10⁸⁰/10⁹⁰/10¹⁰⁰+ε).
+  `voneshot.py`. Cold runs (fresh pcache): 10⁶⁰+7 0.8 s, 10⁸⁰+129 5.5 s, 10⁹⁰+289 23.6 s,
+  10¹⁰⁰+267 7.9 min (B=4×10⁹ scan + a degree-35085 H_D dominate). Verified certs in `certs/`
+  (2²⁵⁵−19, NIST P-256, secp256k1, 10⁶⁰…10¹⁰⁰+ε).
 - **Adaptive smoothness ladder** (Drew's design): no upfront `P=∏_{q≤n⁴}q` build — prime-product
   *segments* `(y_{j−1},y_j]` climb from just above n² (final rung capped at n⁴), candidates keep a
   running smooth part across rungs, pool widens via incremental `dscan Bmin=` chunks; deepen-vs-widen
@@ -26,7 +26,12 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   `mpz_j_from_inv` = `class_inv_mpz.c` linked against **zp_poly** (both in-tree now); fproot-based
   `cm_j_from_inv_ref` kept as cross-check + for the generic single-η range; 3-way validated 81/81
   vs `invtoj`). `mont_assemble` (`curve.{c,h}`) builds Montgomery `(A,x₀)` with a point of order `m`
-  (needs `N≡0 mod4` + `m|exponent`; oneshot filters/skips accordingly).
+  (needs `N≡0 mod4` + `m|exponent`).
+- **Isogeny-volcano descent** (`cm_method ells=2,7,...`): for each prime ℓ | n₁ (≤ 97), walk the
+  ℓ-volcano to its floor (3 non-backtracking walkers on classical `Φ_ℓ` roots, cap v_ℓ(v)+2) —
+  the floor curve has cyclic ℓ-Sylow, so it is always Montgomery-representable (kills the
+  p≡3 mod 4, N≡4 mod 8 obstruction — no intake filter) and m may use the full ℓ-power of N
+  (oneshot reduces S only by n₁'s >97 part). Validated vs PARI (floor/trace/group/representability).
 - **phi bundle**: 46 MB subset committed via git add -f (`phi_files_manifest.txt`): every family's
   `Φ_{ℓ,f}` for ℓ≤71 + all `Ψ_f` maps. Classical `Φ_ℓ` are needed only at the chosen invariant's
   LEVEL primes (e.g. `phi_j_59` for A₅₉) + `Φ_2`, never for enumeration. Full 2.2 GB DB external;

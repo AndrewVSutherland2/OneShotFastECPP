@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <math.h>
 #include <gmp.h>
 #include "cornacchia.h"
 #include "smooth.h"
@@ -35,18 +36,22 @@
 
     Prints  p A x0 m q1 ... qk  (verifiable by voneshot.py).  Needs the classpoly
     environment (source setenv.sh).  Segment caches live in $ONESHOT_PCACHE_DIR
-    (default /tmp); a legacy full-product cache (oneshot_P_<y>.bin) is used as the
-    ladder base when present.
+    (default /tmp); pcache=<file> seeds the ladder with a prebuilt full product
+    (smoothtest pbuild save=).
 */
 
 static double wall (void)
 { struct timespec ts; clock_gettime (CLOCK_MONOTONIC, &ts); return ts.tv_sec + 1e-9*ts.tv_nsec; }
 
-// cm_method D p -> j0 (best class invariant, converted to a j-invariant)
-static int cm_jinvariant (long D, const char *pdec, int jobs, mpz_t j0)
+// cm_method D p -> j0 (best class invariant, converted to a j-invariant).  ells
+// (may be "") lists the primes ell | n1 to clear by ell-volcano descent: the
+// floor curve cm_method then returns has cyclic ell-Sylow for each one, so it is
+// Montgomery-representable and a point of order m exists whenever m | N/n1h.
+static int cm_jinvariant (long D, const char *pdec, int jobs, const char *ells, mpz_t j0)
 {
     char cmd[16384];
-    snprintf (cmd, sizeof cmd, "cm_method D=%ld p=%s jobs=%d 2>/dev/null", D, pdec, jobs > 0 ? jobs : 1);
+    snprintf (cmd, sizeof cmd, "cm_method D=%ld p=%s jobs=%d%s%s 2>/dev/null", D, pdec,
+              jobs > 0 ? jobs : 1, *ells ? " ells=" : "", ells);
     FILE *pp = popen (cmd, "r");  if ( ! pp ) return 0;
     char line[8192];  int got = 0;
     while ( fgets (line, sizeof line, pp) )
@@ -54,13 +59,23 @@ static int cm_jinvariant (long D, const char *pdec, int jobs, mpz_t j0)
     pclose (pp);  return got;
 }
 
+// the primes with a classical Phi_ell in the phi-file bundle (all ell <= 97):
+// cm_method can descend these to the volcano floor, so only larger primes of n1
+// constrain the certificate m.
+static const unsigned long ELLS[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97};
+#define NELLS (sizeof(ELLS)/sizeof(ELLS[0]))
+
 #define MAXSEG 32
 
 typedef struct {
     // candidate pool
     unsigned long *cd;          // |D|
-    mpz_t *cN, *ct, *S;         // order, trace, running smooth part
-    unsigned char *dead;        // 1 = assembly failed, skip forever
+    mpz_t *cN, *ct, *S, *cj;    // order, trace, running smooth part, cached j (0 = none)
+    mpz_t *n1;                  // E(F_p) = Z/n1 x Z/(N/n1): n1 = gcd(a-1, b), pi-1 = a+b*omega
+    mpz_t *n1h;                 // the part of n1 at primes > 97: not clearable by volcano
+                                // descent, so m must avoid it (m | N/n1h); usually 1
+    unsigned char *dead;        // 1 = cm_method failed for this D, skip forever
+    unsigned long *Sfail;       // bits of S at the last failed assembly (retry once S grows)
     size_t nc, cap;
     // ladder
     smooth_base seg[MAXSEG];
@@ -104,6 +119,24 @@ static void add_segment (engine *E, uint64_t ynext, const char *cdir, int nth)
     E->nseg++;
 }
 
+
+// Seff = S with the n1h-supported part removed: a point of order m needs
+// m | exponent(E) = N/n1, and v_q(S) = v_q(N) for q <= y, so removing q^v_q(n1h)
+// for the primes of n1h makes any m | Seff automatically divide the exponent.
+// Only the >97 part n1h of n1 is removed: cm_method clears the small primes of
+// n1 by descending their isogeny volcanoes to the floor (walk-to-the-floor with
+// the classical Phi_ell), where the ell-Sylow subgroup is cyclic.
+static void exponent_part (mpz_t Seff, mpz_t g, mpz_t r, const mpz_t S, const mpz_t n1)
+{
+    mpz_set (Seff, S);  mpz_set (r, n1);
+    for (;;) {
+        mpz_gcd (g, r, Seff);
+        if ( mpz_cmp_ui (g, 1) == 0 ) break;
+        mpz_divexact (Seff, Seff, g);
+        mpz_divexact (r, r, g);
+    }
+}
+
 int main (int argc, char **argv)
 {
     mpz_t p;  mpz_init (p);
@@ -141,25 +174,17 @@ int main (int argc, char **argv)
     E.cap = 8192;
     E.cd = malloc (E.cap * sizeof(unsigned long));
     E.cN = malloc (E.cap * sizeof(mpz_t));  E.ct = malloc (E.cap * sizeof(mpz_t));
-    E.S  = malloc (E.cap * sizeof(mpz_t));  E.dead = malloc (E.cap);
+    E.S  = malloc (E.cap * sizeof(mpz_t));  E.cj = malloc (E.cap * sizeof(mpz_t));
+    E.n1 = malloc (E.cap * sizeof(mpz_t));  E.n1h = malloc (E.cap * sizeof(mpz_t));
+    E.dead = malloc (E.cap);  E.Sfail = malloc (E.cap * sizeof(unsigned long));
 
-    // ladder base: explicit pcache= file, else the largest cached legacy full
-    // product P(2^j) (j descending), else start empty just above n^2.
+    // ladder base: explicit pcache= file (a full product from smoothtest pbuild),
+    // else start empty just above n^2.  (No automatic pickup of full-product
+    // caches: a big base rung front-loads the whole testing cost per candidate
+    // and defeats the ladder's amortization -- measured 3x slower at 299 bits.)
     if ( pcache && smooth_base_load (&E.seg[0], pcache) && smooth_base_selfcheck (&E.seg[0]) ) {
         E.Pbits = mpz_sizeinbase (E.seg[0].P, 2);  E.ycur = E.seg[0].y;  E.nseg = 1;
         fprintf (stderr, "base P: y=%llu from %s\n", (unsigned long long) E.ycur, pcache);
-    } else {
-        int jtop = 0;  while ( (1ULL << (jtop+1)) < n4 ) jtop++;      // 2^jtop <= n4 < 2^(jtop+2)
-        for ( int j = jtop + 1 ; j >= 0 && ! E.nseg ; j-- ) {
-            uint64_t y = 1ULL << j;
-            if ( y < n2 ) break;
-            char path[512];
-            snprintf (path, sizeof path, "%s/oneshot_P_%llu.bin", cdir, (unsigned long long) y);
-            if ( smooth_base_load (&E.seg[0], path) && E.seg[0].lo == 0 && smooth_base_selfcheck (&E.seg[0]) ) {
-                E.Pbits = mpz_sizeinbase (E.seg[0].P, 2);  E.ycur = E.seg[0].y;  E.nseg = 1;
-                fprintf (stderr, "base P: y=%llu (legacy cache)\n", (unsigned long long) E.ycur);
-            }
-        }
     }
     if ( ! E.nseg ) {                                       // first rung: (0, 2^ceil(log2 n^2)]
         uint64_t y0 = 1;  while ( y0 < n2 ) y0 <<= 1;
@@ -169,7 +194,8 @@ int main (int argc, char **argv)
 
     cornacchia_ctx cc;  cornacchia_init (&cc, p);
     fp_ctx C;  fp_init (&C, p);
-    mpz_t A, x0, jj, mm, t, v, np1, Nm;  mpz_inits (A, x0, jj, mm, t, v, np1, Nm, NULL);
+    mpz_t A, x0, jj, mm, t, v, np1, Nm, Seff, gtmp, rtmp;
+    mpz_inits (A, x0, jj, mm, t, v, np1, Nm, Seff, gtmp, rtmp, NULL);
     mpz_add_ui (np1, p, 1);
     uint64_t qs[64];  int nq;
     size_t *idx = NULL;  size_t idxcap = 0;
@@ -182,18 +208,63 @@ int main (int argc, char **argv)
         // ---- winners so far, smallest |D| first ----
         size_t nwin = 0;
         if ( idxcap < E.nc ) { idxcap = E.nc + 16;  idx = realloc (idx, idxcap * sizeof(size_t)); }
-        for ( size_t i = 0 ; i < E.nc ; i++ )
-            if ( ! E.dead[i] && mpz_cmp (E.S[i], L) > 0 ) idx[nwin++] = i;
+        for ( size_t i = 0 ; i < E.nc ; i++ ) {
+            if ( E.dead[i] || mpz_cmp (E.S[i], L) <= 0 ) continue;
+            if ( E.Sfail[i] && mpz_sizeinbase (E.S[i], 2) <= E.Sfail[i] ) continue;
+            exponent_part (Seff, gtmp, rtmp, E.S[i], E.n1h[i]);
+            if ( mpz_cmp (Seff, L) > 0 ) idx[nwin++] = i;
+        }
         for ( size_t a = 0 ; a + 1 < nwin ; a++ )
             for ( size_t b = a + 1 ; b < nwin ; b++ )
                 if ( E.cd[idx[b]] < E.cd[idx[a]] ) { size_t w = idx[a]; idx[a] = idx[b]; idx[b] = w; }
+
+        // ---- winner polish: consuming a winner costs ~cm_method(h), h ~ sqrt(|D|).
+        // While the best winner is expensive and one more rung is cheap, deepen
+        // first -- a smaller-|D| winner may gate at the next rung and save far
+        // more than the rung costs (measured: a 200-bit run once committed to an
+        // h=6122 winner when h=162 was one rung away in the same pool).
+        while ( nwin && E.ycur < n4 ) {
+            double h_est = 0.35 * sqrt ((double) E.cd[idx[0]]);
+            double t_cm  = pow (h_est / 2000.0, 1.6) * ((double) n / 256.0);      // ~seconds
+            uint64_t yn2 = (E.ycur << 1 >= n4) ? n4 : E.ycur << 1;
+            double t_rng = 1.443 * (double)(yn2 - E.ycur) / 1e8;                  // build+test ~seconds
+            if ( t_cm <= 2 * t_rng ) break;
+            fprintf (stderr, "[polish: best D=-%lu (h~%.0f) costs ~%.1fs, next rung ~%.1fs -> deepen]\n",
+                     E.cd[idx[0]], h_est, t_cm, t_rng);
+            add_segment (&E, yn2, cdir, nth);
+            size_t kk = 0;
+            for ( size_t i = 0 ; i < E.nc ; i++ ) if ( ! E.dead[i] ) idx[kk++] = i;
+            test_batch (&E, E.nseg - 1, idx, kk, nth);
+            nwin = 0;
+            for ( size_t i = 0 ; i < E.nc ; i++ ) {
+                if ( E.dead[i] || mpz_cmp (E.S[i], L) <= 0 ) continue;
+                if ( E.Sfail[i] && mpz_sizeinbase (E.S[i], 2) <= E.Sfail[i] ) continue;
+                exponent_part (Seff, gtmp, rtmp, E.S[i], E.n1h[i]);
+                if ( mpz_cmp (Seff, L) > 0 ) idx[nwin++] = i;
+            }
+            for ( size_t a = 0 ; a + 1 < nwin ; a++ )
+                for ( size_t b = a + 1 ; b < nwin ; b++ )
+                    if ( E.cd[idx[b]] < E.cd[idx[a]] ) { size_t w = idx[a]; idx[a] = idx[b]; idx[b] = w; }
+        }
+
         for ( size_t k = 0 ; k < nwin && ! done ; k++ ) {
             size_t i = idx[k];
             nwin_total++;
-            if ( ! build_m (mm, qs, &nq, E.S[i], L, n2, n4) ) continue;       // may succeed at a higher rung
-            if ( ! cm_jinvariant (-(long) E.cd[i], pdec, nth > 0 ? nth : 16, jj) ) { E.dead[i] = 1; continue; }
-            if ( ! mont_assemble (&C, &cc, jj, E.cN[i], E.ct[i], mm, A, x0, 0xA55E + (unsigned) E.cd[i]) )
-                { E.dead[i] = 1; continue; }
+            exponent_part (Seff, gtmp, rtmp, E.S[i], E.n1h[i]);
+            if ( ! build_m (mm, qs, &nq, Seff, L, n2, n4) ) continue;         // may succeed at a higher rung
+            if ( ! mpz_sgn (E.cj[i]) ) {                    // j is candidate-specific: compute once, cache
+                char ellstr[160];  size_t el = 0;  ellstr[0] = 0;
+                for ( size_t e = 0 ; e < NELLS ; e++ )
+                    if ( mpz_divisible_ui_p (E.n1[i], ELLS[e]) )
+                        el += snprintf (ellstr + el, sizeof ellstr - el, "%s%lu", el ? "," : "", ELLS[e]);
+                if ( ! cm_jinvariant (-(long) E.cd[i], pdec, nth > 0 ? nth : 16, ellstr, jj) ) { E.dead[i] = 1; continue; }
+                mpz_set (E.cj[i], jj);
+            } else mpz_set (jj, E.cj[i]);
+            if ( ! mont_assemble (&C, &cc, jj, E.cN[i], E.ct[i], mm, A, x0, 0xA55E + (unsigned) E.cd[i]) ) {
+                // should be rare now that m | exponent(E) holds by construction;
+                // retry if S ever grows (a different m becomes available)
+                E.Sfail[i] = mpz_sizeinbase (E.S[i], 2);  continue;
+            }
             gmp_printf ("%Zd %Zd %Zd %Zd", p, A, x0, mm);
             for ( int q = 0 ; q < nq ; q++ ) printf (" %lu", (unsigned long) qs[q]);
             printf ("\n");
@@ -231,14 +302,45 @@ int main (int argc, char **argv)
                 for ( int sgn = 0 ; sgn < 2 ; sgn++ ) {
                     if ( sgn == 0 ) mpz_sub (Nm, np1, t);  else mpz_add (Nm, np1, t);
                     if ( mpz_fdiv_ui (Nm, 4) != 0 ) continue;          // Montgomery needs N = 0 mod 4
+                    // (No further representability filter: the H_D roots are not
+                    // Montgomery-representable when p = 3 mod 4 and N = 4 mod 8,
+                    // but cm_method descends the 2-volcano to a floor curve with
+                    // cyclic 2-Sylow Z/4, whose 2-torsion point is halvable and
+                    // hence representable.)
                     if ( E.nc == E.cap ) {
                         E.cap *= 2;
                         E.cd = realloc (E.cd, E.cap*sizeof(unsigned long));
                         E.cN = realloc (E.cN, E.cap*sizeof(mpz_t));  E.ct = realloc (E.ct, E.cap*sizeof(mpz_t));
-                        E.S  = realloc (E.S,  E.cap*sizeof(mpz_t));  E.dead = realloc (E.dead, E.cap);
+                        E.S  = realloc (E.S,  E.cap*sizeof(mpz_t));  E.cj = realloc (E.cj, E.cap*sizeof(mpz_t));
+                        E.n1 = realloc (E.n1, E.cap*sizeof(mpz_t));  E.n1h = realloc (E.n1h, E.cap*sizeof(mpz_t));
+                        E.dead = realloc (E.dead, E.cap);  E.Sfail = realloc (E.Sfail, E.cap*sizeof(unsigned long));
                     }
                     E.cd[E.nc] = d;  mpz_init_set (E.cN[E.nc], Nm);  mpz_init_set (E.ct[E.nc], t);
-                    mpz_init_set_ui (E.S[E.nc], 1);  E.dead[E.nc] = 0;  E.nc++;
+                    mpz_init_set_ui (E.S[E.nc], 1);  mpz_init (E.cj[E.nc]);
+                    // group structure Z/n1 x Z/(N/n1):  pi = (t + v sqrt(D))/2, n1 = gcd(a-1, b)
+                    // over O = Z[omega].  For trace +t (N = p+1-t):
+                    //   D = 0 mod 4:  n1 = gcd(t/2 - 1, v);   D = 1 mod 4:  n1 = gcd((t-v)/2 - 1, v)
+                    // and t -> -t for the other sign.  (Validated vs PARI ellgroup, D < -4.)
+                    mpz_init (E.n1[E.nc]);
+                    {
+                        mpz_t a2;  mpz_init (a2);
+                        if ( (d & 3) == 0 ) {                          // D = -d = 0 mod 4
+                            mpz_fdiv_q_2exp (a2, t, 1);                // t/2
+                            if ( sgn == 0 ) mpz_sub_ui (a2, a2, 1); else { mpz_neg (a2, a2); mpz_sub_ui (a2, a2, 1); }
+                        } else {                                       // D = 1 mod 4
+                            if ( sgn == 0 ) mpz_sub (a2, t, v); else { mpz_neg (a2, t); mpz_sub (a2, a2, v); }
+                            mpz_fdiv_q_2exp (a2, a2, 1);
+                            mpz_sub_ui (a2, a2, 1);
+                        }
+                        mpz_gcd (E.n1[E.nc], a2, v);
+                        mpz_clear (a2);
+                    }
+                    // n1h = n1 stripped of the volcano-descendable primes (<= 97)
+                    mpz_init_set (E.n1h[E.nc], E.n1[E.nc]);
+                    for ( size_t e = 0 ; e < NELLS ; e++ )
+                        while ( mpz_divisible_ui_p (E.n1h[E.nc], ELLS[e]) )
+                            mpz_divexact_ui (E.n1h[E.nc], E.n1h[E.nc], ELLS[e]);
+                    E.dead[E.nc] = 0;  E.Sfail[E.nc] = 0;  E.nc++;
                 }
             }
             pclose (ds);
@@ -253,8 +355,8 @@ int main (int argc, char **argv)
         }
     }
 
-    for ( size_t i = 0 ; i < E.nc ; i++ ) { mpz_clear (E.cN[i]); mpz_clear (E.ct[i]); mpz_clear (E.S[i]); }
-    free (E.cd); free (E.cN); free (E.ct); free (E.S); free (E.dead); free (idx);
+    for ( size_t i = 0 ; i < E.nc ; i++ ) { mpz_clear (E.cN[i]); mpz_clear (E.ct[i]); mpz_clear (E.S[i]); mpz_clear (E.cj[i]); mpz_clear (E.n1[i]); mpz_clear (E.n1h[i]); }
+    free (E.cd); free (E.cN); free (E.ct); free (E.S); free (E.cj); free (E.n1); free (E.n1h); free (E.dead); free (E.Sfail); free (idx);
     for ( int s = 0 ; s < E.nseg ; s++ ) smooth_base_clear (&E.seg[s]);
     mpz_clears (A, x0, jj, mm, t, v, np1, Nm, L, Hass, p, NULL);
     cornacchia_clear (&cc);  fp_clear (&C);
