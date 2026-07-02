@@ -21,6 +21,11 @@ typedef struct { bterm *t; int n, cap, maxf, maxj; } bipoly;
 int  invj_load  (bipoly *P, const char *phidir, const char *invstr);
 void invj_clear (bipoly *P);
 
+// load the classical modular polynomial Phi_ell(X,Y) from <phidir>/phi_j_<ell>.txt
+// (lines "[a,b] c" with a >= b; off-diagonal terms stand for X^a Y^b + X^b Y^a).
+// The bundle has every prime ell <= 97.  Returns 1 ok.
+int  invj_load_phi (bipoly *P, const char *phidir, int ell);
+
 // given f0 (a root of H_D^inv, Montgomery form), write every j in F_p with
 // Phi_inv(f0,j)=0 into jroots[i*s] (Montgomery); returns the count (<= maxj).
 int  invj_jroots (const fp_ctx *C, const bipoly *P, const mp_limb_t *f0,

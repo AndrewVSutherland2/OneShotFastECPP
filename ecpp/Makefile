@@ -46,7 +46,7 @@ zpbench:    zpbench.o fproot.o
 cornacchia.o cmsearch.o dscan.o: cornacchia.h
 smooth.o smoothtest.o:           smooth.h
 fproot.o roottest.o hdroot.o:    fproot.h
-invj.o cminv.o invjtest.o cmjtest.o: invj.h fproot.h
+invj.o cminv.o invjtest.o cmjtest.o cm_method.o: invj.h fproot.h
 curve.o asmtest.o:               curve.h fproot.h cornacchia.h smooth.h
 cminv.o cm_method.o:             cminv.h
 oneshot.o:                       cornacchia.h smooth.h fproot.h curve.h

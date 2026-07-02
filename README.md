@@ -84,19 +84,26 @@ they depend only on the prime range, not the bit-length).  Certificates verified
 
 | p | bits | wall time | D | certificate |
 |---|---|---|---|---|
-| 10⁶⁰ + 7 | 200 | 10.8 s | −74777567 | `certs/1e60p7.txt` |
+| 10⁶⁰ + 7 | 200 | 0.8 s | −1165507 | `certs/1e60p7.txt` |
 | 10⁷⁰ + 33 | 233 | 3.1 s | −2334607 | `certs/1e70p33.txt` |
-| 10⁸⁰ + 129 | 266 | 5.2 s | −15682116 | `certs/1e80p129.txt` |
-| 10⁹⁰ + 289 | 299 | 23.5 s | −103904536 | `certs/1e90p289.txt` |
-| 10¹⁰⁰ + 267 | 333 | 5.3 min | −2557415807 | `certs/1e100p267.txt` |
+| 10⁸⁰ + 129 | 266 | 5.5 s | −15682116 | `certs/1e80p129.txt` |
+| 10⁹⁰ + 289 | 299 | 23.6 s | −103904536 | `certs/1e90p289.txt` |
+| 10¹⁰⁰ + 267 | 333 | 7.9 min | −2557415807 | `certs/1e100p267.txt` |
 
-The 10¹⁰⁰ run widens its discriminant scan to 4×10⁹ and its only winner has
-h(D) = 35085 — a degree-35085 class polynomial (computed with parallel ECRT
-workers and root-found with the OpenMP/half-gcd root finder).  Note that
-10⁶⁰+7 and 10¹⁰⁰+267 are ≡ 3 (mod 4), which structurally halves their usable
-candidates: a Montgomery model exists iff 4 | #E, and additionally 8 | #E when
-p ≡ 3 (mod 4) — representability is an invariant of the CM class (see
-design.md), and oneshot filters accordingly.
+The 10¹⁰⁰ time is dominated by the discriminant scan (its only winner appears at
+B ≈ 4×10⁹) plus a degree-35085 class polynomial (parallel ECRT workers, OpenMP/
+half-gcd root finder).  The 10⁶⁰ winner is a class that would be skipped without
+isogeny-volcano descent (see below).
+
+A subtlety worth knowing about: a Montgomery model exists iff 4 | #E, and
+additionally 8 | #E when p ≡ 3 (mod 4) — and whether it exists is an invariant
+of the CM class, so no root of H_D works when it fails.  Rather than discard
+such discriminants (half the pool when p ≡ 3 mod 4), `cm_method` descends the
+2-isogeny volcano to its floor with the classical Φ₂ (walk-to-the-floor,
+non-backtracking): the floor curve has cyclic 2-Sylow, its 2-torsion point is
+halvable, and a Montgomery model always exists.  The same walk at odd primes
+ℓ | n₁ (E ≅ Z/n₁ × Z/n₂) makes the ℓ-Sylow cyclic, so the certificate m can
+use the full ℓ-power of #E instead of avoiding it (see design.md).
 
 ## Some cryptographically relevant certificates (`certs/`)
 

@@ -59,6 +59,30 @@ int invj_load (bipoly *P, const char *phidir, const char *invstr)
 void invj_clear (bipoly *P)
 { for ( int i = 0 ; i < P->n ; i++ ) mpz_clear (P->t[i].c);  free (P->t);  memset (P, 0, sizeof(*P)); }
 
+int invj_load_phi (bipoly *P, const char *phidir, int ell)
+{
+    char path[4096];
+    snprintf (path, sizeof path, "%s/phi_j_%d.txt", phidir, ell);
+    FILE *f = fopen (path, "r");
+    if ( ! f ) return 0;
+    memset (P, 0, sizeof(*P));
+    mpz_t c;  mpz_init (c);
+    char *ln = NULL;  size_t lncap = 0;                        // Phi_97 coefficients run to ~750 digits
+    while ( getline (&ln, &lncap, f) > 0 ) {
+        int a, b;
+        if ( sscanf (ln, "[%d,%d]", &a, &b) != 2 ) continue;
+        char *q = strchr (ln, ']');  q++;
+        while ( *q == ' ' || *q == '\t' ) q++;
+        char *e = q + strlen (q);
+        while ( e > q && isspace ((unsigned char) e[-1]) ) *--e = 0;
+        if ( mpz_set_str (c, q, 10) != 0 ) continue;
+        bp_push (P, a, b, c);
+        if ( a != b ) bp_push (P, b, a, c);                    // symmetric storage: a >= b only
+    }
+    free (ln);  fclose (f);  mpz_clear (c);
+    return P->n > 0;
+}
+
 int invj_jroots (const fp_ctx *C, const bipoly *P, const mp_limb_t *f0,
                  mp_limb_t *jroots, int maxj, uint64_t seed)
 {

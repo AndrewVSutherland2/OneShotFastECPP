@@ -6,6 +6,7 @@
 #include "cornacchia.h"
 #include "fproot.h"
 #include "cminv.h"
+#include "invj.h"
 
 /*
     cm_method D p : given a discriminant D < -4 and a prime p for which the norm
@@ -13,12 +14,22 @@
     of an elliptic curve E/F_p with CM by the order of discriminant D and Frobenius
     trace +/-t.
 
-      cm_method D=<disc<-4> (p=<dec> | pbits=<n> [seed=<s>]) [v]
+      cm_method D=<disc<-4> (p=<dec> | pbits=<n> [seed=<s>]) [ells=<l1,l2,...>] [v]
 
     It picks the best class invariant internally (classpoly inv=-1), computes the
     small H_D^inv mod p, finds a root f0 with fproot, converts f0 to a j-invariant
     with the big-F_p invariant->j map (cm_j_from_inv), and verifies the resulting
     curve has trace +/-t.  Needs the classpoly environment (source setenv.sh).
+
+    ells=<l1,l2,...> (primes <= 97, each dividing v): after verifying j, descend
+    the ell-volcano to its floor for each listed ell, and output the floor
+    j-invariant instead.  The H_D roots have non-cyclic ell-torsion exactly for
+    the primes ell | n1 = gcd(a-1,b) (pi = a+b*omega); a floor curve has cyclic
+    ell-Sylow, which (a) makes it Montgomery-representable even when p = 3 mod 4
+    and N = 4 mod 8 (the unique 2-torsion point sits under a point of order 4, so
+    it is halvable and f'(e1) is a square), and (b) lets a certificate m use the
+    full ell-power of N (m | exponent(E) = N/n1', and n1' loses its ell part).
+    Isogenous curves have the same trace, so the certificate is unaffected.
 */
 
 static double wall (void)
@@ -93,9 +104,45 @@ static int trace_sign (const mpz_t A4, const mpz_t A6, const mpz_t p, const mpz_
     return sign;
 }
 
+// ---- walk-to-the-floor on the ell-isogeny volcano ----
+// jm (Montgomery) is a vertex with non-cyclic ell-torsion, so Phi_ell(X, jm)
+// splits completely (ell+1 rational neighbors: <= 2 along the crater, the rest
+// down).  Start three non-backtracking walkers (next = root of Phi_ell(X, j_cur)
+// other than j_prev) in lockstep: at least one heads down, and below the surface
+// every onward edge descends, so it reaches the floor -- detected by Phi_ell
+// having no rational root besides j_prev -- within the volcano depth v_ell(v).
+// Crater walkers never terminate and are cut off by maxsteps.  Replaces jm by a
+// floor j-invariant and returns 1; returns 0 only on broken input assumptions.
+static int volcano_floor (const fp_ctx *C, const bipoly *P, mp_limb_t *jm, int maxsteps, uint64_t seed)
+{
+    int s = C->s, maxr = P->maxj + 2;
+    mp_limb_t *r = malloc ((size_t) maxr * s * sizeof(mp_limb_t));
+    mp_limb_t cur[3][64], prev[3][64], sj[2][64];
+    fp_set_ui (C, sj[0], 0);  fp_set_ui (C, sj[1], 1728);      // singular j's the curve
+                                                               // formulas can't take
+    int nw = invj_jroots (C, P, jm, r, maxr, seed);
+    if ( nw < 1 ) { free (r); return 0; }                      // not rank-2 ell-torsion
+    if ( nw > 3 ) nw = 3;
+    for ( int w = 0 ; w < nw ; w++ ) { mpn_copyi (prev[w], jm, s);  mpn_copyi (cur[w], r + (size_t)w*s, s); }
+    for ( int step = 0 ; step <= maxsteps ; step++ ) {
+        for ( int w = 0 ; w < nw ; w++ ) {
+            int n = invj_jroots (C, P, cur[w], r, maxr, seed + 999*step + w), keep = -1;
+            for ( int i = 0 ; i < n && keep < 0 ; i++ )
+                if ( ! fp_equal (C, r + (size_t)i*s, prev[w]) ) keep = i;
+            if ( keep < 0 ) {                                  // no onward edge: the floor
+                if ( fp_equal (C, cur[w], sj[0]) || fp_equal (C, cur[w], sj[1]) ) continue;
+                mpn_copyi (jm, cur[w], s);  free (r);  return 1;
+            }
+            mpn_copyi (prev[w], cur[w], s);  mpn_copyi (cur[w], r + (size_t)keep*s, s);
+        }
+    }
+    free (r);  return 0;
+}
+
 int main (int argc, char **argv)
 {
     long D = 0;  unsigned long pbits = 0, seed = 1;  int want_v = 0, jobs = 1;
+    int ells[16], nells = 0;
     mpz_t p;  mpz_init (p);
     for ( int i = 1 ; i < argc ; i++ ) {
         if ( ! strncmp (argv[i], "D=", 2) ) D = strtol (argv[i]+2, 0, 10);
@@ -103,6 +150,13 @@ int main (int argc, char **argv)
         else if ( ! strncmp (argv[i], "pbits=", 6) ) pbits = strtoul (argv[i]+6, 0, 10);
         else if ( ! strncmp (argv[i], "seed=", 5) ) seed = strtoul (argv[i]+5, 0, 10);
         else if ( ! strncmp (argv[i], "jobs=", 5) ) jobs = atoi (argv[i]+5);
+        else if ( ! strncmp (argv[i], "ells=", 5) ) {
+            for ( char *q = argv[i]+5 ; *q && nells < 16 ; ) {
+                int l = (int) strtol (q, &q, 10);
+                if ( l >= 2 && l <= 97 ) ells[nells++] = l;
+                if ( *q == ',' ) q++;
+            }
+        }
         else if ( ! strcmp (argv[i], "v") ) want_v = 1;
     }
     if ( D >= -4 ) { fprintf (stderr, "need D < -4\n"); return 2; }
@@ -129,7 +183,7 @@ int main (int argc, char **argv)
     // Parallel classpoly only pays off when H_D is large: each worker repeats the
     // setup (class group, phi loads, ECRT precomputation), so for small h(D) the
     // single-job path is faster.  h(D) ~ sqrt(|D|), so gate on |D|.
-    if ( jobs > 1 && d < 100000000UL ) jobs = 1;
+    if ( jobs > 1 && d < 20000000UL ) jobs = 1;
     if ( jobs > 1 ) {
         // parallel H_D: run `jobs` classpoly ECRT workers (each covers prime indices
         // = jobid-1 mod jobs and dumps partial sums), then a merge pass writes outf.
@@ -192,14 +246,44 @@ int main (int argc, char **argv)
     }
     if ( ! found ) { fprintf (stderr, "no CM-by-D j among %d candidates (inv=%d)\n", nj, inv); return 3; }
 
-    // 5. output
+    // 5. optional ell-volcano descents: replace jout by a floor j-invariant
+    if ( nells ) {
+        const char *phid = phidir;
+        mp_limb_t jm[64];
+        fp_set_mpz (&C, jm, jout);
+        for ( int e = 0 ; e < nells ; e++ ) {
+            int ell = ells[e], depth = 0;
+            mpz_set (tmp, v);
+            while ( mpz_divisible_ui_p (tmp, ell) ) { mpz_divexact_ui (tmp, tmp, ell); depth++; }
+            if ( ! depth ) continue;                           // ell does not divide v: already cyclic
+            bipoly Phi;
+            if ( ! invj_load_phi (&Phi, phid, ell) ) { fprintf (stderr, "no phi_j_%d.txt in %s\n", ell, phid); return 4; }
+            int ok = volcano_floor (&C, &Phi, jm, depth + 2, 0xF10E * seed + ell);
+            invj_clear (&Phi);
+            if ( ! ok ) { fprintf (stderr, "ell=%d volcano descent failed (D=%ld)\n", ell, D); return 4; }
+        }
+        fp_get_mpz (&C, jout, jm);
+        // an isogenous curve has trace +/-t; re-verify as a sanity check.  The
+        // sign can flip: the k-formula model below is an arbitrary one of the two
+        // quadratic twists with invariant jout, so report the sign it lands on.
+        mpz_ui_sub (tmp, 1728, jout);  mpz_mod (tmp, tmp, p);
+        mpz_invert (tmp, tmp, p);  mpz_mul (k, jout, tmp);  mpz_mod (k, k, p);
+        mpz_mul_ui (A4, k, 3);  mpz_mod (A4, A4, p);
+        mpz_mul_ui (A6, k, 2);  mpz_mod (A6, A6, p);
+        tsign = trace_sign (A4, A6, p, t, &cc);
+        if ( ! tsign ) { fprintf (stderr, "floor curve has wrong trace (D=%ld)\n", D); return 4; }
+    }
+
+    // 6. output
     gmp_printf ("D %ld\n", D);
     gmp_printf ("p %Zd\n", p);
     gmp_printf ("inv %d\n", inv);
     gmp_printf ("t %s%Zd\n", tsign > 0 ? "" : "-", t);         // Frobenius trace (#E = p+1-trace)
     if ( want_v ) gmp_printf ("v %Zd\n", v);
     gmp_printf ("j %Zd\n", jout);
-    fprintf (stderr, "[H_D^inv(deg %d, inv %d): %.3fs   root: %.3fs   %d j-candidate(s)]\n", deg, inv, t_hd, t_root, nj);
+    fprintf (stderr, "[H_D^inv(deg %d, inv %d): %.3fs   root: %.3fs   %d j-candidate(s)", deg, inv, t_hd, t_root, nj);
+    for ( int e = 0 ; e < nells ; e++ ) fprintf (stderr, "%s ell=%d floor", e ? "," : "  ", ells[e]);
+    fprintf (stderr, "]\n");
 
     for ( int i = 0 ; i <= deg ; i++ ) mpz_clear (hc[i]);
     free (hc);
