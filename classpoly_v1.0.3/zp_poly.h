@@ -31,10 +31,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef ZP_POLY_H
 #define ZP_POLY_H
 
-#include "zp_poly/zp_poly_mul.h"
-#include "zp_poly/zp_poly_util.h"
-#include "zp_poly/zp_roots.h"
-#include "zp_poly/zp2.h"
-#include "zp_poly/zp_poly_main.h"
+#include "zp_poly_mul.h"
+#include "zp_poly_util.h"
+#include "zp_roots.h"
+#include "zp2.h"
+#include "zp_poly_main.h"
 
  #endif

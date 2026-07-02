@@ -14,32 +14,25 @@
 ROOT   := $(abspath $(CURDIR))
 PREFIX := $(ROOT)/local
 FFDIR  := $(ROOT)/ff_poly_v2.0.0
-ZPDIR  := $(ROOT)/zp_poly
 CPDIR  := $(ROOT)/classpoly_v1.0.3
 WORK   := $(ROOT)/work
 MAXD   ?= 1000
 
 ECPPDIR := $(ROOT)/ecpp
 
-.PHONY: all ff_poly zp_poly classpoly ecpp dirs test test-quick clean distclean
+.PHONY: all ff_poly classpoly ecpp dirs test test-quick clean distclean
 
 all: classpoly ecpp
 
 # ---- ecpp: the ECPP tools (dscan, smoothtest, roottest, cm_method, oneshot) ----
-# built against classpoly's headers/objects and the staged ff_poly + zp_poly.
-ecpp: classpoly zp_poly
+# built against classpoly's headers/objects (which include zp_poly) and ff_poly.
+ecpp: classpoly
 	$(MAKE) -C $(ECPPDIR)
 
 # ---- ff_poly: build the static library and stage it under $(PREFIX) ----
 ff_poly:
 	$(MAKE) -C $(FFDIR)
 	$(MAKE) -C $(FFDIR) install PREFIX=$(PREFIX)
-
-# ---- zp_poly: large-p F_p[x] library (Harvey-Sutherland); used by classpoly's
-# mpz_j_from_inv (class_inv_mpz.c), which the ecpp tools link ----
-zp_poly:
-	$(MAKE) -C $(ZPDIR)
-	$(MAKE) -C $(ZPDIR) install PREFIX=$(PREFIX)
 
 # ---- classpoly: build against the staged ff_poly ----
 classpoly: ff_poly dirs
@@ -58,7 +51,6 @@ test-quick: classpoly
 
 clean:
 	$(MAKE) -C $(FFDIR) clean
-	$(MAKE) -C $(ZPDIR) clean
 	$(MAKE) -C $(CPDIR) clean
 	$(MAKE) -C $(ECPPDIR) clean
 

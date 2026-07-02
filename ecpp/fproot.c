@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <omp.h>
 #include <gmp.h>
 #include "zp_poly.h"
 #include "fproot.h"
@@ -170,6 +171,92 @@ static void fpoly_mul_kron (const fp_ctx *C, fp_poly *g, const fp_poly *a, const
     g->deg = gd;  free (pa);  free (pb);  free (rr);  fpoly_trim (C, g);
 }
 
+// ---- task-parallel products (OpenMP): Karatsuba over polynomial halves ----
+// The ~n squarings of the EDS exponentiation are sequentially dependent, so the
+// parallelism has to live inside each product: split f = f0 + x^m f1 and compute
+// the three Karatsuba half-products as OpenMP tasks (recursively: 3^depth leaves,
+// each a serial Kronecker product big enough to keep GMP's FFT efficient).
+#define FPROOT_PAR_MIN 2048     // parallelize when both halves have degree >= this
+
+static int par_depth (int d)
+{ return d >= 32768 ? 3 : d >= 8192 ? 2 : d >= 2*FPROOT_PAR_MIN ? 1 : 0; }
+
+// read-only view of coefficients [lo, hi] of f (trimmed)
+static fp_poly fpoly_view (const fp_ctx *C, const fp_poly *f, int lo, int hi)
+{
+    int s = C->s;
+    fp_poly v;
+    if ( hi > f->deg ) hi = f->deg;
+    v.c = f->c + (size_t) lo * s;  v.deg = hi - lo;  v.cap = 0;
+    while ( v.deg >= 0 && fp_is_zero (C, v.c + (size_t) v.deg * s) ) v.deg--;
+    return v;
+}
+
+// g = a*b (full product; g distinct from a,b), parallel Karatsuba
+static void fpoly_mul_par_rec (const fp_ctx *C, fp_poly *g, const fp_poly *a, const fp_poly *b, int depth)
+{
+    int s = C->s, da = a->deg, db = b->deg;
+    if ( da < 0 || db < 0 ) { g->deg = -1; return; }
+    int mind = da < db ? da : db;
+    if ( depth <= 0 || mind < 2 * FPROOT_PAR_MIN ) { fpoly_mul_kron (C, g, a, b); return; }
+    int m = ((da > db ? da : db) + 1) / 2;                   // split in coefficient index
+    fp_poly a0 = fpoly_view (C, a, 0, m - 1), a1 = fpoly_view (C, a, m, da);
+    fp_poly b0 = fpoly_view (C, b, 0, m - 1), b1 = fpoly_view (C, b, m, db);
+    // asum = a0+a1, bsum = b0+b1
+    int dasum = a0.deg > a1.deg ? a0.deg : a1.deg, dbsum = b0.deg > b1.deg ? b0.deg : b1.deg;
+    fp_poly as, bs, z0, z1, z2;
+    fpoly_init (C, &as, dasum + 2);  fpoly_init (C, &bs, dbsum + 2);
+    for ( int i = 0 ; i <= dasum ; i++ ) {
+        if ( i <= a0.deg && i <= a1.deg ) fp_add (C, as.c + (size_t)i*s, a0.c + (size_t)i*s, a1.c + (size_t)i*s);
+        else if ( i <= a0.deg ) mpn_copyi (as.c + (size_t)i*s, a0.c + (size_t)i*s, s);
+        else mpn_copyi (as.c + (size_t)i*s, a1.c + (size_t)i*s, s);
+    }
+    as.deg = dasum;  fpoly_trim (C, &as);
+    for ( int i = 0 ; i <= dbsum ; i++ ) {
+        if ( i <= b0.deg && i <= b1.deg ) fp_add (C, bs.c + (size_t)i*s, b0.c + (size_t)i*s, b1.c + (size_t)i*s);
+        else if ( i <= b0.deg ) mpn_copyi (bs.c + (size_t)i*s, b0.c + (size_t)i*s, s);
+        else mpn_copyi (bs.c + (size_t)i*s, b1.c + (size_t)i*s, s);
+    }
+    bs.deg = dbsum;  fpoly_trim (C, &bs);
+
+    fpoly_init (C, &z0, a0.deg + b0.deg + 2);
+    fpoly_init (C, &z1, as.deg + bs.deg + 2);
+    fpoly_init (C, &z2, a1.deg + b1.deg + 2);
+    #pragma omp task shared(z0, a0, b0)
+    fpoly_mul_par_rec (C, &z0, &a0, &b0, depth - 1);
+    #pragma omp task shared(z2, a1, b1)
+    fpoly_mul_par_rec (C, &z2, &a1, &b1, depth - 1);
+    fpoly_mul_par_rec (C, &z1, &as, &bs, depth - 1);
+    #pragma omp taskwait
+
+    // g = z0 + (z1 - z0 - z2) x^m + z2 x^{2m}
+    int dg = da + db;
+    for ( int i = 0 ; i <= dg ; i++ ) memset (g->c + (size_t)i*s, 0, (size_t)s*sizeof(mp_limb_t));
+    for ( int i = 0 ; i <= z0.deg ; i++ ) mpn_copyi (g->c + (size_t)i*s, z0.c + (size_t)i*s, s);
+    for ( int i = 0 ; i <= z2.deg ; i++ ) mpn_copyi (g->c + (size_t)(2*m + i)*s, z2.c + (size_t)i*s, s);
+    for ( int i = 0 ; i <= z1.deg ; i++ ) {
+        mp_limb_t t[MAXLIMB];
+        mpn_copyi (t, z1.c + (size_t)i*s, s);
+        if ( i <= z0.deg ) fp_sub (C, t, t, z0.c + (size_t)i*s);
+        if ( i <= z2.deg ) fp_sub (C, t, t, z2.c + (size_t)i*s);
+        fp_add (C, g->c + (size_t)(m + i)*s, g->c + (size_t)(m + i)*s, t);
+    }
+    g->deg = dg;  fpoly_trim (C, g);
+    fpoly_clear (&as);  fpoly_clear (&bs);
+    fpoly_clear (&z0);  fpoly_clear (&z1);  fpoly_clear (&z2);
+}
+
+// entry point: spins up the OpenMP team when the product is large enough
+static void fpoly_mul_par (const fp_ctx *C, fp_poly *g, const fp_poly *a, const fp_poly *b)
+{
+    int mind = a->deg < b->deg ? a->deg : b->deg;
+    int depth = par_depth (mind);
+    if ( ! depth ) { fpoly_mul_kron (C, g, a, b); return; }
+    #pragma omp parallel
+    #pragma omp single nowait
+    fpoly_mul_par_rec (C, g, a, b, depth);
+}
+
 // g = x^m f(1/x): reversal of f viewed as a degree-m polynomial.
 static void fpoly_rev (const fp_ctx *C, fp_poly *g, const fp_poly *f, int m)
 {
@@ -224,9 +311,9 @@ static void fpoly_redbarrett (const fp_ctx *C, fp_poly *r, const fp_poly *u,
     fpoly_init (C, &qs, 2 * kq + 2);  fpoly_init (C, &q, kq + 2);  fpoly_init (C, &qh, m + 2);
     fpoly_rev (C, &ru, u, m);  fpoly_truncate (C, &ru, kq + 1);
     fpoly_copy (C, &hit, hi);  fpoly_truncate (C, &hit, kq + 1);
-    fpoly_mul_kron (C, &qs, &ru, &hit);  fpoly_truncate (C, &qs, kq + 1);   // q* (degree <= kq)
+    fpoly_mul_par (C, &qs, &ru, &hit);  fpoly_truncate (C, &qs, kq + 1);   // q* (degree <= kq)
     fpoly_rev (C, &q, &qs, kq);                                // q = rev_{kq}(q*)
-    fpoly_mul_kron (C, &qh, &q, h);                            // q*h  (degree m)
+    fpoly_mul_par (C, &qh, &q, h);                             // q*h  (degree m)
     fpoly_copy (C, r, u);
     for ( int i = 0 ; i <= qh.deg ; i++ ) fp_sub (C, CF(r, i), CF(r, i), CF(&qh, i));   // r = u - q*h
     fpoly_trim (C, r);
@@ -239,6 +326,10 @@ static void fpoly_sqrmod (const fp_ctx *C, fp_poly *g, const fp_poly *f, const f
 {
     int s = C->s, d = h->deg, df = f->deg;
     if ( df < 0 ) { g->deg = -1; return; }
+    if ( par_depth (df) ) {                                 // large: task-parallel Karatsuba square
+        fpoly_mul_par (C, g, f, f);
+        goto reduce;
+    }
     // Kronecker slot width: 64 w >= 2n + ceil(log2(#terms)) + 1,  #terms <= df+1
     int bbits = 2 * C->n + ceil_log2 (df + 1) + 1;
     int w = (bbits + 63) / 64;
@@ -259,13 +350,14 @@ static void fpoly_sqrmod (const fp_ctx *C, fp_poly *g, const fp_poly *f, const f
     }
     g->deg = gd;
     free (pk);  free (sq);
-    if ( gd < d ) { fpoly_trim (C, g);  return; }           // no reduction needed
+reduce:
+    if ( g->deg < d ) { fpoly_trim (C, g);  return; }       // no reduction needed
     if ( hi ) {                                             // fast (Barrett) reduction
-        fp_poly r;  fpoly_init (C, &r, gd + 2);
+        fp_poly r;  fpoly_init (C, &r, g->deg + 2);
         fpoly_redbarrett (C, &r, g, h, hi);
         fpoly_copy (C, g, &r);  fpoly_clear (&r);
     } else {                                                // schoolbook: x^d ≡ -h'(x)
-        for ( int i = gd ; i >= d ; i-- ) {
+        for ( int i = g->deg ; i >= d ; i-- ) {
             mp_limb_t *fi = CF(g, i);
             if ( fp_is_zero (C, fi) ) continue;
             for ( int j = 0 ; j < d ; j++ ) {

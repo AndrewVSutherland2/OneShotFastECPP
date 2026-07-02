@@ -39,10 +39,15 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
 - **Hybrid root-finder**: fproot keeps its Montgomery/Kronecker/Barrett powmod but delegates gcd +
   exact division to zp_poly's half-gcd above degree 1024 (~16–19% at d≥8000; full zp delegation
   measured parity — its modmul is slower, its gcd faster).
+- **Parallel root-finding (OpenMP)**: the EDS squarings are sequentially dependent, so the
+  parallelism lives inside each product — task-parallel Karatsuba over polynomial halves
+  (`fpoly_mul_par`, 3^depth leaf Kronecker products, depth ≤ 3 → up to 27 tasks) for the
+  squarings and Barrett's two big multiplications, above degree ~4096.  ff_poly is not involved
+  in this step, so OpenMP is safe (per Drew).
 
 ## Build & test
 ```sh
-make -j                      # ff_poly -> classpoly -> zp_poly -> ecpp (all in-tree, ~15 s)
+make -j                      # ff_poly -> classpoly (incl. zp_poly) -> ecpp (all in-tree, ~15 s)
 make test [MAXD=1000]        # classpoly vs PARI (Tests 1/2/3); ~2.5 min
 . ./setenv.sh                # env: phi dir, PATH, work/pcache; needed by oneshot/cm_method
 ./ecpp/oneshot p=<decimal>   # THE tool: prime -> certificate (or pbits=<n> seed=<s>)

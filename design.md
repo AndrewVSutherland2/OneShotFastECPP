@@ -454,3 +454,18 @@ modmul engine is slower than fproot's Montgomery/Kronecker/Barrett at our sizes 
 gcd + exact division to zp_poly above degree 1024 (`fpoly_gcd_fast`/`fpoly_divexact_fast`).
 Measured: d=8000 31.3→25.7 s, d=16000 81→66 s, d=32000 152→127 s (~16–19%; the powmod dominates
 what remains). Validated vs PARI `polrootsmod` across the threshold; suites green.
+
+### zp_poly folded into classpoly; OpenMP-parallel root-finding (2026-07-02)
+Per Drew: zp_poly is unpublished and only its gcd clearly earns its keep, so the separate vendored
+component is gone — its sources now build as additional objects of `classpoly_v1.0.3/` (one library;
+`class_inv_mpz.o` moved there too, so `mpz_j_from_inv` is a first-class classpoly citizen as its
+header always promised). Build is now ff_poly → classpoly → ecpp.
+
+**Parallel root-finding.** The ~n EDS squarings are sequentially dependent, so parallelism must live
+inside each product: `fpoly_mul_par` does task-parallel Karatsuba over polynomial halves (3 recursive
+half-size products per level, depth up to 3 ⇒ 27 concurrent leaf Kronecker products, leaves kept big
+enough for GMP's FFT), used for the powmod squarings and Barrett's two large multiplications above
+degree ~4096. OpenMP is safe here since ff_poly is not involved (its globals are the thread hazard).
+Validated: membership + PARI cross-checks across the serial/parallel threshold and the nested-task
+depths. Benchmarks deferred (box busy); expected ~3–5× wall on the deg-35085 root-find, on top of
+the hybrid gcd.
