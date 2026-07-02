@@ -3,7 +3,15 @@
 #include <string.h>
 #include <assert.h>
 #include <gmp.h>
+#include "zp_poly.h"
 #include "fproot.h"
+
+// Above this degree, the gcd and exact-division steps of the equal-degree
+// splitting are delegated to the zp_poly library, whose half-gcd is
+// sub-quadratic (ours is schoolbook and dominates for class polynomials with
+// h(D) in the thousands).  The exponentiation stays on the Montgomery/
+// Kronecker/Barrett path here, which is faster than zp_poly's at these sizes.
+#define FPROOT_ZPGCD_MIN 1024
 
 #define MAXLIMB 64          // supports s up to 31 (p up to ~1900 bits)
 
@@ -378,6 +386,52 @@ static void fpoly_gcd (const fp_ctx *C, fp_poly *out, const fp_poly *A, const fp
     fpoly_clear (&a);  fpoly_clear (&b);  fpoly_clear (&r);
 }
 
+// ---- zp_poly bridge: sub-quadratic gcd / division for large degrees ----
+static mpz_t *fpoly_to_zp (const fp_ctx *C, const fp_poly *f, mpz_t pp)
+{
+    int s = C->s;
+    mpz_t *z = zp_poly_alloc (f->deg, pp);
+    for ( int i = 0 ; i <= f->deg ; i++ ) fp_get_mpz (C, z[i], CF(f, i));
+    return z;
+}
+
+static void fpoly_from_zp (const fp_ctx *C, fp_poly *f, mpz_t *z, int d)
+{
+    int s = C->s;
+    for ( int i = 0 ; i <= d ; i++ ) fp_set_mpz (C, CF(f, i), z[i]);
+    f->deg = d;
+    fpoly_trim (C, f);
+}
+
+// out = gcd(A,B) (monic); zp_poly half-gcd when both degrees are large
+static void fpoly_gcd_fast (const fp_ctx *C, fp_poly *out, const fp_poly *A, const fp_poly *B)
+{
+    int mind = A->deg < B->deg ? A->deg : B->deg;
+    if ( mind < FPROOT_ZPGCD_MIN || A->deg < 0 || B->deg < 0 ) { fpoly_gcd (C, out, A, B); return; }
+    mpz_t pp;  mpz_init_set (pp, C->pz);
+    mpz_t *az = fpoly_to_zp (C, A, pp), *bz = fpoly_to_zp (C, B, pp);
+    mpz_t *rz = zp_poly_alloc (mind, pp);
+    int dr;
+    zp_poly_gcd (rz, &dr, az, A->deg, bz, B->deg, pp);      // returns a monic gcd
+    fpoly_from_zp (C, out, rz, dr);
+    zp_poly_free (az, A->deg);  zp_poly_free (bz, B->deg);  zp_poly_free (rz, mind);
+    mpz_clear (pp);
+}
+
+// q = f / g (g | f); zp_poly fast division when the degrees are large
+static void fpoly_divexact_fast (const fp_ctx *C, fp_poly *q, const fp_poly *f, const fp_poly *g)
+{
+    if ( g->deg < FPROOT_ZPGCD_MIN || f->deg - g->deg < FPROOT_ZPGCD_MIN )
+        { fpoly_divexact (C, q, f, g); return; }
+    mpz_t pp;  mpz_init_set (pp, C->pz);
+    mpz_t *fz = fpoly_to_zp (C, f, pp), *gz = fpoly_to_zp (C, g, pp);
+    mpz_t *qz = zp_poly_alloc (f->deg - g->deg, pp);
+    zp_poly_div (qz, fz, f->deg, gz, g->deg, pp);
+    fpoly_from_zp (C, q, qz, f->deg - g->deg);
+    zp_poly_free (fz, f->deg);  zp_poly_free (gz, g->deg);  zp_poly_free (qz, f->deg - g->deg);
+    mpz_clear (pp);
+}
+
 void fp_find_root (const fp_ctx *C, fp_poly *h, mp_limb_t *root, uint64_t seed)
 {
     int s = C->s;
@@ -396,11 +450,11 @@ void fp_find_root (const fp_ctx *C, fp_poly *h, mp_limb_t *root, uint64_t seed)
         fpoly_powmod_linear (C, &b, am, e, h);              // (x+a)^((p-1)/2) mod h
         fp_sub (C, CF(&b, 0), CF(&b, 0), C->R1);            // b -= 1
         fpoly_trim (C, &b);
-        fpoly_gcd (C, &g, h, &b);
+        fpoly_gcd_fast (C, &g, h, &b);
         int dg = g.deg;
         if ( dg <= 0 || dg >= h->deg ) continue;           // trivial split; new a
         if ( 2 * dg <= h->deg ) fpoly_copy (C, h, &g);      // keep smaller side
-        else { fpoly_divexact (C, &q, h, &g);  fpoly_copy (C, h, &q); }
+        else { fpoly_divexact_fast (C, &q, h, &g);  fpoly_copy (C, h, &q); }
         fpoly_make_monic (C, h);
     }
     fp_sub (C, root, zero, CF(h, 0));                       // h = x - r (monic) => root = -h_0
@@ -447,7 +501,7 @@ int fp_find_all_roots (const fp_ctx *C, const fp_poly *hin, mp_limb_t *roots, in
     if ( xp.deg < 1 ) { memset (CF(&xp, 1), 0, (size_t) s * sizeof(mp_limb_t));  xp.deg = 1; }
     fp_sub (C, CF(&xp, 1), CF(&xp, 1), C->R1);                  // xp -= x
     fpoly_trim (C, &xp);
-    fpoly_gcd (C, &g, &h, &xp);                                 // completely-split part
+    fpoly_gcd_fast (C, &g, &h, &xp);                            // completely-split part
     int nr = 0;
     while ( g.deg >= 1 && nr < maxr ) {
         mp_limb_t r[MAXLIMB];

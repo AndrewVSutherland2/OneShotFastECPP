@@ -36,6 +36,7 @@ struct classpoly_crt_struct {
 	crt_file_t *fp;
 	ecrt_context_t ecrt;
 	int index;
+	int jobs, jobid;				// multi-job ECRT (parallel workers + merge); 0 = single job
 };
 typedef struct classpoly_crt_struct classpoly_crt_t[1];
 
@@ -43,6 +44,7 @@ void classpoly_crt_start (classpoly_crt_t crt, long D, int inv, unsigned long *p
 static inline void classpoly_crt_restart (classpoly_crt_t crt) { crt->index = -1; }
 void classpoly_crt_end (classpoly_crt_t crt);	// use end to terminate early and cleanup, finish to terminate normally
 int classpoly_crt_finish (classpoly_crt_t crt, long *totbits, long *maxcbits, FILE *fp);
+void classpoly_crt_dump (classpoly_crt_t crt);	// worker: dump ecrt partial sums for a later merge
 
 static inline void classpoly_crt_cache_j (classpoly_crt_t crt, ff_t j)
 	{ if ( ! crt->jcache ) crt->jcache = mem_alloc (crt->pcnt*sizeof(ff_t)); crt->jcache[crt->index] = j; crt->jcnt++; }

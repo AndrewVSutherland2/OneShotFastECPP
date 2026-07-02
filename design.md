@@ -432,3 +432,25 @@ are used as the ladder base when present. The near-miss rho top-up is no longer 
 **Measured cold runs** (no caches, loaded box): 256-bit 2.7 s (was ~65 s), 2²⁵⁵−19 quick-start 3.5 s,
 10⁸⁰+129 4.5 s (was 160 s), 10⁹⁰+289 23.6 s (was 269 s) — the 10⁹⁰ run stopped at y=2²⁸ with a
 14k pool instead of ever touching the 2³¹⁺ rungs. Warm ≈ cold now ("first run as fast as the nth").
+
+### Parallel classpoly (multi-job ECRT) + sub-quadratic gcd (2026-07-01)
+Two improvements motivated by the 10¹⁰⁰+267 winner (D=−2557415807, **h=35085**):
+
+**Parallel H_D across CRT primes.** classpoly is single-threaded and ff_poly is not thread-safe, but
+the computation is embarrassingly parallel across the CRT primes, and Drew's ECRT layer already had
+distributed-job machinery (`ecrt_init(jobs, jobid)`, `ecrt_dump`, `ecrt_merge` — the accumulators are
+pure sums). We wired it up process-parallel: `CLASSPOLY_JOBS=W` + `CLASSPOLY_JOBID=j` makes a classpoly
+run a worker (prime indices ≡ j−1 mod W, dumps partial coefficient sums to `$CLASSPOLY_ECRT_DIR`);
+`CLASSPOLY_JOBID=0` merges the dumps and writes the polynomial. `cm_method jobs=N` orchestrates
+workers+merge (gated on |D| ≥ 10⁸ — for small h the repeated per-worker setup outweighs the win);
+`oneshot` passes its thread count through. **h=35085: 158 s → 28.9 s (16 workers), byte-identical
+output**; full `cm_method` on that winner 634 s → 188 s (both under external load). The residual gap
+to W× is the per-worker setup (class group, phi loads, ECRT precomputation), which is repeated.
+
+**Sub-quadratic gcd in the root-finder.** `fproot`'s schoolbook gcd/division is O(d²) and dominates
+EDS at large degree. zp_poly's `zp_poly_xgcd` is a genuine half-gcd (quad-matrix recursion), but its
+modmul engine is slower than fproot's Montgomery/Kronecker/Barrett at our sizes — full delegation to
+`zp_poly_find_split_root` measured ~parity. The hybrid wins: keep fproot's exponentiation, delegate
+gcd + exact division to zp_poly above degree 1024 (`fpoly_gcd_fast`/`fpoly_divexact_fast`).
+Measured: d=8000 31.3→25.7 s, d=16000 81→66 s, d=32000 152→127 s (~16–19%; the powmod dominates
+what remains). Validated vs PARI `polrootsmod` across the threshold; suites green.

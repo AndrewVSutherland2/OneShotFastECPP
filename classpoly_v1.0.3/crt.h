@@ -62,7 +62,7 @@ struct ecrt_context {
 	int sbytes;						// slimbs * sizeof(mp_limb_t)
 	mp_limb_t *Cdata;
 	mp_limb_t *sdata;
-	char prefix[64];
+	char prefix[192];
 	int jobs, jobid;				// if jobs=0 then no job processing is performed (i.e. all ecrt precomp, update and postcomp happens in a single process)
 	FILE *fp;						// file pointer for job data (if used)
 	int batching;					// batching is only supported with job processing
