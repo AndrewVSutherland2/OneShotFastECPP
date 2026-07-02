@@ -24,12 +24,12 @@ Everything builds and runs *inside the project tree*; nothing is written to
 
       make -j
 
-  This does four things, in order:
+  This does three things, in order:
     (a) builds ff_poly_v2.0.0 and stages it into ./local  (a project-local prefix),
-    (b) builds classpoly_v1.0.3 against ./local,
-    (c) builds zp_poly (large-p F_p[x] library; used by classpoly's invariant->j
-        conversion) and stages it into ./local,
-    (d) builds the ecpp/ tools (oneshot, cm_method, dscan, smoothtest, roottest, ...)
+    (b) builds classpoly_v1.0.3 against ./local (this includes the zp_poly
+        large-p F_p[x] code: sub-quadratic gcd, division, root-finding, and the
+        big-p invariant->j conversion),
+    (c) builds the ecpp/ tools (oneshot, cm_method, dscan, smoothtest, roottest, ...)
         against classpoly's headers/objects and ./local.
 
   Clean:      make clean

@@ -19,10 +19,6 @@ ecpp/invjtest
 ecpp/cmjtest
 ecpp/asmtest
 ecpp/zpbench
-zp_poly/zp_poly_*_test
-zp_poly/zp_poly_find_split_root_cost
-zp_poly/multune
-zp_poly/mulmodtune
 
 # modular-polynomial data (phi_files/).  A 46 MB subset is bundled via git add -f
 # (see phi_files_manifest.txt): for EVERY class-invariant family, the modular
