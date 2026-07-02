@@ -14,7 +14,7 @@
 // Simple sieve of odd primes in [3, lim]; returns count, fills *out (malloc'd).
 static uint32_t *base_odd_primes (uint64_t lim, size_t *cnt)
 {
-    if ( lim < 3 ) { *cnt = 0; return malloc (1); }
+    if ( lim < 3 ) { *cnt = 0; return malloc (sizeof(uint32_t)); }
     size_t half = (size_t)((lim - 1) / 2) + 1;             // index i <-> 2i+1
     uint8_t *comp = calloc (half, 1);                      // comp[i]=1 => 2i+1 composite
     for ( uint64_t i = 1 ; (2*i+1)*(2*i+1) <= lim ; i++ ) {
