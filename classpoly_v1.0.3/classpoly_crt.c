@@ -27,10 +27,21 @@
 void classpoly_crt_start (classpoly_crt_t crt, long D, int inv, unsigned long *primes, int pcnt, int ccnt, mpz_t P)
 {
 	clock_t start, end;
-	char prefix[32];
+	char prefix[160], *s, *dir;
 	int fcnt;
 	
 	memset (crt, 0, sizeof(crt[0]));
+	// Multi-job ECRT (parallel workers, cf. ecrt_dump/ecrt_merge): CLASSPOLY_JOBS=W (>1)
+	// makes this process worker CLASSPOLY_JOBID (1..W), handling only prime indices
+	// index = jobid-1 mod W and dumping partial coefficient sums instead of writing
+	// the class polynomial; a subsequent run with CLASSPOLY_JOBID=0 merges the dumps
+	// (see compute_classpoly).  CLASSPOLY_ECRT_DIR is the shared directory for the
+	// dump files (it must be common to all jobs; default is the cwd).
+	if ( (s = getenv("CLASSPOLY_JOBS")) && atoi(s) > 1 ) {
+		crt->jobs = atoi(s);
+		crt->jobid = ( (s = getenv("CLASSPOLY_JOBID")) ? atoi(s) : 1 );
+		if ( crt->jobid < 1 || crt->jobid > crt->jobs ) { err_printf ("CLASSPOLY_JOBID=%d out of range 1..%d\n", crt->jobid, crt->jobs); abort(); }
+	}
 	crt->D = D;
 	crt->inv = inv;
 	crt->p = primes;
@@ -39,8 +50,9 @@ void classpoly_crt_start (classpoly_crt_t crt, long D, int inv, unsigned long *p
 	if ( P ) mpz_init_set (crt->P, P); else mpz_init (crt->P);
 	if ( mpz_sgn(crt->P) ) {
 		start = clock();
-		sprintf (prefix, "H_%ld", -D);
-		ecrt_init (crt->ecrt, primes, pcnt, ccnt, crt->P, 0, 0, prefix);
+		dir = getenv("CLASSPOLY_ECRT_DIR");
+		snprintf (prefix, sizeof(prefix), "%s%sH_%ld", dir ? dir : "", dir ? "/" : "", -D);
+		ecrt_init (crt->ecrt, primes, pcnt, ccnt, crt->P, crt->jobs, crt->jobs ? crt->jobid : 0, prefix);
 		end = clock();
 		info_printf ("Explicit CRT precomputation completed in %ld msecs\n", delta_msecs(start,end));
 	} else {
@@ -57,6 +69,12 @@ void classpoly_crt_end (classpoly_crt_t crt)
 	mpz_clear (crt->P);
 	if ( crt->jcache ) mem_free (crt->jcache);
 	mem_free (crt->p);
+}
+
+void classpoly_crt_dump (classpoly_crt_t crt)
+{
+	if ( ! crt->jobs || ! mpz_sgn(crt->P) ) { err_printf ("classpoly_crt_dump requires multi-job ECRT mode\n"); abort(); }
+	ecrt_dump (crt->ecrt);
 }
 
 int classpoly_crt_output_coefficient (mpz_t c, int i, void *ctx)

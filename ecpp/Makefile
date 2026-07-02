@@ -4,7 +4,7 @@ CC = gcc
 CPDIR = ../classpoly_v1.0.3
 CPINC = -isystem $(CPDIR) -isystem ../local/include
 CFLAGS = -O3 -march=native -m64 -funroll-loops -std=gnu11 -Wall -Wextra -fopenmp $(CPINC)
-LIBS = -lgmp -lm
+LIBS = -L../local/lib -lzp_poly -lgmp -lm
 
 # cminv's production path calls classpoly's mpz_j_from_inv (class_inv_mpz.c), which
 # pulls in classpoly's phi-file machinery and the zp_poly library.  Link everything

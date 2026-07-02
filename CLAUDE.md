@@ -32,8 +32,13 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   LEVEL primes (e.g. `phi_j_59` for A₅₉) + `Φ_2`, never for enumeration. Full 2.2 GB DB external;
   misses degrade gracefully (skip winner). Fresh-clone validated (make + tests + oneshot).
 - Fixed upstream-worthy bugs: `class_inv_mpz.c` `mpz_j_from_u8` (unreduced J + uninit T3);
-  vendored-header warnings (qform/prime/mpzutil/iqclass). Root-finding stays on `fproot`
-  (zp_poly parity per `ecpp/zpbench`; zp_poly's fast gcd would win at deg ≫ 10³ — future lever).
+  vendored-header warnings (qform/prime/mpzutil/iqclass).
+- **Parallel classpoly**: `CLASSPOLY_JOBS`/`CLASSPOLY_JOBID`/`CLASSPOLY_ECRT_DIR` env → multi-job
+  ECRT (workers split CRT primes mod W, `ecrt_dump` partial sums; JOBID=0 merges). `cm_method jobs=N`
+  orchestrates (auto-gated |D|≥1e8); oneshot passes threads. h=35085: 158→29 s, byte-identical.
+- **Hybrid root-finder**: fproot keeps its Montgomery/Kronecker/Barrett powmod but delegates gcd +
+  exact division to zp_poly's half-gcd above degree 1024 (~16–19% at d≥8000; full zp delegation
+  measured parity — its modmul is slower, its gcd faster).
 
 ## Build & test
 ```sh
@@ -66,7 +71,7 @@ challenge repo, github.com/AndrewVSutherland/OneShotPrimalityProofs).
 - Compile new C with **`-Wall -Wextra`** (found real bugs in the vendored code this way).
 - Deferred optimizations (don't do until obviously needed, per user): **bounding the factor base**
   (dscan's Tonelli wall — ~75% of large-B scans), packing factor-base sqrts as contiguous limbs,
-  hand-rolled 1-limb-quotient division, zp_poly half-gcd for deg≫10³ root-finds.
+  hand-rolled 1-limb-quotient division.
 - Half-gcd/Lehmer does **not** help our (short, small-`p`) Cornacchia descent — don't reach for it.
 
 ## Conventions

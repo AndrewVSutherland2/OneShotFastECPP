@@ -43,10 +43,10 @@ static double wall (void)
 { struct timespec ts; clock_gettime (CLOCK_MONOTONIC, &ts); return ts.tv_sec + 1e-9*ts.tv_nsec; }
 
 // cm_method D p -> j0 (best class invariant, converted to a j-invariant)
-static int cm_jinvariant (long D, const char *pdec, mpz_t j0)
+static int cm_jinvariant (long D, const char *pdec, int jobs, mpz_t j0)
 {
     char cmd[16384];
-    snprintf (cmd, sizeof cmd, "cm_method D=%ld p=%s 2>/dev/null", D, pdec);
+    snprintf (cmd, sizeof cmd, "cm_method D=%ld p=%s jobs=%d 2>/dev/null", D, pdec, jobs > 0 ? jobs : 1);
     FILE *pp = popen (cmd, "r");  if ( ! pp ) return 0;
     char line[8192];  int got = 0;
     while ( fgets (line, sizeof line, pp) )
@@ -191,7 +191,7 @@ int main (int argc, char **argv)
             size_t i = idx[k];
             nwin_total++;
             if ( ! build_m (mm, qs, &nq, E.S[i], L, n2, n4) ) continue;       // may succeed at a higher rung
-            if ( ! cm_jinvariant (-(long) E.cd[i], pdec, jj) ) { E.dead[i] = 1; continue; }
+            if ( ! cm_jinvariant (-(long) E.cd[i], pdec, nth > 0 ? nth : 16, jj) ) { E.dead[i] = 1; continue; }
             if ( ! mont_assemble (&C, &cc, jj, E.cN[i], E.ct[i], mm, A, x0, 0xA55E + (unsigned) E.cd[i]) )
                 { E.dead[i] = 1; continue; }
             gmp_printf ("%Zd %Zd %Zd %Zd", p, A, x0, mm);

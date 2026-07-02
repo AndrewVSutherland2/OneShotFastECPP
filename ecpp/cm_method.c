@@ -95,13 +95,14 @@ static int trace_sign (const mpz_t A4, const mpz_t A6, const mpz_t p, const mpz_
 
 int main (int argc, char **argv)
 {
-    long D = 0;  unsigned long pbits = 0, seed = 1;  int want_v = 0;
+    long D = 0;  unsigned long pbits = 0, seed = 1;  int want_v = 0, jobs = 1;
     mpz_t p;  mpz_init (p);
     for ( int i = 1 ; i < argc ; i++ ) {
         if ( ! strncmp (argv[i], "D=", 2) ) D = strtol (argv[i]+2, 0, 10);
         else if ( ! strncmp (argv[i], "p=", 2) ) mpz_set_str (p, argv[i]+2, 10);
         else if ( ! strncmp (argv[i], "pbits=", 6) ) pbits = strtoul (argv[i]+6, 0, 10);
         else if ( ! strncmp (argv[i], "seed=", 5) ) seed = strtoul (argv[i]+5, 0, 10);
+        else if ( ! strncmp (argv[i], "jobs=", 5) ) jobs = atoi (argv[i]+5);
         else if ( ! strcmp (argv[i], "v") ) want_v = 1;
     }
     if ( D >= -4 ) { fprintf (stderr, "need D < -4\n"); return 2; }
@@ -123,10 +124,31 @@ int main (int argc, char **argv)
     // 2. best-invariant H_D^inv mod p (classpoly inv=-1); parse I=<code> and coeffs
     char pdec[8192];  gmp_snprintf (pdec, sizeof pdec, "%Zd", p);
     char outf[256];   snprintf (outf, sizeof outf, "/tmp/cm_%ld.txt", -D);
-    char cmd[16384];  snprintf (cmd, sizeof cmd, "classpoly %ld -1 %s %s -1", D, pdec, outf);
-    double t0 = wall ();
-    if ( system (cmd) != 0 ) { fprintf (stderr, "classpoly failed\n"); return 1; }
-    double t_hd = wall () - t0;
+    char cmd[16384];
+    double t0 = wall (), t_hd;
+    // Parallel classpoly only pays off when H_D is large: each worker repeats the
+    // setup (class group, phi loads, ECRT precomputation), so for small h(D) the
+    // single-job path is faster.  h(D) ~ sqrt(|D|), so gate on |D|.
+    if ( jobs > 1 && d < 100000000UL ) jobs = 1;
+    if ( jobs > 1 ) {
+        // parallel H_D: run `jobs` classpoly ECRT workers (each covers prime indices
+        // = jobid-1 mod jobs and dumps partial sums), then a merge pass writes outf.
+        char edir[] = "/tmp/cmecrtXXXXXX";
+        if ( ! mkdtemp (edir) ) { fprintf (stderr, "mkdtemp failed\n"); return 1; }
+        snprintf (cmd, sizeof cmd,
+            "export CLASSPOLY_JOBS=%d CLASSPOLY_ECRT_DIR=%s; "
+            "for j in $(seq 1 %d); do CLASSPOLY_JOBID=$j classpoly %ld -1 %s %s.w$j -1 & done; wait; "
+            "CLASSPOLY_JOBID=0 classpoly %ld -1 %s %s -1",
+            jobs, edir, jobs, D, pdec, outf, D, pdec, outf);
+        int rc = system (cmd);
+        t_hd = wall () - t0;
+        snprintf (cmd, sizeof cmd, "rm -rf %s", edir);  system (cmd);
+        if ( rc != 0 ) { fprintf (stderr, "parallel classpoly failed\n"); return 1; }
+    } else {
+        snprintf (cmd, sizeof cmd, "classpoly %ld -1 %s %s -1", D, pdec, outf);
+        if ( system (cmd) != 0 ) { fprintf (stderr, "classpoly failed\n"); return 1; }
+        t_hd = wall () - t0;
+    }
     FILE *f = fopen (outf, "r");  if ( ! f ) { fprintf (stderr, "no %s\n", outf); return 1; }
     int inv = -2, cap = 64, deg = -1;  mpz_t *hc = malloc (cap*sizeof(mpz_t));  char ln[8192];
     while ( fgets (ln, sizeof ln, f) ) {

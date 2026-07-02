@@ -5,10 +5,19 @@ Given a prime `p`, it produces a certificate `(p, A, x₀, m, q₁…q_k)` that 
 prime and is verifiable in quasi-quadratic time by
 [`voneshot.py`](https://github.com/AndrewVSutherland/OneShotPrimalityProofs).
 
+This repository was created in response to the
+[one-shot primality proofs challenge](https://github.com/AndrewVSutherland/OneShotPrimalityProofs),
+which defines one-shot ECPP certificates and hosts the verifier.  The code was
+written by Claude Opus 4.8 and Claude Fable 5 in collaboration with Andrew V.
+Sutherland, using his [classpoly](https://math.mit.edu/~drew/classpoly.html)
+library, which implements the algorithms in
+[arXiv:0903.2785](https://arxiv.org/abs/0903.2785) and
+[arXiv:1001.3394](https://arxiv.org/abs/1001.3394).
+
 ## Quick start
 
 ```sh
-git clone <this repo> && cd OneShotFastECPP
+git clone https://github.com/AndrewVSutherland2/OneShotFastECPP.git && cd OneShotFastECPP
 make -j                           # ff_poly -> classpoly -> zp_poly -> ecpp tools (~1 min)
 . ./setenv.sh                     # point classpoly at the bundled modular polynomials
 ./ecpp/oneshot p=$(python3 -c 'print(2**255-19)')
@@ -66,6 +75,28 @@ See **[`design.md`](design.md)** for the full technical writeup and performance.
 | `smoothtest` | batched n⁴-smoothness testing (Bernstein remainder tree) |
 | `roottest` | validate the big-`F_p` root finder against PARI |
 
+## Performance: nextprime(10ⁿ)
+
+Sequential sweep on a 16-core (32-thread) AMD Ryzen AI Max+ 395, starting with **no
+caches** (prime-product segments built during the sweep are shared by later runs —
+they depend only on the prime range, not the bit-length).  Certificates verified by
+`voneshot.py`; the sweep stops at the first prime exceeding five minutes.
+
+| p | bits | wall time | D | certificate |
+|---|---|---|---|---|
+| 10⁶⁰ + 7 | 200 | 14.9 s | −74777567 | `certs/1e60p7.txt` |
+| 10⁷⁰ + 33 | 233 | 3.0 s | −2334607 | `certs/1e70p33.txt` |
+| 10⁸⁰ + 129 | 266 | 6.0 s | −15682116 | `certs/1e80p129.txt` |
+| 10⁹⁰ + 289 | 299 | 25.7 s | −103904536 | `certs/1e90p289.txt` |
+| 10¹⁰⁰ + 267 | 333 | 13.3 min | −2557415807 | `certs/1e100p267.txt` |
+
+The 10¹⁰⁰ run climbs to the full n⁴ smoothness bound and a discriminant-scan bound
+of 4×10⁹, and its only winner has h(D) = 35085 — a degree-35085 class polynomial.
+(That case motivated two subsequent improvements already in this repo: `cm_method
+jobs=N` computes H_D with N parallel ECRT workers — 158 s → 29 s at h=35085,
+byte-identical output — and the large-degree root-finder now uses zp_poly's
+sub-quadratic half-gcd.)
+
 ## Example certificates (`certs/`, all verified by `voneshot.py`)
 
 | prime | file | notes |
@@ -73,9 +104,7 @@ See **[`design.md`](design.md)** for the full technical writeup and performance.
 | 2²⁵⁵ − 19 | `certs/25519.txt` | Curve25519 field prime |
 | 2²⁵⁶ − 2²²⁴ + 2¹⁹² + 2⁹⁶ − 1 | `certs/p256.txt` | NIST P-256 field prime |
 | 2²⁵⁶ − 2³² − 977 | `certs/k256.txt` | secp256k1 (Bitcoin) field prime |
-| 10⁸⁰ + 129 | `certs/1e80p129.txt` | |
-| 10⁹⁰ + 289 | `certs/1e90p289.txt` | |
-| 10¹⁰⁰ + 267 | `certs/1e100p267.txt` | |
+| 10⁶⁰ + 7, …, 10¹⁰⁰ + 267 | `certs/1e60p7.txt` … `certs/1e100p267.txt` | nextprime(10ⁿ) sweep |
 
 Verify any of them with `python3 voneshot.py $(cat certs/<file>)`.
 

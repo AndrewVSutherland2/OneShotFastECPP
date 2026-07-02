@@ -58,6 +58,42 @@ int compute_classpoly (long D, int inv, mpz_t P, char *filename)
 	
 	if ( P && ! mpz_sgn(P) ) P = 0;
 	if ( ! filename) { filename = buf;  if ( inv < D) sprintf(filename, "H_%ld.txt", -D); else sprintf(filename, "H_%ld_%d.txt", -D, inv); }
+
+	// Multi-job ECRT merge mode (CLASSPOLY_JOBS=W, CLASSPOLY_JOBID=0): combine the
+	// partial coefficient sums dumped by the W workers and write the class
+	// polynomial; no computation of our own is needed (n, k, P all come from the
+	// dump files, whose consistency ecrt_merge verifies).
+	{
+		char *js = getenv("CLASSPOLY_JOBS"), *jis = getenv("CLASSPOLY_JOBID");
+		int mjobs = js ? atoi(js) : 0;
+		if ( mjobs > 1 && jis && atoi(jis) == 0 ) {
+			ecrt_context_t ecrt;
+			char prefix[160], jobfile[224], *dir;
+			mpz_t X;
+			if ( ! P ) { err_printf ("ECRT merge mode requires a nonzero modulus P\n"); return 0; }
+			memset (ecrt, 0, sizeof(ecrt[0]));
+			dir = getenv("CLASSPOLY_ECRT_DIR");
+			snprintf (prefix, sizeof(prefix), "%s%sH_%ld", dir ? dir : "", dir ? "/" : "", -D);
+			ecrt_merge (ecrt, mjobs, prefix);
+			fp = fopen (filename, "w");
+			if ( ! fp ) { err_printf ("Error opening output file %s\n", filename); return 0; }
+			gmp_fprintf (fp, "I=%d\n", inv);
+			gmp_fprintf (fp, "D=%ld\n", D);
+			gmp_fprintf (fp, "P=%Zd\n", ecrt->P);
+			mpz_init (X);
+			for ( i = 0 ; ecrt_next_coeff (X, ecrt) ; i++ ) gmp_fprintf (fp, "%Zd*X^%d + \n", X, i);
+			mpz_clear (X);
+			gmp_fprintf (fp, "1*X^%d\n", i);
+			fclose (fp);
+			for ( i = 1 ; i <= mjobs ; i++ ) {	// job dumps are consumed; remove them
+				snprintf (jobfile, sizeof(jobfile), "%s_%d_%d.ecrt", prefix, mjobs, i);
+				if ( ecrt->infp[i-1] ) fclose (ecrt->infp[i-1]);
+				remove (jobfile);
+			}
+			info_printf ("ECRT merge of %d jobs complete, wrote %d coefficients to %s\n", mjobs, i-1, filename);
+			return 1;
+		}
+	}
 	
 	if ( D >= -4 ) {
 		if ( inv || P ) { err_printf ("D must be less than -4 unless inv=0 and P=0\n"); return 0; }
@@ -122,6 +158,8 @@ int compute_classpoly (long D, int inv, mpz_t P, char *filename)
 	// *** Alg 2 Step 4 ****
 	skip_count = 0 ;
 	while ( classpoly_crt_next_prime (crt) ) {
+		// multi-job ECRT: this worker handles only its own residue class of prime indices
+		if ( crt->jobs && (crt->index % crt->jobs) != crt->jobid - 1 ) continue;
 
 		// *** Alg 1 Steps 1+2
 		cntr1 = get_cycles();
@@ -177,6 +215,13 @@ int compute_classpoly (long D, int inv, mpz_t P, char *filename)
 	classpoly_inv_clear (Hinv);
 	end = clock();
 	info_printf ("Completed main loop in %ld msecs\n", delta_msecs(start,end));
+
+	if ( crt->jobs ) {	// multi-job worker: dump partial sums; the merge job writes the file
+		classpoly_crt_dump (crt);
+		classpoly_crt_end (crt);
+		info_printf ("ECRT worker %d of %d dumped partial sums\n", crt->jobid, crt->jobs);
+		return 1;
+	}
 
 	fp = fopen (filename, "w");
 	if ( ! fp ) { err_printf ("Error opening file output file %s\n", filename); abort(); }
