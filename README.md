@@ -8,8 +8,8 @@ prime and is verifiable in quasi-quadratic time by
 This repository was created in response to the
 [one-shot primality proofs challenge](https://github.com/AndrewVSutherland/OneShotPrimalityProofs),
 which defines one-shot ECPP certificates and hosts the verifier.  The code was
-written by Claude Opus 4.8 and Claude Fable 5 in collaboration with Andrew V.
-Sutherland, using his [classpoly](https://math.mit.edu/~drew/classpoly.html)
+written by Claude Opus 4.8 and Claude Fable 5 in collaboration with [Andrew V.
+Sutherland](https://math.mit.edu/~drew), using his [classpoly](https://math.mit.edu/~drew/classpoly.html)
 library, which implements the algorithms in
 [arXiv:0903.2785](https://arxiv.org/abs/0903.2785) and
 [arXiv:1001.3394](https://arxiv.org/abs/1001.3394).
