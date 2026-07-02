@@ -97,14 +97,13 @@ jobs=N` computes H_D with N parallel ECRT workers — 158 s → 29 s at h=35085,
 byte-identical output — and the large-degree root-finder now uses zp_poly's
 sub-quadratic half-gcd.)
 
-## Example certificates (`certs/`, all verified by `voneshot.py`)
+## Some cryptographically relevant certificates (`certs/`)
 
 | prime | file | notes |
 |---|---|---|
 | 2²⁵⁵ − 19 | `certs/25519.txt` | Curve25519 field prime |
 | 2²⁵⁶ − 2²²⁴ + 2¹⁹² + 2⁹⁶ − 1 | `certs/p256.txt` | NIST P-256 field prime |
 | 2²⁵⁶ − 2³² − 977 | `certs/k256.txt` | secp256k1 (Bitcoin) field prime |
-| 10⁶⁰ + 7, …, 10¹⁰⁰ + 267 | `certs/1e60p7.txt` … `certs/1e100p267.txt` | nextprime(10ⁿ) sweep |
 
 Verify any of them with `python3 voneshot.py $(cat certs/<file>)`.
 
