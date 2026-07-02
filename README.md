@@ -105,6 +105,11 @@ halvable, and a Montgomery model always exists.  The same walk at odd primes
 ℓ | n₁ (E ≅ Z/n₁ × Z/n₂) makes the ℓ-Sylow cyclic, so the certificate m can
 use the full ℓ-power of #E instead of avoiding it (see design.md).
 
+`certs/` also holds verified certificates for the least primes above 10ⁿ for
+n = 55, 65, 75, 85, 95 and 105 (~1 s, ~1 s, ~7 s, ~90 s, ~30 s and ~5 min
+respectively), contributed along with the rows above to the challenge repo's
+list of one-shot ECPPs.
+
 ## Some cryptographically relevant certificates (`certs/`)
 
 | prime | file | notes |
