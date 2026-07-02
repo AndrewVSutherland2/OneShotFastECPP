@@ -529,8 +529,8 @@ void smooth_topup (mpz_t S, const mpz_t N, uint64_t n4)
     mpz_clears (c, d, q, NULL);
 }
 
-int build_m (mpz_t m, uint64_t *qs, int *nq,
-             const mpz_t S, const mpz_t L, uint64_t n2, uint64_t n4)
+int build_m2 (mpz_t m, uint64_t *qs, int *nq,
+              const mpz_t S, const mpz_t L, uint64_t n2, uint64_t n4, int odd_only)
 {
     uint64_t pr[64];  int ex[64];
     int k = factor_smooth (S, pr, ex, 64);
@@ -540,16 +540,20 @@ int build_m (mpz_t m, uint64_t *qs, int *nq,
     // Primes above n4 are skipped: S may have been extracted with a smoothness
     // bound above n4 (a rounded-up cached prime product); such primes cannot
     // appear in a valid certificate, so m must clear L without them.
+    // odd_only additionally skips 2: an even m has least prime r = 2 and hence
+    // L < m < 2L with no room to shed 2s, so when v_2(m) = v_2(N) trips the
+    // m | exponent(E) requirement (E has a Z/2 factor), the only escape is an
+    // odd m -- available whenever the odd part of S still exceeds L.
     mpz_set_ui (m, 1);
     uint64_t rleast = 0;  int done = 0;
     for ( int j = k - 1 ; j >= 0 && ! done ; j-- ) {
-        if ( pr[j] > n4 ) continue;
+        if ( pr[j] > n4 || (odd_only && pr[j] == 2) ) continue;
         for ( int e = 0 ; e < ex[j] && ! done ; e++ ) {
             mpz_mul_ui (m, m, pr[j]);  rleast = pr[j];
             if ( mpz_cmp (m, L) > 0 ) done = 1;
         }
     }
-    if ( ! done ) return 0;                                // n4-smooth part <= L
+    if ( ! done ) return 0;                                // usable part of S <= L
 
     mpz_t Lr;  mpz_init (Lr);  mpz_mul_ui (Lr, L, rleast);
     int ok = mpz_cmp (m, Lr) < 0;                          // need m < L*r
@@ -562,3 +566,7 @@ int build_m (mpz_t m, uint64_t *qs, int *nq,
             qs[(*nq)++] = pr[j];                           // ascending (pr[] ascending)
     return 1;
 }
+
+int build_m (mpz_t m, uint64_t *qs, int *nq,
+             const mpz_t S, const mpz_t L, uint64_t n2, uint64_t n4)
+{ return build_m2 (m, qs, nq, S, L, n2, n4, 0); }

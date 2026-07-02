@@ -469,3 +469,31 @@ degree ~4096. OpenMP is safe here since ff_poly is not involved (its globals are
 Validated: membership + PARI cross-checks across the serial/parallel threshold and the nested-task
 depths. Benchmarks deferred (box busy); expected ~3–5× wall on the deg-35085 root-find, on top of
 the hybrid gcd.
+
+### Montgomery representability is a class invariant; exponent-aware m; winner polish (2026-07-02)
+Investigating why nextprime(10⁶⁰) was slow relative to its neighbors uncovered three things:
+
+**A representability criterion.** The `N ≡ 0 mod 4` filter is necessary but not sufficient for a
+Montgomery model, and representability turns out to be a **class-wide invariant** of (D, p) (checked:
+0 of 204 H_D roots representable for a failing case — it is determined by E(F_p) ≅ O/(π−1), not by
+the individual curve). Empirically (27,843 CM classes, no exceptions) plus the parity argument
+(∏ᵢ f′(eᵢ) = −□ over the three 2-torsion shifts):
+> **A Montgomery model exists ⟺ 4 | N, and additionally 8 | N when p ≡ 3 (mod 4).**
+For p ≡ 3 (mod 4) this removes half the candidate pool at intake (`oneshot` now filters
+`N ≡ 4 mod 8` immediately); for p ≡ 1 (mod 4) every 4 | N class is representable. Both traces
+±t share the twist pair, so the other sign never rescues a filtered class.
+
+**Exponent-aware m.** A point of order m needs `m | exponent(E) = N/n₁` where
+E(F_p) ≅ Z/n₁ × Z/(N/n₁) and `n₁ = gcd(a−1, b)` for π−1 = a+bω (computable directly from
+(t, v, D); validated against PARI `ellgroup`, D < −4). `oneshot` now gates winners on (and builds m
+from) `S` with the n₁-supported part divided out, so `m | exponent` holds by construction and the
+assembly point-search cannot fail on torsion structure. (Previously such failures permanently
+discarded good winners — e.g. an h=645 winner was skipped for an h=6122 one.)
+
+**Winner polish.** Committing to a winner costs ~cm_method(h(D)), h ≈ √|D|·L(1,χ)/π, while one more
+ladder rung is often far cheaper — so when the best current winner is expensive and a rung is cheap,
+`oneshot` deepens first and re-collects (a smaller-|D| winner may gate at the next rung). Cost model:
+t_cm ≈ (0.35√|D|/2000)^1.6·(n/256) vs t_rung ≈ 1.44(y′−y)/10⁸ s.
+
+Also: assembly failures no longer kill a candidate permanently (retry when S grows), and the
+j-invariant is cached per candidate so retries never recompute H_D.

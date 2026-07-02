@@ -84,18 +84,19 @@ they depend only on the prime range, not the bit-length).  Certificates verified
 
 | p | bits | wall time | D | certificate |
 |---|---|---|---|---|
-| 10⁶⁰ + 7 | 200 | 14.4 s | −74777567 | `certs/1e60p7.txt` |
-| 10⁷⁰ + 33 | 233 | 3.5 s | −2334607 | `certs/1e70p33.txt` |
-| 10⁸⁰ + 129 | 266 | 6.0 s | −15682116 | `certs/1e80p129.txt` |
-| 10⁹⁰ + 289 | 299 | 24.7 s | −103904536 | `certs/1e90p289.txt` |
-| 10¹⁰⁰ + 267 | 333 | 8.6 min | −2557415807 | `certs/1e100p267.txt` |
+| 10⁶⁰ + 7 | 200 | 10.8 s | −74777567 | `certs/1e60p7.txt` |
+| 10⁷⁰ + 33 | 233 | 3.1 s | −2334607 | `certs/1e70p33.txt` |
+| 10⁸⁰ + 129 | 266 | 5.2 s | −15682116 | `certs/1e80p129.txt` |
+| 10⁹⁰ + 289 | 299 | 23.5 s | −103904536 | `certs/1e90p289.txt` |
+| 10¹⁰⁰ + 267 | 333 | 5.3 min | −2557415807 | `certs/1e100p267.txt` |
 
-The 10¹⁰⁰ run climbs to the full n⁴ smoothness bound and a discriminant-scan bound
-of 4×10⁹, and its only winner has h(D) = 35085 — a degree-35085 class polynomial
-(computed with parallel ECRT workers, 158 s → 29 s, and root-found with the
-OpenMP/half-gcd root finder).  Roughly half of the remaining time is the
-discriminant scan and a third is the one-time prime-product segment builds,
-which later runs load from `work/pcache/`.
+The 10¹⁰⁰ run widens its discriminant scan to 4×10⁹ and its only winner has
+h(D) = 35085 — a degree-35085 class polynomial (computed with parallel ECRT
+workers and root-found with the OpenMP/half-gcd root finder).  Note that
+10⁶⁰+7 and 10¹⁰⁰+267 are ≡ 3 (mod 4), which structurally halves their usable
+candidates: a Montgomery model exists iff 4 | #E, and additionally 8 | #E when
+p ≡ 3 (mod 4) — representability is an invariant of the CM class (see
+design.md), and oneshot filters accordingly.
 
 ## Some cryptographically relevant certificates (`certs/`)
 

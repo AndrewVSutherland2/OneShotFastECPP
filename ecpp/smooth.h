@@ -80,6 +80,8 @@ int  factor_smooth (const mpz_t S, uint64_t *pr, int *ex, int cap);
 // n4 (possible when S came from a rounded-up cached prime product) are skipped.
 int  build_m (mpz_t m, uint64_t *qs, int *nq,
               const mpz_t S, const mpz_t L, uint64_t n2, uint64_t n4);
+int  build_m2 (mpz_t m, uint64_t *qs, int *nq,                 // odd_only=1: skip the
+              const mpz_t S, const mpz_t L, uint64_t n2, uint64_t n4, int odd_only);  // prime 2 (see smooth.c)
 
 // Near-miss top-up: S is the y'-smooth part of N for some y' < n4.  Search the
 // cofactor N/S (whose prime factors all exceed y') for primes q <= n4 with
