@@ -3,6 +3,7 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
+#include <omp.h>
 #include <gmp.h>
 #include "cornacchia.h"
 #include "smooth.h"
@@ -154,6 +155,9 @@ int main (int argc, char **argv)
         else if ( ! strncmp (argv[i], "c=", 2) ) cfac = strtod (argv[i]+2, 0);
         else if ( ! strncmp (argv[i], "pcache=", 7) ) pcache = argv[i]+7;
     }
+    // default threads to all cores: the dscan/cm_method subprocesses need the
+    // count passed explicitly, so resolve it here rather than leaving nth=0
+    if ( nth <= 0 ) nth = omp_get_max_threads ();
     if ( ! mpz_sgn (p) ) {
         if ( ! pbits ) pbits = 256;
         gmp_randstate_t rs; gmp_randinit_default (rs); gmp_randseed_ui (rs, seed);
@@ -257,7 +261,7 @@ int main (int argc, char **argv)
                 for ( size_t e = 0 ; e < NELLS ; e++ )
                     if ( mpz_divisible_ui_p (E.n1[i], ELLS[e]) )
                         el += snprintf (ellstr + el, sizeof ellstr - el, "%s%lu", el ? "," : "", ELLS[e]);
-                if ( ! cm_jinvariant (-(long) E.cd[i], pdec, nth > 0 ? nth : 16, ellstr, jj) ) { E.dead[i] = 1; continue; }
+                if ( ! cm_jinvariant (-(long) E.cd[i], pdec, nth, ellstr, jj) ) { E.dead[i] = 1; continue; }
                 mpz_set (E.cj[i], jj);
             } else mpz_set (jj, E.cj[i]);
             if ( ! mont_assemble (&C, &cc, jj, E.cN[i], E.ct[i], mm, A, x0, 0xA55E + (unsigned) E.cd[i]) ) {
@@ -293,7 +297,7 @@ int main (int argc, char **argv)
             if ( Bnext > Bmax ) Bnext = Bmax;
             char cmd[16384];
             snprintf (cmd, sizeof cmd, "dscan p=%s B=%lu Bmin=%lu threads=%d dump 2>/dev/null",
-                      pdec, Bnext, Bcur, nth > 0 ? nth : 16);
+                      pdec, Bnext, Bcur, nth);
             FILE *ds = popen (cmd, "r");
             if ( ! ds ) { fprintf (stderr, "dscan failed (on PATH?)\n"); return 1; }
             size_t first_new = E.nc;

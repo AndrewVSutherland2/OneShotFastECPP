@@ -65,7 +65,8 @@ static void sieve_collect (uint64_t lo, uint64_t hi, const uint32_t *base, size_
 }
 
 // All primes in (plo, y] into *out (malloc'd, ascending; incl. 2 iff plo < 2).
-static uint64_t sieve_primes_range (uint64_t plo, uint64_t y, uint64_t **out, int nth)
+// Exported: dscan uses it for its factor-base sieve.
+uint64_t sieve_primes_range (uint64_t plo, uint64_t y, uint64_t **out, int nth)
 {
     size_t nbase;
     uint64_t blim = (uint64_t) sqrtl ((long double) y) + 2;

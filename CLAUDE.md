@@ -49,6 +49,16 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   (`fpoly_mul_par`, 3^depth leaf Kronecker products, depth ≤ 3 → up to 27 tasks) for the
   squarings and Barrett's two big multiplications, above degree ~4096.  ff_poly is not involved
   in this step, so OpenMP is safe (per Drew).
+- **Big-machine scaling (2026-07-03)**: oneshot's threads default is `omp_get_max_threads()`
+  and is passed through to the `dscan`/`cm_method jobs=` shell-outs (was: hardcoded 16 —
+  capped a 256-core production box at 16 cores for the scan phases). dscan's factor-base
+  sieve reuses smooth.c's parallel `sieve_primes_range` (now exported; dscan links smooth.o)
+  and the QR survivor collection fills slots via a parallel prefix sum; the prime array is
+  64-bit — the old `uint32_t` silently truncated once B > 2³² ≈ 4.3e9 (reachable: Bmax
+  defaults to 2e10). Validated: dump/dumpscan sorted-identical pre/post (5 configs, B ≤ 1e8),
+  test_dscan.py + test_smooth.py green, (2³², 2³²+6e4) window exact vs PARI (enumeration,
+  qfbsolve solvability, 4p = t²+dv² arithmetic), 256-bit oneshot cert re-verified in PARI.
+  Known remaining ceilings at 256 cores: classpoly jobs setup overhead, fproot's ~27-task cap.
 
 ## Build & test
 ```sh
