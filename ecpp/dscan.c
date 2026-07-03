@@ -7,6 +7,7 @@
 #include <omp.h>
 #include <gmp.h>
 #include "cornacchia.h"
+#include "smooth.h"
 
 /*
     Factor-base discriminant scan (fastECPP substeps 1+2, residue-factor variant).
@@ -64,10 +65,10 @@ static void fb_reserve (fbase *fb, size_t n)
     fb->sq   = malloc (n * sizeof(*fb->sq));
 }
 
-// append a prime discriminant q*; its square root is filled in later, in parallel
-static void fb_push (fbase *fb, long sval)
+// fill factor-base slot i with prime discriminant q* (slots are assigned by a
+// prefix sum so the fill parallelizes); its square root is filled in later
+static void fb_set (fbase *fb, size_t i, long sval)
 {
-    size_t i = fb->n++;
     fb->sval[i] = sval;
     fb->sgn[i]  = sval < 0 ? -1 : 1;
     fb->aval[i] = sval < 0 ? (unsigned long)(-sval) : (unsigned long) sval;
@@ -228,20 +229,11 @@ int main (int argc, char *argv[])
                     cornacchia_sqrtmodp (&ctx, tp_sq[n_tp], a); mpz_clear (a); n_tp++; }
     }
 
-    // sieve odd primes < B
+    // odd primes < B: parallel segmented sieve (smooth.c), 64-bit entries -- the
+    // factor base legitimately exceeds 2^32 once B does (Bmax defaults to 2e10)
     double t_sieve = wall ();
-    unsigned long N = Bbound;
-    size_t nb = (N + 63) / 64;
-    uint64_t *bits = calloc (nb, sizeof(uint64_t));          // bit q set => q composite
-    for ( unsigned long q = 3 ; q * q < N ; q += 2 )
-        if ( ! (bits[q >> 6] & (1ULL << (q & 63))) )
-            for ( unsigned long m = q * q ; m < N ; m += 2 * q ) bits[m >> 6] |= 1ULL << (m & 63);
-    size_t pcap = (size_t)(N / (log ((double) N) - 1.1)) + 1024;
-    uint32_t *primes = malloc (pcap * sizeof(uint32_t));
-    size_t np = 0;
-    for ( unsigned long q = 3 ; q < N ; q += 2 )
-        if ( ! (bits[q >> 6] & (1ULL << (q & 63))) ) primes[np++] = (uint32_t) q;
-    free (bits);
+    uint64_t *primes;
+    size_t np = (size_t) sieve_primes_range (2, Bbound - 1, &primes, nth);
     t_sieve = wall () - t_sieve;
 
     // PASS 1 (parallel, Legendre only): which primes are QR mod p
@@ -255,11 +247,28 @@ int main (int argc, char *argv[])
     }
     t_det = wall () - t_det;
 
-    // collect QR prime discriminants, ascending
-    size_t n_qr = 0; for ( size_t i = 0 ; i < np ; i++ ) n_qr += qr[i];
-    fb_reserve (&oddfb, n_qr);
-    for ( size_t i = 0 ; i < np ; i++ )
-        if ( qr[i] ) { unsigned long q = primes[i]; fb_push (&oddfb, (q & 3) == 1 ? (long) q : -(long) q); }
+    // collect QR prime discriminants, ascending: per-block survivor counts, a
+    // prefix sum for the slot offsets, then a parallel order-preserving fill
+    size_t QRBLK = (size_t) 1 << 20;
+    size_t nblk = np / QRBLK + 1;
+    size_t *boff = malloc ((nblk + 1) * sizeof(size_t));
+    #pragma omp parallel for schedule(static)
+    for ( size_t b = 0 ; b < nblk ; b++ ) {
+        size_t i1 = (b + 1) * QRBLK < np ? (b + 1) * QRBLK : np, c = 0;
+        for ( size_t i = b * QRBLK ; i < i1 ; i++ ) c += qr[i];
+        boff[b + 1] = c;
+    }
+    boff[0] = 0;
+    for ( size_t b = 0 ; b < nblk ; b++ ) boff[b + 1] += boff[b];
+    fb_reserve (&oddfb, boff[nblk]);
+    oddfb.n = boff[nblk];
+    #pragma omp parallel for schedule(static)
+    for ( size_t b = 0 ; b < nblk ; b++ ) {
+        size_t k = boff[b], i1 = (b + 1) * QRBLK < np ? (b + 1) * QRBLK : np;
+        for ( size_t i = b * QRBLK ; i < i1 ; i++ )
+            if ( qr[i] ) { unsigned long q = primes[i]; fb_set (&oddfb, k++, (q & 3) == 1 ? (long) q : -(long) q); }
+    }
+    free (boff);
 
     // PASS 2 (parallel, Tonelli): square roots of the factor-base elements
     double t_sqrt = wall ();

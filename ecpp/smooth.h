@@ -26,6 +26,11 @@
     reduction P mod (prod N_i) plus cheap descent, amortized over the whole batch.
 */
 
+// ---- parallel segmented prime sieve ----
+// All primes in (plo, y] into *out (malloc'd, ascending; includes 2 iff plo < 2).
+// Returns the count.  nthreads<=0 => omp default.
+uint64_t sieve_primes_range (uint64_t plo, uint64_t y, uint64_t **out, int nthreads);
+
 // ---- prime product  P = prod_{prime q in (lo, y]} q  (lo = 0: all q <= y) ----
 typedef struct {
     mpz_t P;              // the product (squarefree)

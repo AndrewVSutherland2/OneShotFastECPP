@@ -97,8 +97,11 @@ Validated by `test_dscan.py`: DFS enumeration == an independent linear brute for
 missing/extra) and solvability == PARI's principal-form oracle (`qfbsolve`), both p mod 4.
 
 ### Parallelism (both substeps)
-- **Substep 1 (factor-base build)**: sieve → parallel Legendre determination → parallel
-  Tonelli roots (per-thread `cornacchia_ctx`). ~16× on the roots.
+- **Substep 1 (factor-base build)**: parallel segmented sieve (smooth.c's exported
+  `sieve_primes_range`; 64-bit primes — the factor base legitimately passes 2³² once B does)
+  → parallel Legendre determination → parallel prefix-sum QR collection → parallel
+  Tonelli roots (per-thread `cornacchia_ctx`). ~16× on the roots; the sieve was the last
+  serial piece (3.3 s → 0.3 s at B=1e9 on 32 vCPUs, a fixed serial cost on bigger machines).
 - **Substep 2 (scan)**: parallelized by **seed-based load balancing**. A naive parallel-for
   over the first prime plateaus at 3.6× (the smallest-prime subtree is ~27% of the work). Fix:
   a cheap serial `gen_seeds` recurses only into big subtrees and emits `~SEED_D`-sized

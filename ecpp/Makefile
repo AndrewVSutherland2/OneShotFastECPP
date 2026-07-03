@@ -22,7 +22,7 @@ all: $(PROGRAMS)
 tests: $(TESTPROGS)
 
 cmsearch:   cmsearch.o cornacchia.o
-dscan:      dscan.o cornacchia.o
+dscan:      dscan.o cornacchia.o smooth.o
 smoothtest: smoothtest.o smooth.o
 roottest:   roottest.o fproot.o
 hdroot:     hdroot.o fproot.o
@@ -44,7 +44,7 @@ zpbench:    zpbench.o fproot.o
 
 # header dependencies
 cornacchia.o cmsearch.o dscan.o: cornacchia.h
-smooth.o smoothtest.o:           smooth.h
+smooth.o smoothtest.o dscan.o:   smooth.h
 fproot.o roottest.o hdroot.o:    fproot.h
 invj.o cminv.o invjtest.o cmjtest.o cm_method.o: invj.h fproot.h
 curve.o asmtest.o:               curve.h fproot.h cornacchia.h smooth.h
