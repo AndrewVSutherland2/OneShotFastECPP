@@ -65,6 +65,13 @@ int  smooth_base_selfcheck (const smooth_base *sb);
 void smooth_parts (const smooth_base *sb, const mpz_t *N, size_t n, mpz_t *S,
                    int nthreads);
 
+// Test one batch against ns segments in a single pass (one product tree, one
+// shared chunk-power table, one descent): S[i] = product of the per-segment
+// smooth parts of N[i] over sbs[0..ns) = the smooth part of N[i] with respect
+// to the union of the segments.  smooth_parts == smooth_parts_multi with ns=1.
+void smooth_parts_multi (const smooth_base *sbs, int ns, const mpz_t *N, size_t n,
+                         mpz_t *S, int nthreads);
+
 // ---- certificate helpers ----
 // Certificate size bounds for prime p:
 //   *L    = isqrt(p) + 1 + isqrt(4 isqrt p)          (lower bound, must have m>L)

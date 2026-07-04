@@ -249,50 +249,31 @@ static void smooth_part_from_rem (mpz_t S, const mpz_t N, const mpz_t r)
     mpz_clear (t);
 }
 
-// rem = P mod X, parallelized for |P| >> |X|.  Splits P into G limb-aligned
-// chunks P = sum_g P_g * 2^(g*chunk*bits); reduces each chunk mod X in parallel
-// (zero-copy limb aliasing) and recombines with 2^(g*chunk*bits) mod X.  Same
-// total work as one big division, spread over G cores.
-static void reduce_big_mod (mpz_t rem, const mpz_t P, const mpz_t X, int nth)
+/*
+    Multi-segment batch reduction.  The old single-segment path computed, per
+    ladder rung, its own product tree over the batch, one root reduction P mod X
+    (whose chunk-recombination powers were built by a SERIAL chain of |X|-sized
+    mulmods -- a single-core wall that grows with the thread count), and its own
+    descent.  Testing a batch against ns rungs repeated all of that ns times.
+
+    New scheme, one call for all rungs (the segments are disjoint squarefree
+    products, so gcd-based extraction against prod_s P_s yields exactly the
+    product of the per-segment smooth parts):
+      1. one product tree over the batch (root X);
+      2. one shared power table pw[g] = 2^(g*w) mod X (w = chunk width in bits),
+         built by parallel prefix DOUBLING: log2(G) serial squarings instead of
+         G serial mulmods, everything else filled in parallel;
+      3. one flat parallel job list over ALL (segment, chunk) pairs -- every P_s
+         is scanned in the same omp loop, so small rungs ride along with big
+         ones and the whole root phase scales to the core count;
+      4. per-segment sums + one small mod each (parallel over segments), then
+         rem_root = prod_s (P_s mod X) mod X by a parallel pairwise fold;
+      5. one descent + one leaf pass for all rungs together.
+*/
+void smooth_parts_multi (const smooth_base *sbs, int ns, const mpz_t *N, size_t n,
+                         mpz_t *S, int nthreads)
 {
-    mp_size_t Ln = mpz_size (P);
-    mp_size_t Xn = mpz_size (X);
-    if ( nth <= 1 || Ln < Xn * 4 || Ln < 8 ) { mpz_mod (rem, P, X); return; }
-    int G = nth;  if ( (mp_size_t) G > Ln ) G = (int) Ln;
-    mp_srcptr Pd = mpz_limbs_read (P);
-    mp_size_t chunk = (Ln + G - 1) / G;                     // limbs per chunk
-
-    mpz_t step;  mpz_init (step);                           // 2^(chunk*bits) mod X
-    mpz_set_ui (step, 1);  mpz_mul_2exp (step, step, (mp_bitcnt_t) chunk * GMP_NUMB_BITS);
-    mpz_mod (step, step, X);
-    mpz_t *pw = malloc (G * sizeof(mpz_t));                 // pw[g] = 2^(g*chunk*bits) mod X
-    mpz_init_set_ui (pw[0], 1);
-    for ( int g = 1 ; g < G ; g++ ) { mpz_init (pw[g]); mpz_mul (pw[g], pw[g-1], step); mpz_mod (pw[g], pw[g], X); }
-
-    mpz_t *part = malloc (G * sizeof(mpz_t));
-    #pragma omp parallel for num_threads(nth) schedule(static)
-    for ( int g = 0 ; g < G ; g++ ) {
-        mpz_init (part[g]);
-        mp_size_t lo = (mp_size_t) g * chunk;
-        if ( lo >= Ln ) continue;                           // part[g] = 0
-        mp_size_t len = chunk;  if ( lo + len > Ln ) len = Ln - lo;
-        while ( len > 0 && Pd[lo + len - 1] == 0 ) len--;   // normalize high limb
-        if ( len == 0 ) continue;
-        mpz_t cg;  mpz_roinit_n (cg, Pd + lo, len);          // read-only alias, no copy
-        mpz_mod (part[g], cg, X);
-        mpz_mul (part[g], part[g], pw[g]);
-        mpz_mod (part[g], part[g], X);
-    }
-    mpz_set_ui (rem, 0);
-    for ( int g = 0 ; g < G ; g++ ) mpz_add (rem, rem, part[g]);
-    mpz_mod (rem, rem, X);
-    for ( int g = 0 ; g < G ; g++ ) { mpz_clear (part[g]); mpz_clear (pw[g]); }
-    free (part);  free (pw);  mpz_clear (step);
-}
-
-void smooth_parts (const smooth_base *sb, const mpz_t *N, size_t n, mpz_t *S, int nthreads)
-{
-    if ( n == 0 ) return;
+    if ( n == 0 || ns <= 0 ) return;
     if ( nthreads <= 0 ) nthreads = omp_get_max_threads ();
 
     size_t sz = 1;  while ( sz < n ) sz <<= 1;             // pad to power of two
@@ -317,11 +298,84 @@ void smooth_parts (const smooth_base *sb, const mpz_t *N, size_t n, mpz_t *S, in
             mpz_mul (lev[d][j], lev[d-1][2*j], lev[d-1][2*j+1]);
         }
     }
+    mpz_t *X = &lev[nlev-1][0];                            // batch product
+    mp_size_t Xn = mpz_size (*X);
+    mp_size_t chunk = Xn + 1;                              // shared chunk width (limbs)
 
-    // Reduce P once at the root, then descend computing P mod (each subproduct).
+    // Per-segment chunk counts and a flat job list over all (segment, chunk).
+    size_t *G = malloc (ns * sizeof(size_t)), *off = malloc ((ns + 1) * sizeof(size_t));
+    size_t npw = 1;
+    off[0] = 0;
+    for ( int s = 0 ; s < ns ; s++ ) {
+        mp_size_t Ln = mpz_size (sbs[s].P);
+        G[s] = (size_t)((Ln + chunk - 1) / chunk);  if ( ! G[s] ) G[s] = 1;
+        if ( G[s] > npw ) npw = G[s];
+        off[s+1] = off[s] + G[s];
+    }
+    size_t njob = off[ns];
+
+    // pw[g] = 2^(g*chunk*bits) mod X by parallel prefix doubling.
+    mpz_t *pw = malloc (npw * sizeof(mpz_t));
+    mpz_init_set_ui (pw[0], 1);
+    if ( npw > 1 ) {
+        mpz_init_set_ui (pw[1], 1);
+        mpz_mul_2exp (pw[1], pw[1], (mp_bitcnt_t) chunk * GMP_NUMB_BITS);
+        mpz_mod (pw[1], pw[1], *X);
+        for ( size_t m = 2 ; m < npw ; m <<= 1 ) {
+            mpz_init (pw[m]);                              // pw[m] = pw[m/2]^2 (serial, log2 steps)
+            mpz_mul (pw[m], pw[m/2], pw[m/2]);  mpz_mod (pw[m], pw[m], *X);
+            size_t hi = 2*m < npw ? 2*m : npw;
+            #pragma omp parallel for num_threads(nthreads) schedule(dynamic, 1)
+            for ( size_t g = m + 1 ; g < hi ; g++ ) {
+                mpz_init (pw[g]);                          // pw[g] = pw[m] * pw[g-m]
+                mpz_mul (pw[g], pw[m], pw[g-m]);  mpz_mod (pw[g], pw[g], *X);
+            }
+        }
+    }
+
+    // Root phase: every chunk of every segment in one parallel loop.
+    mpz_t *part = malloc (njob * sizeof(mpz_t));
+    #pragma omp parallel for num_threads(nthreads) schedule(dynamic, 1)
+    for ( size_t j = 0 ; j < njob ; j++ ) {
+        int s = 0;  while ( (size_t) off[s+1] <= j ) s++;
+        size_t g = j - off[s];
+        mpz_init (part[j]);
+        mp_size_t Ln = mpz_size (sbs[s].P);
+        mp_srcptr Pd = mpz_limbs_read (sbs[s].P);
+        mp_size_t lo = (mp_size_t) g * chunk;
+        if ( lo >= Ln ) continue;                          // part = 0
+        mp_size_t len = chunk;  if ( lo + len > Ln ) len = Ln - lo;
+        while ( len > 0 && Pd[lo + len - 1] == 0 ) len--;  // normalize high limb
+        if ( len == 0 ) continue;
+        mpz_t cg;  mpz_roinit_n (cg, Pd + lo, len);        // read-only alias, no copy
+        mpz_mod (part[j], cg, *X);
+        if ( g ) { mpz_mul (part[j], part[j], pw[g]);  mpz_mod (part[j], part[j], *X); }
+    }
+    // Per-segment sums (parallel over segments), then combine remainders:
+    // rem_root = prod_s (P_s mod X) mod X.
+    mpz_t *rs = malloc (ns * sizeof(mpz_t));
+    #pragma omp parallel for num_threads(nthreads) schedule(dynamic, 1)
+    for ( int s = 0 ; s < ns ; s++ ) {
+        mpz_init_set_ui (rs[s], 0);
+        for ( size_t g = 0 ; g < G[s] ; g++ ) mpz_add (rs[s], rs[s], part[off[s] + g]);
+        mpz_mod (rs[s], rs[s], *X);
+    }
+    for ( int w = ns ; w > 1 ; w = (w + 1) / 2 ) {         // parallel pairwise product fold
+        #pragma omp parallel for num_threads(nthreads) schedule(dynamic, 1)
+        for ( int s = 0 ; s < w/2 ; s++ ) {
+            mpz_mul (rs[s], rs[s], rs[w-1-s]);  mpz_mod (rs[s], rs[s], *X);
+        }
+    }
+    for ( size_t j = 0 ; j < njob ; j++ ) mpz_clear (part[j]);
+    free (part);
+    for ( size_t g = 0 ; g < npw ; g++ ) mpz_clear (pw[g]);
+    free (pw);  free (G);  free (off);
+
+    // Descend computing (prod_s P_s) mod (each subproduct).
     mpz_t *rem = malloc (cnt[nlev-1] * sizeof(mpz_t));     // top level: 1 node
-    mpz_init (rem[0]);
-    reduce_big_mod (rem[0], sb->P, lev[nlev-1][0], nthreads);   // <-- the one big reduction (parallel)
+    mpz_init_set (rem[0], rs[0]);
+    for ( int s = 0 ; s < ns ; s++ ) mpz_clear (rs[s]);
+    free (rs);
     for ( int d = nlev - 2 ; d >= 0 ; d-- ) {
         mpz_t *rc = malloc (cnt[d] * sizeof(mpz_t));
         #pragma omp parallel for num_threads(nthreads) schedule(dynamic, 64)
@@ -333,7 +387,7 @@ void smooth_parts (const smooth_base *sb, const mpz_t *N, size_t n, mpz_t *S, in
         free (rem);
         rem = rc;
     }
-    // rem[i] = P mod N[i] for i<n.  Extract smooth parts (parallel).
+    // rem[i] = (prod_s P_s) mod N[i] for i<n.  Extract smooth parts (parallel).
     #pragma omp parallel for num_threads(nthreads) schedule(dynamic, 32)
     for ( size_t i = 0 ; i < n ; i++ )
         smooth_part_from_rem (S[i], N[i], rem[i]);
@@ -346,6 +400,9 @@ void smooth_parts (const smooth_base *sb, const mpz_t *N, size_t n, mpz_t *S, in
     }
     free (lev);  free (cnt);
 }
+
+void smooth_parts (const smooth_base *sb, const mpz_t *N, size_t n, mpz_t *S, int nthreads)
+{ smooth_parts_multi (sb, 1, N, n, S, nthreads); }
 
 /* ===================================================================== *
  *  Certificate helpers.                                                 *

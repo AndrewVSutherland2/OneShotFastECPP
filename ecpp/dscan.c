@@ -334,6 +334,9 @@ int main (int argc, char *argv[])
     }
     free (states);
 
+    if ( do_dump || do_dumpscan )                            // one-line summary for pipeline callers
+        fprintf (stderr, "dscan B=%lu Bmin=%lu: fb %.1fs (sieve %.1f, legendre %.1f, tonelli %.1f), scan %.1fs, %lu/%lu solvable, %d threads\n",
+                 Bbound, Bminb, tfb, t_sieve, t_det, t_sqrt, tsc, n_solv, n_scan, nth);
     if ( ! do_dump && ! do_dumpscan ) {
         gmp_fprintf (stderr, "p (%lu bits, %lu mod 4) = %Zd\n", (unsigned long) mpz_sizeinbase (p, 2), mpz_fdiv_ui (p, 4), p);
         fprintf (stderr, "B = %lu   factor base: %zu odd prime discriminants + %d two-part\n", Bbound, oddfb.n, n_tp - 1);

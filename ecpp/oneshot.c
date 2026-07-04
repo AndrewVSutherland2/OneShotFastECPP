@@ -4,6 +4,11 @@
 #include <time.h>
 #include <math.h>
 #include <omp.h>
+#include <pthread.h>
+#include <unistd.h>
+#include <signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <gmp.h>
 #include "cornacchia.h"
 #include "smooth.h"
@@ -68,6 +73,114 @@ static const unsigned long ELLS[] = {2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53
 
 #define MAXSEG 32
 
+/*
+    Asynchronous discriminant scan: dscan runs as a forked child while the
+    smoothness engine works on the current pool, and a drain thread parses its
+    dump output and precomputes the per-candidate group data (N, n1, n1h) off
+    the critical path.  The next window (Bcur, 2*Bcur] is launched speculatively
+    right after each ingest -- the window is fixed by the doubling schedule, so
+    the result is needed at the next widen regardless of intervening deepens
+    (it is only wasted if a certificate lands first, in which case the child is
+    killed).
+*/
+typedef struct { unsigned long d; mpz_t N, t, n1, n1h; } scand;
+
+typedef struct {
+    FILE *f;  pid_t pid;
+    unsigned long Bmin, B;      // scan window (Bmin, B]
+    pthread_t th;
+    scand *v;  size_t n, cap;   // parsed candidates (both signs, N=0 mod 4 only)
+    mpz_t p;
+} scanjob;
+
+static void *scan_drain (void *arg)
+{
+    scanjob *J = arg;
+    mpz_t t, v, np1, Nm, a2;
+    mpz_inits (t, v, np1, Nm, a2, NULL);
+    mpz_add_ui (np1, J->p, 1);
+    unsigned long d;
+    while ( gmp_fscanf (J->f, "%lu %Zd %Zd", &d, t, v) == 3 ) {
+        for ( int sgn = 0 ; sgn < 2 ; sgn++ ) {
+            if ( sgn == 0 ) mpz_sub (Nm, np1, t);  else mpz_add (Nm, np1, t);
+            if ( mpz_fdiv_ui (Nm, 4) != 0 ) continue;          // Montgomery needs N = 0 mod 4
+            // (No further representability filter: cm_method descends the
+            // 2-volcano to a floor curve with cyclic 2-Sylow, so the
+            // p = 3 mod 4, N = 4 mod 8 obstruction does not apply.)
+            if ( J->n == J->cap ) { J->cap = J->cap ? 2*J->cap : 8192;  J->v = realloc (J->v, J->cap * sizeof(scand)); }
+            scand *c = &J->v[J->n++];
+            c->d = d;
+            mpz_init_set (c->N, Nm);  mpz_init_set (c->t, t);
+            // group structure Z/n1 x Z/(N/n1):  pi = (t + v sqrt(D))/2, n1 = gcd(a-1, b)
+            // over O = Z[omega].  For trace +t (N = p+1-t):
+            //   D = 0 mod 4:  n1 = gcd(t/2 - 1, v);   D = 1 mod 4:  n1 = gcd((t-v)/2 - 1, v)
+            // and t -> -t for the other sign.  (Validated vs PARI ellgroup, D < -4.)
+            if ( (d & 3) == 0 ) {                              // D = -d = 0 mod 4
+                mpz_fdiv_q_2exp (a2, t, 1);                    // t/2
+                if ( sgn == 0 ) mpz_sub_ui (a2, a2, 1); else { mpz_neg (a2, a2); mpz_sub_ui (a2, a2, 1); }
+            } else {                                           // D = 1 mod 4
+                if ( sgn == 0 ) mpz_sub (a2, t, v); else { mpz_neg (a2, t); mpz_sub (a2, a2, v); }
+                mpz_fdiv_q_2exp (a2, a2, 1);
+                mpz_sub_ui (a2, a2, 1);
+            }
+            mpz_init (c->n1);  mpz_gcd (c->n1, a2, v);
+            // n1h = n1 stripped of the volcano-descendable primes (<= 97)
+            mpz_init_set (c->n1h, c->n1);
+            for ( size_t e = 0 ; e < NELLS ; e++ )
+                while ( mpz_divisible_ui_p (c->n1h, ELLS[e]) )
+                    mpz_divexact_ui (c->n1h, c->n1h, ELLS[e]);
+        }
+    }
+    mpz_clears (t, v, np1, Nm, a2, NULL);
+    return NULL;
+}
+
+static int scan_spawn (scanjob *J, const mpz_t p, const char *pdec, unsigned long B, unsigned long Bmin, int nth)
+{
+    memset (J, 0, sizeof *J);
+    J->B = B;  J->Bmin = Bmin;
+    int fd[2];
+    if ( pipe (fd) ) return 0;
+    J->pid = fork ();
+    if ( J->pid < 0 ) { close (fd[0]); close (fd[1]); return 0; }
+    if ( J->pid == 0 ) {
+        char ap[8200], ab[32], abm[32], ath[16];
+        snprintf (ap, sizeof ap, "p=%s", pdec);
+        snprintf (ab, sizeof ab, "B=%lu", B);
+        snprintf (abm, sizeof abm, "Bmin=%lu", Bmin);
+        snprintf (ath, sizeof ath, "threads=%d", nth);
+        dup2 (fd[1], 1);  close (fd[0]);  close (fd[1]);
+        execlp ("dscan", "dscan", ap, ab, abm, ath, "dump", (char*) 0);
+        _exit (127);
+    }
+    close (fd[1]);
+    J->f = fdopen (fd[0], "r");
+    mpz_init_set (J->p, p);
+    pthread_create (&J->th, NULL, scan_drain, J);
+    return 1;
+}
+
+// wait for scan + parser to finish; J->v/J->n are then owned by the caller
+static int scan_join (scanjob *J)
+{
+    pthread_join (J->th, NULL);
+    fclose (J->f);
+    int st = 0;  waitpid (J->pid, &st, 0);
+    mpz_clear (J->p);
+    return WIFEXITED (st) && WEXITSTATUS (st) == 0;
+}
+
+static void scan_abort (scanjob *J)
+{
+    kill (J->pid, SIGTERM);
+    pthread_join (J->th, NULL);
+    fclose (J->f);
+    int st = 0;  waitpid (J->pid, &st, 0);
+    mpz_clear (J->p);
+    for ( size_t i = 0 ; i < J->n ; i++ ) mpz_clears (J->v[i].N, J->v[i].t, J->v[i].n1, J->v[i].n1h, NULL);
+    free (J->v);
+}
+
 typedef struct {
     // candidate pool
     unsigned long *cd;          // |D|
@@ -85,20 +198,29 @@ typedef struct {
     double Pbits, Wtest;        // work accounting (bits)
 } engine;
 
-// test pool[idx[0..k)] against segment s; S *= per-segment smooth part
-static void test_batch (engine *E, int s, const size_t *idx, size_t k, int nth)
+// test pool[idx[0..k)] against segments [s0,s1) in one fused pass;
+// S *= product of the per-segment smooth parts
+static void test_batch_range (engine *E, int s0, int s1, const size_t *idx, size_t k, int nth)
 {
-    if ( ! k ) return;
+    if ( ! k || s1 <= s0 ) return;
+    double t0 = wall ();
     mpz_t *NN = malloc (k * sizeof(mpz_t)), *SS = malloc (k * sizeof(mpz_t));
     for ( size_t i = 0 ; i < k ; i++ ) { mpz_init_set (NN[i], E->cN[idx[i]]);  mpz_init (SS[i]); }
-    smooth_parts (&E->seg[s], (const mpz_t*) NN, k, SS, nth);
+    smooth_parts_multi (&E->seg[s0], s1 - s0, (const mpz_t*) NN, k, SS, nth);
     for ( size_t i = 0 ; i < k ; i++ ) {
         mpz_mul (E->S[idx[i]], E->S[idx[i]], SS[i]);
         mpz_clear (NN[i]);  mpz_clear (SS[i]);
     }
     free (NN);  free (SS);
-    E->Wtest += mpz_sizeinbase (E->seg[s].P, 2) + (double) k * mpz_sizeinbase (E->cN[idx[0]], 2);
+    double bits = 0;
+    for ( int s = s0 ; s < s1 ; s++ ) bits += mpz_sizeinbase (E->seg[s].P, 2);
+    E->Wtest += bits + (double) k * (s1 - s0) * mpz_sizeinbase (E->cN[idx[0]], 2);
+    fprintf (stderr, "[smooth segs %d..%d (%.0f Mbit) x %zu cand: %.1fs]\n",
+             s0, s1 - 1, bits/1e6, k, wall () - t0);
 }
+
+static void test_batch (engine *E, int s, const size_t *idx, size_t k, int nth)
+{ test_batch_range (E, s, s + 1, idx, k, nth); }
 
 // acquire the ladder segment (E->ycur, ynext]: cache-load or build+save
 static void add_segment (engine *E, uint64_t ynext, const char *cdir, int nth)
@@ -198,14 +320,17 @@ int main (int argc, char **argv)
 
     cornacchia_ctx cc;  cornacchia_init (&cc, p);
     fp_ctx C;  fp_init (&C, p);
-    mpz_t A, x0, jj, mm, t, v, np1, Nm, Seff, gtmp, rtmp;
-    mpz_inits (A, x0, jj, mm, t, v, np1, Nm, Seff, gtmp, rtmp, NULL);
-    mpz_add_ui (np1, p, 1);
+    mpz_t A, x0, jj, mm, Seff, gtmp, rtmp;
+    mpz_inits (A, x0, jj, mm, Seff, gtmp, rtmp, NULL);
     uint64_t qs[64];  int nq;
     size_t *idx = NULL;  size_t idxcap = 0;
     unsigned long Bcur = 0;
     int done = 0, epoch = 0, nwin_total = 0;
     double t_start = wall ();
+
+    // speculative first scan window (0, B0]
+    scanjob pend;  int have_pend = 0;
+    if ( B0 <= Bmax ) have_pend = scan_spawn (&pend, p, pdec, B0 > Bmax ? Bmax : B0, 0, nth);
 
     while ( ! done ) {
         epoch++;
@@ -261,7 +386,9 @@ int main (int argc, char **argv)
                 for ( size_t e = 0 ; e < NELLS ; e++ )
                     if ( mpz_divisible_ui_p (E.n1[i], ELLS[e]) )
                         el += snprintf (ellstr + el, sizeof ellstr - el, "%s%lu", el ? "," : "", ELLS[e]);
+                double t_cm0 = wall ();
                 if ( ! cm_jinvariant (-(long) E.cd[i], pdec, nth, ellstr, jj) ) { E.dead[i] = 1; continue; }
+                fprintf (stderr, "[cm_method D=-%lu: %.1fs]\n", E.cd[i], wall () - t_cm0);
                 mpz_set (E.cj[i], jj);
             } else mpz_set (jj, E.cj[i]);
             if ( ! mont_assemble (&C, &cc, jj, E.cN[i], E.ct[i], mm, A, x0, 0xA55E + (unsigned) E.cd[i]) ) {
@@ -295,74 +422,50 @@ int main (int argc, char **argv)
         } else {
             unsigned long Bnext = Bcur ? Bcur * 2 : B0;
             if ( Bnext > Bmax ) Bnext = Bmax;
-            char cmd[16384];
-            snprintf (cmd, sizeof cmd, "dscan p=%s B=%lu Bmin=%lu threads=%d dump 2>/dev/null",
-                      pdec, Bnext, Bcur, nth);
-            FILE *ds = popen (cmd, "r");
-            if ( ! ds ) { fprintf (stderr, "dscan failed (on PATH?)\n"); return 1; }
+            double t_ds = wall ();
+            if ( ! have_pend ) have_pend = scan_spawn (&pend, p, pdec, Bnext, Bcur, nth);
+            if ( ! have_pend || pend.Bmin != Bcur || pend.B != Bnext ) { fprintf (stderr, "scan window mismatch\n"); return 1; }
+            if ( ! scan_join (&pend) ) { fprintf (stderr, "dscan failed (on PATH?)\n"); return 1; }
+            have_pend = 0;
+            // bulk-append the parsed candidates (mpz ownership moves from pend.v)
             size_t first_new = E.nc;
-            unsigned long d;
-            while ( gmp_fscanf (ds, "%lu %Zd %Zd", &d, t, v) == 3 ) {
-                for ( int sgn = 0 ; sgn < 2 ; sgn++ ) {
-                    if ( sgn == 0 ) mpz_sub (Nm, np1, t);  else mpz_add (Nm, np1, t);
-                    if ( mpz_fdiv_ui (Nm, 4) != 0 ) continue;          // Montgomery needs N = 0 mod 4
-                    // (No further representability filter: the H_D roots are not
-                    // Montgomery-representable when p = 3 mod 4 and N = 4 mod 8,
-                    // but cm_method descends the 2-volcano to a floor curve with
-                    // cyclic 2-Sylow Z/4, whose 2-torsion point is halvable and
-                    // hence representable.)
-                    if ( E.nc == E.cap ) {
-                        E.cap *= 2;
-                        E.cd = realloc (E.cd, E.cap*sizeof(unsigned long));
-                        E.cN = realloc (E.cN, E.cap*sizeof(mpz_t));  E.ct = realloc (E.ct, E.cap*sizeof(mpz_t));
-                        E.S  = realloc (E.S,  E.cap*sizeof(mpz_t));  E.cj = realloc (E.cj, E.cap*sizeof(mpz_t));
-                        E.n1 = realloc (E.n1, E.cap*sizeof(mpz_t));  E.n1h = realloc (E.n1h, E.cap*sizeof(mpz_t));
-                        E.dead = realloc (E.dead, E.cap);  E.Sfail = realloc (E.Sfail, E.cap*sizeof(unsigned long));
-                    }
-                    E.cd[E.nc] = d;  mpz_init_set (E.cN[E.nc], Nm);  mpz_init_set (E.ct[E.nc], t);
-                    mpz_init_set_ui (E.S[E.nc], 1);  mpz_init (E.cj[E.nc]);
-                    // group structure Z/n1 x Z/(N/n1):  pi = (t + v sqrt(D))/2, n1 = gcd(a-1, b)
-                    // over O = Z[omega].  For trace +t (N = p+1-t):
-                    //   D = 0 mod 4:  n1 = gcd(t/2 - 1, v);   D = 1 mod 4:  n1 = gcd((t-v)/2 - 1, v)
-                    // and t -> -t for the other sign.  (Validated vs PARI ellgroup, D < -4.)
-                    mpz_init (E.n1[E.nc]);
-                    {
-                        mpz_t a2;  mpz_init (a2);
-                        if ( (d & 3) == 0 ) {                          // D = -d = 0 mod 4
-                            mpz_fdiv_q_2exp (a2, t, 1);                // t/2
-                            if ( sgn == 0 ) mpz_sub_ui (a2, a2, 1); else { mpz_neg (a2, a2); mpz_sub_ui (a2, a2, 1); }
-                        } else {                                       // D = 1 mod 4
-                            if ( sgn == 0 ) mpz_sub (a2, t, v); else { mpz_neg (a2, t); mpz_sub (a2, a2, v); }
-                            mpz_fdiv_q_2exp (a2, a2, 1);
-                            mpz_sub_ui (a2, a2, 1);
-                        }
-                        mpz_gcd (E.n1[E.nc], a2, v);
-                        mpz_clear (a2);
-                    }
-                    // n1h = n1 stripped of the volcano-descendable primes (<= 97)
-                    mpz_init_set (E.n1h[E.nc], E.n1[E.nc]);
-                    for ( size_t e = 0 ; e < NELLS ; e++ )
-                        while ( mpz_divisible_ui_p (E.n1h[E.nc], ELLS[e]) )
-                            mpz_divexact_ui (E.n1h[E.nc], E.n1h[E.nc], ELLS[e]);
-                    E.dead[E.nc] = 0;  E.Sfail[E.nc] = 0;  E.nc++;
+            for ( size_t ci = 0 ; ci < pend.n ; ci++ ) {
+                scand *c = &pend.v[ci];
+                if ( E.nc == E.cap ) {
+                    E.cap *= 2;
+                    E.cd = realloc (E.cd, E.cap*sizeof(unsigned long));
+                    E.cN = realloc (E.cN, E.cap*sizeof(mpz_t));  E.ct = realloc (E.ct, E.cap*sizeof(mpz_t));
+                    E.S  = realloc (E.S,  E.cap*sizeof(mpz_t));  E.cj = realloc (E.cj, E.cap*sizeof(mpz_t));
+                    E.n1 = realloc (E.n1, E.cap*sizeof(mpz_t));  E.n1h = realloc (E.n1h, E.cap*sizeof(mpz_t));
+                    E.dead = realloc (E.dead, E.cap);  E.Sfail = realloc (E.Sfail, E.cap*sizeof(unsigned long));
                 }
+                E.cd[E.nc] = c->d;
+                E.cN[E.nc][0] = c->N[0];  E.ct[E.nc][0] = c->t[0];
+                E.n1[E.nc][0] = c->n1[0];  E.n1h[E.nc][0] = c->n1h[0];
+                mpz_init_set_ui (E.S[E.nc], 1);  mpz_init (E.cj[E.nc]);
+                E.dead[E.nc] = 0;  E.Sfail[E.nc] = 0;  E.nc++;
             }
-            pclose (ds);
+            free (pend.v);
             Bcur = Bnext;
-            // test the new candidates against every rung of the ladder
+            fprintf (stderr, "[scan join B=%lu: %.1fs stall]\n", Bcur, wall () - t_ds);
+            // launch the next window before testing: it scans while we test
+            if ( Bcur < Bmax )
+                have_pend = scan_spawn (&pend, p, pdec, Bcur * 2 > Bmax ? Bmax : Bcur * 2, Bcur, nth);
+            // test the new candidates against every rung of the ladder (one fused pass)
             size_t knew = E.nc - first_new;
             if ( idxcap < E.nc ) { idxcap = E.nc + 16;  idx = realloc (idx, idxcap * sizeof(size_t)); }
             for ( size_t i = 0 ; i < knew ; i++ ) idx[i] = first_new + i;
-            for ( int s = 0 ; s < E.nseg ; s++ ) test_batch (&E, s, idx, knew, nth);
+            test_batch_range (&E, 0, E.nseg, idx, knew, nth);
             fprintf (stderr, "[widen: B=%lu, +%zu candidates (pool %zu), y=%llu]\n",
                      Bcur, knew, E.nc, (unsigned long long) E.ycur);
         }
     }
+    if ( have_pend ) scan_abort (&pend);                    // don't leave a scan running
 
     for ( size_t i = 0 ; i < E.nc ; i++ ) { mpz_clear (E.cN[i]); mpz_clear (E.ct[i]); mpz_clear (E.S[i]); mpz_clear (E.cj[i]); mpz_clear (E.n1[i]); mpz_clear (E.n1h[i]); }
     free (E.cd); free (E.cN); free (E.ct); free (E.S); free (E.cj); free (E.n1); free (E.n1h); free (E.dead); free (E.Sfail); free (idx);
     for ( int s = 0 ; s < E.nseg ; s++ ) smooth_base_clear (&E.seg[s]);
-    mpz_clears (A, x0, jj, mm, t, v, np1, Nm, L, Hass, p, NULL);
+    mpz_clears (A, x0, jj, mm, Seff, gtmp, rtmp, L, Hass, p, NULL);
     cornacchia_clear (&cc);  fp_clear (&C);
     return done ? 0 : 2;
 }
