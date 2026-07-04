@@ -197,8 +197,15 @@ which the remainder tree handles anyway — so a sieve pre-pass buys little. (De
 ### Implementation (`smooth.{c,h}`)
 - `smooth_base_build(y, nth)` — parallel segmented sieve (banded, chunked, `2` + odd wheel) →
   `uint64` prime array → parallel product tree (OpenMP tasks). `smooth_base_save/load` cache `P`.
-- `smooth_parts(sb, N[], k, S[], nth)` — the remainder tree (parallel level-by-level build +
-  descent) then parallel extraction. Reduces `P mod X` once at the root.
+- `smooth_parts_multi(sbs[], ns, N[], k, S[], nth)` — one fused pass per batch against `ns`
+  ladder rungs: one product tree (root `X`), one shared chunk-power table
+  `pw[g] = 2^(g·w) mod X` built by **parallel prefix doubling** (log₂G serial squarings — the
+  old per-rung serial chain of G |X|-sized mulmods was a single-core wall that *grew with the
+  thread count*: ~90 s/batch at 256 threads), one flat parallel job list over all
+  (segment × chunk) pairs, per-segment remainders combined by a parallel product fold
+  (valid: gcd-extraction against `∏ₛPₛ` = product of per-segment smooth parts), then one
+  descent + one leaf pass. `smooth_parts` = the `ns=1` wrapper. oneshot's widen tests all
+  rungs in a single call (was: 15 trees + 15 root reductions + 15 descents per widen).
 - `cert_bounds(p, …)` → `L`, Hasse, `n`, `n²`, `n⁴`. `factor_smooth` (trial + Brent-rho) and
   `build_m` (assemble `m∈(L,L·r)` largest-prime-first, list `q_i∈(n²,n⁴)`) for the rare winners.
 - **Cache gotcha (fixed):** the `P` disk cache uses native limbs + a 64-bit count, NOT

@@ -59,6 +59,19 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   test_dscan.py + test_smooth.py green, (2³², 2³²+6e4) window exact vs PARI (enumeration,
   qfbsolve solvability, 4p = t²+dv² arithmetic), 256-bit oneshot cert re-verified in PARI.
   Known remaining ceilings at 256 cores: classpoly jobs setup overhead, fproot's ~27-task cap.
+- **Smoothness at scale (2026-07-04)**: `smooth_parts_multi` fuses a batch against ALL ladder
+  rungs — one product tree, one shared chunk-power table (parallel prefix doubling; the old
+  `reduce_big_mod` recombination ladder was G *serial* |X|-sized mulmods ≈ 90 s single-core per
+  big batch at 256 threads, growing with thread count), one flat (segment×chunk) job list, one
+  descent (gcd vs ∏P_s = ∏ per-seg parts; segments disjoint). oneshot overlaps norm-equation
+  scanning with smoothness testing: dscan is a forked child + drain pthread (parses dump,
+  precomputes n1/n1h off-thread), next window spawned speculatively before test_batch, killed
+  if a cert lands first. Phase instrumentation on stderr ([smooth segs], [scan join ... stall],
+  [cm_method], dscan one-line summary in dump mode). Validated: fused vs per-candidate
+  reference exact, gates green, 256-bit cert byte-identical (19.7→14.9 s), 10^110+7 B=8e9:
+  identical pool (39878) + outcome, scan+smooth critical path 855→390 s @32 vCPU.
+  Cold-start ceiling left: segment-build product-tree top muls (355 s/9 rungs at 10^110 here,
+  once per rung then pcached) — multi-part segment forests if it matters.
 
 ## Build & test
 ```sh
