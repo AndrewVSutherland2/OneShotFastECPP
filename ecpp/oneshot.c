@@ -264,7 +264,7 @@ int main (int argc, char **argv)
 {
     mpz_t p;  mpz_init (p);
     unsigned long pbits = 0, seed = 1;  int nth = 0;
-    unsigned long B0 = 4000000UL, Bmax = 20000000000UL;
+    unsigned long B0 = 4000000UL, Bmax = 0;
     double cfac = 1.0;
     const char *pcache = NULL;
     for ( int i = 1 ; i < argc ; i++ ) {
@@ -288,6 +288,21 @@ int main (int argc, char **argv)
     if ( ! mpz_probab_prime_p (p, 25) ) { fprintf (stderr, "p is not a probable prime\n"); return 1; }
     if ( ! getenv ("CLASSPOLY_PHI_DIR") ) { fprintf (stderr, "set the classpoly env (source setenv.sh)\n"); return 1; }
     char pdec[8192];  gmp_snprintf (pdec, sizeof pdec, "%Zd", p);
+
+    // Default Bmax: the largest doubling of 2e10 whose dscan factor base still
+    // fits in ~30% of physical RAM.  Per prime < B the scan holds ~9 bytes of
+    // transient arrays plus, for the ~half that are QRs, a factor-base entry
+    // (sval/sgn/aval + mpz_t + a limb block for sqrt(q* mod p)).  B= overrides.
+    if ( ! Bmax ) {
+        double ram = (double) sysconf (_SC_PHYS_PAGES) * (double) sysconf (_SC_PAGE_SIZE);
+        double per = 9.0 + 0.5 * (52.0 + 8.0 * (double) mpz_size (p) + 16.0);
+        Bmax = 20000000000UL;
+        while ( Bmax < 4000000000000UL ) {
+            double Bn = 2.0 * (double) Bmax;
+            if ( Bn / (log (Bn) - 1.0) * per > 0.30 * ram ) break;
+            Bmax = (unsigned long) Bn;
+        }
+    }
 
     mpz_t L, Hass;  mpz_init (L);  mpz_init (Hass);
     unsigned long n;  uint64_t n2, n4;
@@ -410,7 +425,9 @@ int main (int argc, char **argv)
         double estnext = ynext ? 1.443 * (double)(ynext - E.ycur) : 0;
         int deepen = ynext && (E.Wtest >= cfac * (E.Pbits + estnext) || Bcur >= Bmax);
         if ( ! deepen && Bcur >= Bmax && ! ynext ) {
-            fprintf (stderr, "no certificate: pool %zu candidates (B=%lu), y=n^4; raise B=\n", E.nc, Bcur);
+            fprintf (stderr, "no certificate: pool %zu candidates (B=%lu), y=n^4; raise B= (e.g. B=%lu; "
+                     "dscan factor base needs ~%.0f GB per 1e9 of B here)\n", E.nc, Bcur, 2*Bcur,
+                     (9.0 + 0.5*(68.0 + 8.0*mpz_size (p))) / (log ((double) Bcur) - 1.0));
             break;
         }
         if ( deepen ) {
