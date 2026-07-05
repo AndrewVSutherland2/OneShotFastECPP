@@ -72,6 +72,10 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   identical pool (39878) + outcome, scan+smooth critical path 855→390 s @32 vCPU.
   Cold-start ceiling left: segment-build product-tree top muls (355 s/9 rungs at 10^110 here,
   once per rung then pcached) — multi-part segment forests if it matters.
+- **Bmax default is memory-aware (2026-07-04)**: largest doubling of 2e10 whose dscan factor
+  base fits ~30% of physical RAM (~67 B/prime at 383 bits: 128 GB → 2e10, 1 TB → 8e10,
+  1.5 TB → 1.6e11); `B=` still overrides. The y=n⁴ exhaust message now suggests the next B
+  and the ~GB-per-1e9-of-B factor-base cost. (10^115+79 exhausted the old fixed 2e10 cap.)
 
 ## Build & test
 ```sh
