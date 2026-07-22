@@ -171,7 +171,39 @@ certificate integers, not JSON overhead. At these sizes verification constants d
 log&nbsp;log gap is not yet visible; the dramatic difference is in <em>proving</em>: the one-shot search wall
 (10<sup>115</sup>+79 exhausted B = 2&times;10<sup>10</sup>) is gone, and 1024-bit primes prove in minutes on the dev box.</p>
 
-<h2>6&nbsp;&middot;&nbsp;Take and next steps</h2>
+<h2>6&nbsp;&middot;&nbsp;Follow-up: usable-discriminant density, and CM vs SEA (2026-07-22)</h2>
+<p><b>Why the one-shot scan is &Theta;&#771;(B) and not "one smoothness trial per discriminant".</b> Enumerating
+fundamental D by |D| does visit &Omega;(B) discriminants up to B, but a discriminant only yields a candidate integer
+when 4p = t&sup2; + |D|v&sup2; is solvable &mdash; i.e. when p splits completely in the ring class field, which for a
+random p happens with probability 1/(2h(&minus;|D|)) &#8776; |D|<sup>&minus;1/2</sup>. Summing, only
+&Theta;&#771;(&radic;B) of the discriminants up to B consume a smoothness lottery ticket; a failed Cornacchia costs time
+but tests no integer. Measured on this box (distinct solvable d &le; B from <code>dscan dump</code>):</p>
+<table>
+<tr><th>B</th><th>10&#8308;</th><th>10&#8309;</th><th>10&#8310;</th><th>10&#8311;</th><th>10&#8312;</th></tr>
+<tr><td>solvable d, 1024-bit p (&divide;&radic;B)</td><td>53 (0.53)</td><td>163 (0.52)</td><td>498 (0.50)</td><td>1541 (0.49)</td><td>4837 (0.48)</td></tr>
+<tr><td>solvable d, secp256k1 p (&divide;&radic;B)</td><td>64 (0.64)</td><td>221 (0.70)</td><td>714 (0.71)</td><td>2229 (0.71)</td><td>6893 (0.69)</td></tr>
+</table>
+<p class="note">The ratio to &radic;B is flat over four decades (the constant is a p-dependent L-value average);
+an &Omega;(B) usable-density model would have this column growing 100-fold left to right. Hence p<sup>1/8+o(1)</sup>
+smoothness trials force B &#8776; p<sup>1/4+o(1)</sup>, the scan costs &Theta;&#771;(B), and the winning |D| is
+&#8776; p<sup>1/4</sup> (its H<sub>D</sub>, at |D|<sup>1+o(1)</sup>, matches the scan cost rather than dominating it).</p>
+
+<p><b>CM vs random curves + SEA for the chain.</b> Asymptotically the same &radic;B density makes the CM scan quadratic
+in the number of candidates, which shifts the L(1/3) constant by the universal factor
+c<sub>CM</sub>/c<sub>SEA</sub> = (2/3)&middot;4<sup>1/3</sup> &#8776; 1.058 &mdash; more than a log factor, but only 6%.
+In practice CM is not close: one PARI <code>ellap</code> (SEA) order computation costs 3.3 s at 256 bits,
+194 s at 512 bits, and over 50 minutes at 1024 bits, while the chain consumes hundreds of candidate orders per level and
+the entire dscan pool costs &sim;1 s. Scanning nextprime(2<sup>1023</sup>) by increasing |D| under the production ECM
+ladder, the smallest |D| whose p+1&plusmn;t has chain shape is <b>|D| = 2152</b> (h = 10, polclass &sim;30 ms;
+q of 765 bits, cofactor cracked at the B1 = 10<sup>6</sup> level), with further winners at |D| = 2267 (B1 = 5&times;10<sup>4</sup>),
+5851 and 63944 (B1 = 1.1&times;10<sup>4</sup>); the 38 candidate orders with smaller |D| stay composite-unresolved under
+the ladder, so 2152 is exact for these bounds and an upper bound for any deeper effort &mdash; the asymptotic
+L(1/3)-sized |D| is nowhere in sight, and class-polynomial cost never bites: even |D| &#8776; 10<sup>8</sup>
+has h &#8776; 10&#8308; (seconds in classpoly). At PARI-grade SEA speeds, CM's amortized per-candidate scan cost
+(&#8776;4&middot;N<sub>cand</sub>&middot;10<sup>&minus;8</sup> s) only reaches one SEA point count once a level needs
+&sim;10<sup>9</sup> candidates &mdash; roughly 3&ndash;5k-bit primes.</p>
+
+<h2>7&nbsp;&middot;&nbsp;Take and next steps</h2>
 <p>The descent chain is strictly better as a <em>primality-proving scheme</em>: same O(log&nbsp;p) proof size (3&ndash;4&times;
 constant), verification a log&nbsp;log factor faster, proving falls from p<sup>1/4+o(1)</sup> to L<sub>p</sub>(1/3) &mdash;
 and in practice from "struggles past 384 bits" to "1024 bits in minutes". What it gives up is precisely the challenge's

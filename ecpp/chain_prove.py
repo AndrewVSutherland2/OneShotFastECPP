@@ -151,6 +151,12 @@ class Candidate:
         self.dead = False
 
 
+def ecm_timeout(b1, curves, nbits):
+    # ~30 us per B1-unit per curve at 1024 bits (stage 1 + default stage 2),
+    # quadratic in the modulus size; 2x headroom plus a flat floor
+    return 60 + int(6e-11 * curves * b1 * nbits * nbits)
+
+
 def ecm_peel(ecm_bin, n, b1, curves, timeout):
     """Run ECM; gmp-ecm keeps going on the cofactor, so one invocation can
     peel several factors.  Output is 'f1 f2 ... cofactor' (or just n if no
@@ -230,7 +236,7 @@ def prove_level(p, b_max, B0, threads, ecm_bin, stats):
         for b1, curves in ECM_ROUNDS:
             if winners:
                 break
-            timeout = 60 + curves * b1 // 100000
+            timeout = ecm_timeout(b1, curves, nbits)
             live = [c for c in queue if not c.dead]
             with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as ex:
                 found = list(ex.map(
