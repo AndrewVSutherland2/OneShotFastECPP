@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Descent chains: L(1/3) primality proving with Pomerance-grade verification</title>
+<style>
+:root { --bg:#ffffff; --fg:#1a1a24; --dim:#5a5a6e; --accent:#7c3aed; --rule:#e2e2ea;
+        --code:#f4f2fa; --th:#f0edf8; --ok:#0a7d33; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14141c; --fg:#e6e4f0; --dim:#9a97ad; --accent:#a78bfa; --rule:#2e2e3e;
+          --code:#1e1d2c; --th:#232134; --ok:#4ade80; }
+}
+body { margin:0 auto; max-width:60rem; padding:2rem 1.2rem 4rem; background:var(--bg);
+       color:var(--fg); font:16px/1.55 Georgia,'Times New Roman',serif; }
+h1 { font-size:1.7rem; line-height:1.25; margin:0 0 .3rem; }
+h2 { font-size:1.25rem; margin:2.2rem 0 .6rem; border-bottom:1px solid var(--rule); padding-bottom:.25rem; }
+h3 { font-size:1.05rem; margin:1.5rem 0 .4rem; }
+.sub { color:var(--dim); margin-bottom:1.6rem; }
+code, pre { font-family:ui-monospace,'Cascadia Code',Menlo,monospace; font-size:.86em;
+            background:var(--code); border-radius:4px; }
+code { padding:.08em .35em; }
+pre { padding:.7rem .9rem; overflow-x:auto; line-height:1.45; }
+table { border-collapse:collapse; margin:1rem 0; font-size:.92rem; width:100%; overflow-x:auto; display:block; }
+th, td { border:1px solid var(--rule); padding:.35rem .6rem; text-align:right; white-space:nowrap; }
+th { background:var(--th); text-align:center; }
+td:first-child, th:first-child { text-align:left; }
+.math { font-style:italic; }
+.claim { border-left:3px solid var(--accent); padding:.5rem .9rem; margin:.9rem 0; background:var(--code); }
+.ok { color:var(--ok); font-weight:bold; }
+.note { color:var(--dim); font-size:.92rem; }
+sup, sub { line-height:0; }
+</style>
+</head>
+<body>
+<h1>Descent chains: heuristic <span class="math">L</span><sub>p</sub>(1/3) primality proving with Pomerance-grade verification</h1>
+<div class="sub">Analysis and prototype of Drew's proposal (2026-07-22): replace the one-shot certificate by a
+chain whose prime shrinks by a bit-length factor <span class="math">b</span> &gt; 1/2 per step &mdash; branch
+<code>descent-chain</code>, prototype <code>ecpp/chain_prove.py</code> / <code>ecpp/vchain.py</code>.</div>
+
+<h2>1&nbsp;&middot;&nbsp;Sanity check of the one-shot claims</h2>
+<p>Throughout, <span class="math">n</span> = log&#8322;&nbsp;<span class="math">p</span>, and M(<span class="math">n</span>) =
+<span class="math">n</span>&nbsp;log&nbsp;<span class="math">n</span> is FFT multiplication cost.</p>
+
+<p><b>Certificate size O(log&nbsp;p).</b> <span class="ok">Agree.</span> The curve data is O(<span class="math">n</span>) bits and the
+k = &Theta;(<span class="math">n</span>/log&nbsp;<span class="math">n</span>) primes in (<span class="math">n</span>&sup2;,&nbsp;<span class="math">n</span>&#8308;)
+take O(log&nbsp;<span class="math">n</span>) bits each.</p>
+
+<p><b>Verification O((log&nbsp;p)&sup2;(log&nbsp;log&nbsp;p)&sup2;).</b> <span class="ok">Agree.</span> [<span class="math">m</span>]P costs
+O(<span class="math">n</span>) group operations; establishing [<span class="math">m/q</span>]P &ne; O for all k primes via the balanced
+product tree costs O(<span class="math">n</span>) group operations per level over log&nbsp;k = O(log&nbsp;<span class="math">n</span>) levels.
+Total O(<span class="math">n</span>&nbsp;log&nbsp;<span class="math">n</span>) group operations &times; O(M(<span class="math">n</span>)) =
+O(<span class="math">n</span>&sup2;(log&nbsp;<span class="math">n</span>)&sup2;) &mdash; exactly one log&nbsp;log&nbsp;<span class="math">p</span> factor worse than
+Pomerance's O(log&nbsp;<span class="math">p</span>) multiplications. (This matches <code>voneshot.py</code>'s own stated target,
+O(<span class="math">n</span>&sup2;(log&nbsp;<span class="math">n</span>)&sup2;).)</p>
+
+<p><b>Search heuristic p<sup>1/8+o(1)</sup>.</b> <span class="ok">Agree for the number of candidate orders; the end-to-end
+time of the current method is p<sup>1/4+o(1)</sup>.</b></span> The success condition is that the
+(<span class="math">n</span>&sup2;,&nbsp;<span class="math">n</span>&#8308;]-part of a random <span class="math">m</span> &asymp; <span class="math">p</span>
+exceed (<span class="math">p</span><sup>1/4</sup>+1)&sup2; &asymp; &radic;<span class="math">p</span>; with
+<span class="math">u</span> = ln&nbsp;<span class="math">p</span>/ln&nbsp;<span class="math">n</span>&#8308; = ln&nbsp;<span class="math">p</span>/(4&nbsp;ln&nbsp;ln&nbsp;<span class="math">p</span>)(1+o(1)),
+this has probability &rho;(<span class="math">u</span>/2)<sup>1+o(1)</sup> = <span class="math">p</span><sup>&minus;1/8+o(1)</sup>,
+so <span class="math">p</span><sup>1/8+o(1)</sup> candidates are needed &mdash; and smoothness-testing them (batched remainder
+trees) costs only polylog each, so that phase is indeed &Otilde;(<span class="math">p</span><sup>1/8</sup>).
+The catch is <em>producing</em> the candidates: discriminants up to B yield only
+&Sigma;<sub>D&le;B</sub>&nbsp;&Theta;(1/&radic;D) &asymp; &radic;B usable orders (the repo's own data confirms this:
+10<sup>110</sup>+7 at B = 8&times;10<sup>9</sup> gave a pool of 39,878 &asymp; 0.45&radic;B), so B must reach
+<span class="math">p</span><sup>1/4+o(1)</sup> and the scan &mdash; which is &Theta;&#771;(B) &mdash; dominates at
+<span class="math">p</span><sup>1/4+o(1)</sup>. (H<sub>D</sub> and root-finding stay &Otilde;(<span class="math">p</span><sup>1/8</sup>):
+h(D) &asymp; |D|<sup>1/2</sup> &asymp; <span class="math">p</span><sup>1/8</sup>.) Direct enumeration of solutions
+(t,&nbsp;v&nbsp;&rarr;&nbsp;D) is worse (&Theta;&#771;(<span class="math">p</span><sup>3/8</sup>) for the v-range that matters), so
+<span class="math">p</span><sup>1/8</sup> would only become the true cost given a way to enumerate usable (D,t,v) in time
+proportional to their number &mdash; not currently known. In practice at 256&ndash;512 bits the o(1)'s dominate
+(&rho;(<span class="math">u</span>/2) &asymp; 10<sup>&minus;3</sup>&ndash;10<sup>&minus;5</sup>, pools of 10&sup3;&ndash;10&#8309;), which is
+why observed runs are far friendlier than the exponent suggests &mdash; also as claimed.</p>
+
+<h2>2&nbsp;&middot;&nbsp;The descent chain</h2>
+<p>Fix <span class="math">b</span> &isin; (1/2,&nbsp;1). A <b>step</b> for a prime <span class="math">p</span> is a
+CM-constructed E/F<sub>p</sub> with #E = N = c&middot;q, q prime,
+(<span class="math">p</span><sup>1/4</sup>+1)&sup2; &lt; q &le; 2<sup>b&middot;bits(p)</sup>, plus a point Q = [c]P of order q.
+Recurse on q; stop below 2<sup>64</sup> (deterministic Miller&ndash;Rabin range). Soundness per step is the classical
+Goldwasser&ndash;Kilian argument: for any prime r | p the reduction of Q has order exactly q, so
+q &le; #E(F<sub>r</sub>) &le; (&radic;r+1)&sup2;, forcing r &gt; &radic;p; hence p is prime. Only q and c = N/q are needed
+&mdash; <em>the factorization of c is never part of the certificate</em>; peelability of c is purely the prover's
+recognition problem.</p>
+
+<p><b>Size.</b> Bit-lengths decay geometrically, so &Sigma;<sub>i</sub> O(<span class="math">n</span>b<sup>i</sup>) =
+O(<span class="math">n</span>)/(1&minus;b) total &mdash; O(log&nbsp;p) with constant 1/(1&minus;b) (the "O(p)" in the message I read
+as a typo for O(log&nbsp;p)). Measured: 383 B payload vs the one-shot's 126 B at 256 bits (&sim;3&times;).</p>
+
+<p><b>Verification.</b> <span class="ok">Agree: O((log&nbsp;p)&sup2;&nbsp;log&nbsp;log&nbsp;p).</span> Step i costs
+O(b<sup>i</sup><span class="math">n</span>) group operations at M(b<sup>i</sup><span class="math">n</span>) each, and
+&Sigma;<sub>i</sub> b<sup>2i</sup> = 1/(1&minus;b&sup2;), so the whole chain is
+O(<span class="math">n</span>&nbsp;M(<span class="math">n</span>))/(1&minus;b&sup2;) = O(<span class="math">n</span>&sup2;&nbsp;log&nbsp;<span class="math">n</span>)
+&mdash; Pomerance's order, with constant &sim;1/(1&minus;b&sup2;) (and EC-vs-F<sub>p</sub><sup>&times;</sup> group-operation
+overhead). The chain kills the extra log&nbsp;log factor precisely because each step certifies <em>one</em> prime and the
+sizes shrink geometrically, where the one-shot pays a log&nbsp;k-deep product tree at full size.</p>
+
+<h2>3&nbsp;&middot;&nbsp;Search complexity: subexponential, in fact L<sub>p</sub>(1/3)</h2>
+<p><span class="ok">Agree that it is heuristically subexponential &mdash; and it is better than L(1/2).</span>
+Per level, choose a smoothness bound y and peel cofactors by ECM (cost L<sub>y</sub>(1/2,&nbsp;&radic;2) per candidate).
+A candidate N &asymp; <span class="math">p</span> wins if its largest prime factor q lands in
+(&radic;N,&nbsp;N<sup>b</sup>] and the cofactor is y-smooth; winners concentrate at cofactor size
+&sigma; = 1&minus;b, so the per-candidate probability is &asymp; &rho;(u), u = &sigma;&nbsp;ln&nbsp;p&nbsp;/&nbsp;ln&nbsp;y.
+With the CM scan costing &Theta;&#771;(B) = &Theta;&#771;((1/&rho;)&sup2;) to produce 1/&rho; candidates, balancing
+2u&nbsp;ln&nbsp;u = u&nbsp;ln&nbsp;u + &radic;(2&sigma;P/u) (P = ln&nbsp;p&nbsp;ln&nbsp;ln&nbsp;p) gives
+u&sup3;ln&sup2;u = 2&sigma;P, i.e. y = L<sub>p</sub>(2/3,&nbsp;&middot;) and total heuristic cost</p>
+<div class="claim">L<sub>p</sub>(1/3,&nbsp;c(b)) with c(b) &asymp; (2/3)&middot;(18(1&minus;b))<sup>1/3</sup>
+&nbsp;&nbsp;&mdash;&nbsp;&nbsp; c(0.85) &asymp; 0.93, and c(b) &rarr; 0 as b &rarr; 1<sup>&minus;</sup>,
+vs GNFS's (64/9)<sup>1/3</sup> &asymp; 1.92.</div>
+<p>(Random curves + SEA instead of CM drop the scan-squared term and improve the constant to
+&asymp;(4.5(1&minus;b))<sup>1/3</sup>; the ln&nbsp;ln-level constants are mushy either way &mdash; the robust statements are
+the 1/3 exponent, the (1&minus;b)<sup>1/3</sup> shape, and "cheaper than factoring p".) Chain length is
+O(log&nbsp;<span class="math">n</span>), level sizes shrink geometrically, so the top level dominates. Letting
+b &rarr; 1 recovers standard ECPP (polylog-smooth cofactors, poly-time steps, but &Theta;(<span class="math">n</span>) steps,
+&Theta;(<span class="math">n</span>&sup2;) certificates, &Theta;&#771;(<span class="math">n</span>&sup3;) verification); the fixed-b
+chain is the point on this curve that preserves Pomerance-order verification. It is also a constructive relaxation of
+Pomerance's 1987 very-short-proof construction (#E = 2q descent, existence only): relaxing #E = 2q to
+#E = c&middot;q with c ECM-peelable and q &le; N<sup>b</sup> is exactly what makes the descent findable.</p>
+
+<table>
+<tr><th>scheme</th><th>proof size</th><th>verification (bit ops)</th><th>proving time (heuristic)</th></tr>
+<tr><td>Pomerance 1987 (existence)</td><td>O(n)</td><td>O(n&sup2; log n)</td><td>no efficient construction</td></tr>
+<tr><td>standard ECPP chain</td><td>&Theta;(n&sup2;/log n)</td><td>&Otilde;(n&sup3;)</td><td>poly: &Otilde;(n<sup>4+&epsilon;</sup>)</td></tr>
+<tr><td>one-shot (this repo)</td><td>O(n)</td><td>O(n&sup2;(log n)&sup2;)</td><td>p<sup>1/4+o(1)</sup> (p<sup>1/8+o(1)</sup> candidates)</td></tr>
+<tr><td><b>descent chain, fixed b</b></td><td>O(n)&middot;1/(1&minus;b)</td><td>O(n&sup2; log n)&middot;1/(1&minus;b&sup2;)</td><td>L<sub>p</sub>(1/3, c(b)), c(b)&rarr;0 as b&rarr;1</td></tr>
+</table>
+
+<h2>4&nbsp;&middot;&nbsp;Prototype</h2>
+<p><code>ecpp/chain_prove.py</code> (prover): per level, <code>dscan p= dump</code> supplies (D,t,v) triples
+(candidate orders p+1&plusmn;t); one PARI batch trial-divides all candidates to 10<sup>6</sup>; surviving composite
+tails go through breadth-first ECM rounds (gmp-ecm 7.0.6, B1 = 2k&hellip;1M escalation, one invocation can peel several
+factors); the smallest in-range prime tail wins. The winner's curve comes from a <code>polclass(&minus;D)</code> root;
+the correct twist and the point Q = [N/q]P are found and checked in Python. Every certificate is verified with
+<code>vchain.py</code> before being written. b = 0.85 default, B doubles on exhaustion, all knobs on the command line.</p>
+<p><code>ecpp/vchain.py</code> (verifier, stdlib-only): affine arithmetic over Z/p with every inversion guarded by
+gcd &mdash; a nontrivial gcd exhibits a factor of p; gcd 1 makes the whole computation commute with reduction mod any
+r | p, and the additions producing O do so via congruences that also reduce, so [q]Q = O holds mod r and Q mod r &ne; O
+has order exactly q. The ladder rejects any premature O (a point of prime order q cannot hit O at a proper prefix).
+Base case: deterministic Miller&ndash;Rabin, bases 2&hellip;37 (valid below 3.3&times;10<sup>24</sup>).</p>
+
+<h3>Validation</h3>
+<ul>
+<li>Every produced chain re-verified by <code>vchain.py</code> (prover refuses to emit otherwise).</li>
+<li>PARI cross-check of steps with independent arithmetic: <code>ellmul(E,Q,q) == [0]</code> and
+<code>ellmul(E,Q,q&minus;1) != [0]</code>.</li>
+<li>Tamper tests all rejected: corrupted Qx, composite base q, undersized q, broken chain link, q&plusmn;&epsilon; not the
+point order.</li>
+</ul>
+
+<h2>5&nbsp;&middot;&nbsp;Results (16-core Ryzen AI Max+ 395, 32 vCPU)</h2>
+<table id="results">
+<tr><th>p</th><th>bits</th><th>prove (s)</th><th>steps</th><th>candidates</th><th>ecm calls</th><th>payload B</th><th>verify (ms)</th><th>one-shot prove</th><th>one-shot verify (ms)</th></tr>
+<tr><td>nextprime(2<sup>127</sup>)</td><td>128</td><td>2.3</td><td>2</td><td>1,844</td><td>0</td><td>&mdash;</td><td>1.1</td><td>&mdash;</td><td>&mdash;</td></tr>
+<tr><td>2<sup>255</sup>&minus;19</td><td>255</td><td>3.7</td><td>3</td><td>3,390</td><td>0</td><td>383</td><td>7.4</td><td>&sim;15 s</td><td>8.3</td></tr>
+<tr><td>P-256 field prime</td><td>256</td><td>2.1</td><td>3</td><td>2,708</td><td>0</td><td>380</td><td>7.5</td><td>&sim;15 s</td><td>9.0</td></tr>
+<tr><td>secp256k1 field prime</td><td>256</td><td>3.9</td><td>3</td><td>2,168</td><td>0</td><td>403</td><td>8.5</td><td>&sim;15 s</td><td>8.9</td></tr>
+<tr><td>10<sup>100</sup>+267</td><td>333</td><td>3.7</td><td>4</td><td>5,866</td><td>0</td><td>635</td><td>16.8</td><td>7.9 min cold</td><td>13.8</td></tr>
+<tr><td>nextprime(2<sup>511</sup>)</td><td>512</td><td>12.4</td><td>6</td><td>5,486</td><td>1,250</td><td>1,184</td><td>&sim;35</td><td>infeasible-ish</td><td>&mdash;</td></tr>
+<tr><td>nextprime(2<sup>1023</sup>)</td><td>1024</td><td>128.5</td><td>9</td><td>9,976</td><td>4,974</td><td>3,014</td><td>405</td><td>far out of reach</td><td>&mdash;</td></tr>
+</table>
+<p>The 1024-bit descent, one line per level (drop = bits(q)/bits(p); the first ECM round at B1 = 2000 sufficed at
+every level):</p>
+<pre>1024 &rarr; 870 &rarr; 711 &rarr; 534 &rarr; 351 &rarr; 290 &rarr; 213 &rarr; 131 &rarr; 67 &rarr; 34 bits
+31.4s   40.5s   21.4s   28.2s   1.3s    1.0s    2.9s    0.9s   0.6s        = 128.5 s total
+verify: 176ms + 113ms + 62ms + 28ms + 14ms + 7ms + 3ms + 0.9ms + 0.3ms     = 405 ms
+</pre>
+<p class="note">One-shot prove times from the repo's status notes (cold pcache); verification medians over 25 in-process
+runs of <code>voneshot.verify</code> / <code>vchain.verify</code> on this box. "Payload B" counts the bits of the
+certificate integers, not JSON overhead. At these sizes verification constants dominate &mdash; the asymptotic
+log&nbsp;log gap is not yet visible; the dramatic difference is in <em>proving</em>: the one-shot search wall
+(10<sup>115</sup>+79 exhausted B = 2&times;10<sup>10</sup>) is gone, and 1024-bit primes prove in minutes on the dev box.</p>
+
+<h2>6&nbsp;&middot;&nbsp;Take and next steps</h2>
+<p>The descent chain is strictly better as a <em>primality-proving scheme</em>: same O(log&nbsp;p) proof size (3&ndash;4&times;
+constant), verification a log&nbsp;log factor faster, proving falls from p<sup>1/4+o(1)</sup> to L<sub>p</sub>(1/3) &mdash;
+and in practice from "struggles past 384 bits" to "1024 bits in minutes". What it gives up is precisely the challenge's
+defining constraint: it is not one-shot (one certificate, one curve); the two answers sit at different points of the
+proof-size/aesthetics&ndash;vs&ndash;proving-effort curve rather than one subsuming the other.</p>
+<ul>
+<li><b>Chain-shortening knob</b>: the prototype takes the first (cheapest) winner; spending one extra ECM round hunting a
+smaller q would shorten chains toward the drop-1/2 floor at modest cost.</li>
+<li><b>Winner selection vs class number</b>: preferring small h(D) among winners would cut polclass time at large sizes.</li>
+<li><b>2048+ bits</b>: nothing structural in the way &mdash; top-level ECM rounds get ~4&times; slower per curve and need
+~2&times; more peeled bits; worth a spot-instance run.</li>
+<li><b>C port</b>: only worthwhile once the design settles; the Python/PARI/gmp-ecm prototype is already
+search-bound, not orchestration-bound.</li>
+<li><b>Certificate tree variant</b>: allowing 2&ndash;3 medium primes per step (certifying their product, recursing on each)
+trades a wider tree for easier steps; geometric decay keeps size O(n) and verification O(n&sup2; log n).</li>
+</ul>
+</body>
+</html>

@@ -59,6 +59,16 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   test_dscan.py + test_smooth.py green, (2³², 2³²+6e4) window exact vs PARI (enumeration,
   qfbsolve solvability, 4p = t²+dv² arithmetic), 256-bit oneshot cert re-verified in PARI.
   Known remaining ceilings at 256 cores: classpoly jobs setup overhead, fproot's ~27-task cap.
+- **Descent-chain prototype (2026-07-22)**: `ecpp/chain_prove.py` + `ecpp/vchain.py` — Drew's
+  b-descent variant: chain of GK certificates, bits(q) ≤ b·bits(p) per step (b=0.85 default),
+  cofactor peeled by trial division + gmp-ecm rounds over the dscan pool; heuristically
+  L_p(1/3, (2/3)(18(1-b))^(1/3)) vs the one-shot's p^(1/4+o(1)), verification
+  O(n² log n)·1/(1-b²) (Pomerance-order, log log better than one-shot). vchain: stdlib-only,
+  gcd-guarded affine ladder (sound for composite p), MR-12-bases base case < 2^64. Certs in
+  `certs/chain/` (256-bit ~3 s vs one-shot ~15 s; 10^100+267 3.7 s vs 7.9 min; 1024-bit 128 s /
+  9 steps / verify 0.4 s — far beyond one-shot reach). All steps PARI-cross-checked; tamper
+  tests rejected. Analysis + results: `reports/descent-chain/index.html`. Needs a gmp-ecm
+  binary (`ecm=` arg or CHAIN_ECM env; built from release tarball, no autotools on dev box).
 
 ## Build & test
 ```sh
