@@ -327,6 +327,8 @@ def main():
         sys.exit("need 0.5 < b < 1")
     if not is_prp(p0):
         sys.exit("p is not prime")
+    if p0 < 1 << 64:
+        sys.exit("p < 2^64: deterministic Miller-Rabin suffices, no chain needed")
 
     t0 = time.time()
     steps, stats, p = [], {}, p0
