@@ -14,6 +14,8 @@ Descend to q; stop once q < 2^64 (deterministic Miller-Rabin range).
 
 usage: chain_prove.py p=<decimal> [b=0.85] [B=262144] [threads=<n>]
                       [out=<file.json>] [seed=1] [ecm=<path-to-gmp-ecm>]
+                      [base=n4|64]   # descend until q <= bits(p)^4 (default)
+                                     # or q < 2^64 (Miller-Rabin base)
 
 The certificate is verified with vchain.py before it is written.
 """
@@ -333,12 +335,15 @@ def main():
         sys.exit("need 0.5 < b < 1")
     if not is_prp(p0):
         sys.exit("p is not prime")
-    if p0 < 1 << 64:
-        sys.exit("p < 2^64: deterministic Miller-Rabin suffices, no chain needed")
+    # chain base: descend until q <= bits(p0)^4 (verifier trial-divides, fully
+    # self-contained); base=64 keeps the old q < 2^64 Miller-Rabin base
+    T = (1 << 64) - 1 if args.get("base") == "64" else p0.bit_length() ** 4
+    if p0 <= T:
+        sys.exit("p is already below the chain base bound; no chain needed")
 
     t0 = time.time()
     steps, stats, p = [], {}, p0
-    while p >= 1 << 64:
+    while p > T:
         steps.append(prove_level(p, b_max, B0, threads, ecm_bin, stats))
         p = int(steps[-1]["q"])
     cert = {"format": "ecpp-descent-chain-v1", "p": str(p0), "steps": steps}

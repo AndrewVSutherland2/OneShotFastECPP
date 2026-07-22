@@ -11,8 +11,11 @@ over Z/p, the point Q = (Qx,Qy) satisfies [q]Q = O with q > (p^(1/4)+1)^2.
 If q is prime, every prime divisor r of p has an elliptic curve group over F_r
 containing a point of order q, so #E(F_r) >= q and Hasse gives
 r >= (sqrt(q)-1)^2 > sqrt(p); hence p is prime.  q's primality comes from the
-next step of the chain; the final q < 2^64 is proven prime by Miller-Rabin with
-the 12 prime bases 2..37 (deterministic below 3.317e24, Sorenson-Webster 2015).
+next step of the chain.  Base of the chain, n0 = bitlength of the top-level p:
+a final q <= n0^4 is proven prime by trial division to sqrt(q) <= n0^2 (fully
+self-contained, mirroring the one-shot verifier's trial-division bound); as a
+fallback a final q < 2^64 is accepted via Miller-Rabin with the 12 prime bases
+2..37 (deterministic below 3.317e24, Sorenson-Webster 2015).
 
 Soundness with p composite: all curve arithmetic is affine with every inversion
 guarded by gcd(den, p).  A gcd strictly between 1 and p exhibits a factor of p
@@ -61,6 +64,21 @@ def is_prime_small(n):
                 break
         else:
             return False
+    return True
+
+
+def is_prime_trial(n):
+    # unconditional trial division to sqrt(n); used for the n0^4 base case
+    if n < 2:
+        return False
+    for d in (2, 3):
+        if n % d == 0:
+            return n == d
+    d = 5
+    while d * d <= n:
+        if n % d == 0 or n % (d + 2) == 0:
+            return False
+        d += 6
     return True
 
 
@@ -171,10 +189,14 @@ def verify(cert, verbose=True):
             if int(steps[i + 1]["p"]) != q:
                 raise Bad("chain broken at step %d" % i)
         else:
-            if q >= BASE_BOUND:
-                raise Bad("final q >= 2^64 but chain ends")
-            if not is_prime_small(q):
-                raise Bad("final q composite")
+            if q <= p0.bit_length() ** 4:
+                if not is_prime_trial(q):
+                    raise Bad("final q composite (trial division)")
+            elif q < BASE_BOUND:
+                if not is_prime_small(q):
+                    raise Bad("final q composite")
+            else:
+                raise Bad("final q too large for the base case")
         if verbose:
             print("step %2d: p %4d bits -> q %4d bits   %.3f ms"
                   % (i, p.bit_length(), q.bit_length(), 1e3 * (time.time() - t1)))
