@@ -69,6 +69,16 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   9 steps / verify 0.4 s — far beyond one-shot reach). All steps PARI-cross-checked; tamper
   tests rejected. Analysis + results: `reports/descent-chain/index.html`. Needs a gmp-ecm
   binary (`ecm=` arg or CHAIN_ECM env; built from release tarball, no autotools on dev box).
+- **SEA supply + crossover race (2026-07-29)**: `ecpp/sea_supply.py` — random Montgomery curves
+  + PARI ellap as the candidate-order supply (heuristically p^(1/8+o(1)): flat poly cost per
+  candidate, no quadratic scan, no winner classpoly), same `smoothtest gate` n⁴ window; winners
+  assembled to voneshot certs with verify() as acceptance oracle (needs `voneshot.py` at repo
+  root). Raced vs oneshot on a 192-core spot box, same prime each size: 256: CM 4.1 s / SEA
+  68 s; 384: 2306/615; 416: 1774/2805; 448: 7182 / stopped 20035 s no winner. Per-candidate:
+  SEA flat 7–14 core-s, CM avg 2.2–4.5 rising — expected-cost crossover extrapolates to
+  ~480–512 bits (walls flip on density luck from 384 up; observed fudge over ρ(u/2): 1–8×).
+  No SEA-side accelerations implemented (stage-1 gate/batch tail need ellsea internals).
+  Report: `reports/sea-crossover/`; certs in `certs/sea/`; raw cands in `work/race-archive/`.
 
 ## Build & test
 ```sh

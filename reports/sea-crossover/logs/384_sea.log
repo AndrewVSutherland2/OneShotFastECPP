@@ -1,0 +1,52 @@
+[     0.0s] p = 26434021472955059440995049049133607608478727895332218561493998232793409869423669606719668326097679061651704451152407 (384 bits), n^4 = 21743271936, workers=188 cap=off
+[     0.2s] 188 gp workers started
+[    21.0s] 200 curves sampled (9.51 curves/s, 19.8 s/curve/worker)
+[    35.2s] 400 curves sampled (11.36 curves/s, 16.5 s/curve/worker)
+[    50.3s] 600 curves sampled (11.93 curves/s, 15.8 s/curve/worker)
+[    65.8s] 800 curves sampled (12.16 curves/s, 15.5 s/curve/worker)
+[    80.4s] 1000 curves sampled (12.43 curves/s, 15.1 s/curve/worker)
+[    95.0s] 1200 curves sampled (12.63 curves/s, 14.9 s/curve/worker)
+[   109.7s] 1400 curves sampled (12.76 curves/s, 14.7 s/curve/worker)
+[   123.6s] 1600 curves sampled (12.94 curves/s, 14.5 s/curve/worker)
+[   138.8s] 1800 curves sampled (12.97 curves/s, 14.5 s/curve/worker)
+[   153.5s] 2000 curves sampled (13.03 curves/s, 14.4 s/curve/worker)
+[   165.3s] gate: 2000 traces, 0 winner(s), 8.520s smooth_parts
+[   169.2s] 2200 curves sampled (13.00 curves/s, 14.5 s/curve/worker)
+[   184.3s] 2400 curves sampled (13.02 curves/s, 14.4 s/curve/worker)
+[   198.9s] 2600 curves sampled (13.07 curves/s, 14.4 s/curve/worker)
+[   213.3s] 2800 curves sampled (13.13 curves/s, 14.3 s/curve/worker)
+[   228.6s] 3000 curves sampled (13.12 curves/s, 14.3 s/curve/worker)
+[   242.9s] 3200 curves sampled (13.17 curves/s, 14.3 s/curve/worker)
+[   257.5s] 3400 curves sampled (13.20 curves/s, 14.2 s/curve/worker)
+[   272.1s] 3600 curves sampled (13.23 curves/s, 14.2 s/curve/worker)
+[   286.9s] 3800 curves sampled (13.24 curves/s, 14.2 s/curve/worker)
+[   301.5s] 4000 curves sampled (13.26 curves/s, 14.2 s/curve/worker)
+[   313.4s] gate: 2000 traces, 0 winner(s), 8.512s smooth_parts
+[   318.6s] 4200 curves sampled (13.18 curves/s, 14.3 s/curve/worker)
+[   333.3s] 4400 curves sampled (13.20 curves/s, 14.2 s/curve/worker)
+[   348.5s] 4600 curves sampled (13.20 curves/s, 14.2 s/curve/worker)
+[   363.0s] 4800 curves sampled (13.22 curves/s, 14.2 s/curve/worker)
+[   377.3s] 5000 curves sampled (13.25 curves/s, 14.2 s/curve/worker)
+[   392.7s] 5200 curves sampled (13.24 curves/s, 14.2 s/curve/worker)
+[   407.6s] 5400 curves sampled (13.25 curves/s, 14.2 s/curve/worker)
+[   423.0s] 5600 curves sampled (13.24 curves/s, 14.2 s/curve/worker)
+[   438.2s] 5800 curves sampled (13.24 curves/s, 14.2 s/curve/worker)
+[   452.8s] 6000 curves sampled (13.25 curves/s, 14.2 s/curve/worker)
+[   464.6s] gate: 2000 traces, 0 winner(s), 8.434s smooth_parts
+[   469.2s] 6200 curves sampled (13.21 curves/s, 14.2 s/curve/worker)
+[   484.2s] 6400 curves sampled (13.22 curves/s, 14.2 s/curve/worker)
+[   498.9s] 6600 curves sampled (13.23 curves/s, 14.2 s/curve/worker)
+[   514.0s] 6800 curves sampled (13.23 curves/s, 14.2 s/curve/worker)
+[   528.9s] 7000 curves sampled (13.23 curves/s, 14.2 s/curve/worker)
+[   543.0s] 7200 curves sampled (13.26 curves/s, 14.2 s/curve/worker)
+[   558.1s] 7400 curves sampled (13.26 curves/s, 14.2 s/curve/worker)
+[   573.1s] 7600 curves sampled (13.26 curves/s, 14.2 s/curve/worker)
+[   587.5s] 7800 curves sampled (13.28 curves/s, 14.2 s/curve/worker)
+[   602.7s] 8000 curves sampled (13.27 curves/s, 14.2 s/curve/worker)
+[   614.6s] gate: 2000 traces, 1 winner(s), 8.534s smooth_parts
+[   614.6s] WINNER after 8000 curves (16000 candidate orders): |D|-free, t=3681290954262219515652752224946345790815810413298034750964
+[   614.6s]   N = 26434021472955059440995049049133607608478727895332218561497679523747672088939322358944614671888494872065002485903372
+[   614.6s]   m = 15714808212174565944218846033014821318454081139789176609591 (194 bits), 5 large primes [1330309, 857842121, 1890522523, 4785271349, 10074412001]
+[   614.6s]   cert -> race/sea_384.txt
+[   614.6s] done: 8000 curves, 1 cert(s), 614.6 s wall (~115545 core-s of SEA)
+[   614.6s] observed winner density: 1 per 8000 curves (16000 candidate orders)
