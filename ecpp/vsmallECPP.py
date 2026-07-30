@@ -180,7 +180,7 @@ def verify(seq):
     if any(not isinstance(v, int) or v < 0 for v in seq):
         return False
     p = seq[0]
-    if p < 3 or p % 2 == 0:
+    if p < 5 or p % 2 == 0:       # the definition takes p_0 >= 5 (2 and 3 have none)
         return False
     n = p.bit_length()            # = ceil(log2 p0): p0 is odd, never a power of 2
     primes = sieve_primes(n * n)
@@ -258,6 +258,12 @@ _INVALID = [
     "221 5 2 34",                  # composite p0 (221 = 13*17)
     "251 2 10 63",                 # singular curve (A = 2)
     "3 0 0 6",                     # p = 3 admits no short ECPP at all
+    # CRT/lcm pseudo-certificate: p0 = 2098153 * 2102167 is COMPOSITE, yet
+    # (x0, 1) has order exactly 8 * 525029 in E(Z/p0) -- order 8 modulo one
+    # factor, order 525029 modulo the other.  Every condition phrased over
+    # Z/p0 holds; it is rejected only because the order is required modulo
+    # EVERY prime divisor of p0 (the leaf gcds here expose both factors).
+    "4410667997551 1365834658413 107710304518 4200232 199129 175565 880",
 ]
 
 
