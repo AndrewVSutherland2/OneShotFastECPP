@@ -26,6 +26,9 @@
 
 SC_curves = 0;                                           \\ curves tried (all levels)
 SC_tlim = 20;                                            \\ seconds allowed per rough-part factorization
+                                                         \\ (SC_tlim = 0 disables step (c): then the only
+                                                         \\  large prime considered is a prime rough part)
+SC_maxcurves = 0;                                        \\ 0 = unlimited; else give up after this many curves
 
 /* n^2-smooth part s of N and the rough cofactor r = N/s, by trial division over primes <= B */
 smoothpart(N, B) = {
@@ -53,6 +56,7 @@ scpoint(E, N, o, fo) = {
 sclevel(p, n2) = {
   my(L = scbound(p), rt = sqrtint(p), A, E, N, sr, s, R, dv, F, m, o, q, Q);
   while(1,
+    if(SC_maxcurves && SC_curves >= SC_maxcurves, return(0));
     SC_curves++;
     A = random(p); E = ellinit([0, A, 0, 1, 0], p);
     if(#E == 0, next);                                   \\ singular (A = +-2 mod p)
@@ -66,10 +70,21 @@ sclevel(p, n2) = {
         Q = scpoint(E, N, m, factor(m)[,1]);
         if(Q != 0, return([A, lift(Q[1]), m, 1]))));
 
-    \\ (b) descent level: o = m*q with q a prime factor of the rough part, m | s, m > 1.
-    \\     Skip the (expensive) factorization unless some divisor of s could pair with a
-    \\     prime q < sqrt(p) to reach the window: need s*rt > L.
-    if(R > 1 && s * rt > L,
+    \\ (b) cheap descent: the rough part is itself prime, so q = R needs no factoring.  Then the
+    \\     discarded cofactor N/o = s/m divides s, i.e. the whole ~sqrt(p) worth of N that we
+    \\     throw away must be n^2-smooth -- which is exactly why s > L is forced here, and why
+    \\     this case alone gets rare fast (see reports/short-ecpp/).  Costs one primality test.
+    if(s > L && R > 1 && R < rt && ispseudoprime(R),
+      q = R;
+      for(i = 1, #dv, m = dv[i]; o = m * q;
+        if(m > 1 && o > L && o < factor(m)[1,1] * L,
+          Q = scpoint(E, N, o, concat(factor(m)[,1], [q]~));
+          if(Q != 0, return([A, lift(Q[1]), o, q])))));
+
+    \\ (c) general descent: o = m*q with q any prime factor of the rough part, m | s, m > 1.
+    \\     Here the discarded cofactor N/o is unconstrained, which is far likelier -- but q must
+    \\     be dug out of R, so we factor R under a time budget and abandon slow curves.
+    if(SC_tlim > 0 && R > 1 && s * rt > L,
       F = iferr(alarm(SC_tlim, factor(R)[,1]), e, 0);    \\ early abort on slow factorizations
       if(type(F) == "t_COL",
         for(j = 1, #F, q = F[j];
@@ -89,6 +104,7 @@ shortcert(p) = {
   SC_curves = 0;
   while(cur > 1,
     lev = sclevel(cur, n2);
+    if(lev == 0, return(0));                             \\ gave up (SC_maxcurves reached)
     seq = concat(seq, [lev[1], lev[2], lev[3]]);
     cur = lev[4]
   );
