@@ -143,19 +143,21 @@ and deterministic, all finding costs are heuristic; constants and derivations in
 
 <table>
 <tr><th>certificate</th><th>size (bits)</th><th>verification (bit ops)</th><th>finding (heuristic)</th><th>exists for</th></tr>
-<tr><td class="l">Pratt [<a href="#Pra75">Pra75</a>]</td><td>O(n&sup2;)</td><td>O(n&sup3;&thinsp;log&nbsp;n)</td><td class="l">needs factorization of p&minus;1, recursively; L<sub>p</sub>(1/3) via NFS</td><td>all p</td></tr>
-<tr><td class="l">AKS (empty certificate) [<a href="#AKS04">AKS04</a>, <a href="#LP19">LP19</a>]</td><td>0</td><td>(log&nbsp;p)<sup>6+o(1)</sup></td><td class="l">&mdash;</td><td>all p</td></tr>
+<tr><td class="l">Pratt [<a href="#Pra75">Pra75</a>]</td><td>O(n&sup2;)</td><td>O(n&sup3;&thinsp;log&nbsp;n)</td><td class="l">L<sub>p</sub>(1/3,&nbsp;(64/9)<sup>1/3</sup>&thinsp;&asymp;&thinsp;1.923) via NFS</td><td>all p</td></tr>
+<tr><td class="l">AKS (empty certificate) [<a href="#AKS04">AKS04</a>, <a href="#LP19">LP19</a>]</td><td>0</td><td>O(n&#8310;&thinsp;log<sup>c+o(1)</sup>&thinsp;n)</td><td class="l">&mdash;</td><td>all p</td></tr>
 <tr><td class="l">Pomerance triple [<a href="#Pom87">Pom87</a>, <a href="#DANGER3">DANGER3</a>]</td><td>&asymp;&thinsp;2n</td><td>O(n&sup2;&thinsp;log&nbsp;n)&ensp;[(5/2+o(1))n mults]</td><td class="l">&Theta;&#771;(&radic;p) = &Theta;&#771;(2<sup>n/2</sup>)</td><td>all p&nbsp;&gt;&nbsp;3</td></tr>
 <tr><td class="l">restricted one-shot (&sect;5)</td><td>&asymp;&thinsp;2.5n</td><td>O(n&sup2;(log&nbsp;n)&sup2;)</td><td class="l">p<sup>1/4+o(1)</sup> SEA;&ensp;p<sup>1/2+o(1)</sup> CM</td><td>all p&nbsp;&gt;&nbsp;3</td></tr>
 <tr><td class="l">one-shot, n&#8308;-smooth [<a href="#OneShot">OneShot</a>]</td><td>&asymp;&thinsp;2.5n&ndash;4n</td><td>O(n&sup2;(log&nbsp;n)&sup2;)</td><td class="l">p<sup>1/8+o(1)</sup> candidates (SEA);&ensp;p<sup>1/4+o(1)</sup> CM end-to-end</td><td>all p&nbsp;&gt;&nbsp;3</td></tr>
 <tr><td class="l">short ECPP [<a href="#Short">Short</a>]</td><td>O(n), &asymp;&thinsp;5n&ndash;7n</td><td>O(n&sup2;&thinsp;log&nbsp;n)&thinsp;&dagger;</td><td class="l">L<sub>p</sub>(1/3, c), c&nbsp;&asymp;&nbsp;1.31 (SEA) / 1.39 (CM)</td><td>all p&nbsp;&ge;&nbsp;5</td></tr>
-<tr><td class="l">descent chain, ratio b [<a href="#OSF">OSF</a>]</td><td>O(n)/(1&minus;b)</td><td>O(n&sup2;log&nbsp;n)/(1&minus;b&sup2;)</td><td class="l">L<sub>p</sub>(1/3, c(b)), c(b)&nbsp;=&nbsp;(2/3)(18(1&minus;b))<sup>1/3</sup>&nbsp;&rarr;&nbsp;0</td><td>all p (heuristic)</td></tr>
-<tr><td class="l">classical ECPP [<a href="#GK99">GK86</a>, <a href="#AM93">AM93</a>]</td><td>&Theta;(n&sup2;/log&nbsp;n)</td><td>O(n&sup3;)</td><td class="l">(log&nbsp;p)<sup>4+&epsilon;</sup> fastECPP; (log&nbsp;p)<sup>5+&epsilon;</sup> basic</td><td>all p (heuristic; almost all provable, all p in ZPP)</td></tr>
+<tr><td class="l">ECPP [<a href="#GK99">GK86</a>, <a href="#AM93">AM93</a>]</td><td>&Theta;(n&sup2;/log&nbsp;n)</td><td>O(n&sup3;)</td><td class="l">(log&nbsp;p)<sup>5+&epsilon;</sup> SEA; (log&nbsp;p)<sup>4+&epsilon;</sup> CM</td><td>all p (heuristic; almost all provable, all p in ZPP)</td></tr>
 </table>
 
 <p class="note">&dagger;&thinsp;For fillers m<sub>i</sub>&nbsp;&le;&nbsp;n<sup>O(1)</sup> &mdash; every published
 certificate, and always arrangeable (&sect;6.2). The format&rsquo;s worst case, already attained by its
-k&nbsp;=&nbsp;0 stratum (=&nbsp;the restricted one-shot), is O(n&sup2;(log&nbsp;n)&sup2;).</p>
+k&nbsp;=&nbsp;0 stratum (=&nbsp;the restricted one-shot), is O(n&sup2;(log&nbsp;n)&sup2;). The AKS entry is the
+Lenstra&ndash;Pomerance bound (log&nbsp;p)&#8310;(2+log&nbsp;log&nbsp;p)<sup>O(1)</sup> [<a href="#LP19">LP19</a>]
+rewritten in n; the Pratt entry is the cost of factoring p&minus;1 (and recursively below, a geometrically
+decreasing cost) by the number field sieve.</p>
 
 <p>Two engines supply candidate curve orders throughout, and they trade off differently in every section:
 <b>SEA</b> point counting (sample a curve, compute its order; polynomial cost per candidate, orders
@@ -1026,7 +1028,9 @@ count points by Schoof&rsquo;s algorithm, and keep a curve with #E&nbsp;=&nbsp;2
 O(n) curves per step by the prime number theorem <i>if</i> the Hasse interval contains the expected number of
 primes &mdash; provable for all inputs outside a set of primes of relative density zero using unconditional results
 on primes in short intervals [<a href="#HB88">HB88</a>], conjecturally for all. With SEA at
-&Otilde;(n&#8308;) per count, a step costs &Otilde;(n&#8309;) and the chain heuristically &Otilde;(n&#8310;).
+&Otilde;((log&nbsp;p)&#8308;) per count, a step costs (log&nbsp;p)<sup>5+&epsilon;</sup>; the strict
+m&nbsp;=&nbsp;2q descent sheds only one bit per step, so a full downrun of the original pays a further
+log-power, most of which peeling a polynomially smooth cofactor recovers.
 Adleman and Huang [<a href="#AH92">AH92</a>] closed the gap of exceptional primes by a random reduction through
 Jacobians of genus-2 curves, putting primality in ZPP: <i>every</i> prime has an elliptic-curve-style certificate
 findable in expected polynomial time &mdash; a theorem, though never a practical algorithm.</li>
