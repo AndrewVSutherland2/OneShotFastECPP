@@ -91,7 +91,8 @@ Goldwasser and Kilian [<a href="#GK99">GK86</a>] showed how to use elliptic curv
 certificates in (heuristic, and for almost all primes provable) polynomial time; and
 Pomerance [<a href="#Pom87">Pom87</a>] showed that elliptic curves make certificates dramatically
 <i>cheaper to verify</i>: every prime p admits a proof requiring only
-(5/2&nbsp;+&nbsp;o(1))&thinsp;log&#8322;&nbsp;p multiplications modulo p &mdash; a constant number of
+(5/2&nbsp;+&nbsp;o(1))&thinsp;log&#8322;&nbsp;p multiplications modulo p, i.e.
+&Theta;(n&sup2;&thinsp;log&nbsp;n) bit operations for an n-bit prime &mdash; a constant number of
 multiplications per bit, matching (up to the constant) Pepin&rsquo;s test for Fermat primes and the
 Lucas&ndash;Lehmer test for Mersenne primes, but now valid for <i>every</i> prime.</p>
 
@@ -106,13 +107,13 @@ in the order treated here:</p>
 <li><b>Pomerance proofs</b> (repository <a href="https://github.com/AndrewVSutherland/DANGER3">DANGER3</a>):
 a single Montgomery curve with a point of order 2<sup>k</sup>, where 2<sup>k</sup> is the <i>least</i> power of two
 exceeding the Goldwasser&ndash;Kilian threshold &asymp;&nbsp;&radic;p. The certificate is three integers; verification is
-&asymp;&nbsp;(5/2)&thinsp;log&#8322;&nbsp;p multiplications; the best known search is
-&Theta;&#771;(&radic;p) time.</li>
+&asymp;&nbsp;(5/2)&thinsp;log&#8322;&nbsp;p multiplications, O(n&sup2;&thinsp;log&nbsp;n) bit operations; the best
+known search is &Theta;&#771;(&radic;p) time.</li>
 <li><b>One-shot ECPP</b> (repository
 <a href="https://github.com/AndrewVSutherland/OneShotPrimalityProofs">OneShotPrimalityProofs</a>):
 the power of two is relaxed to any n&#8308;-smooth order in a minimal window above the threshold
 (n&nbsp;=&nbsp;&lceil;log&#8322;&nbsp;p&rceil;), with the certificate listing the prime factors in
-(n&sup2;,&nbsp;n&#8308;). Verification is quasi-quadratic; the best known searches are
+(n&sup2;,&nbsp;n&#8308;). Verification is O(n&sup2;(log&nbsp;n)&sup2;) bit operations; the best known searches are
 p<sup>1/8+o(1)</sup> (candidate orders, via SEA sampling) and p<sup>1/4+o(1)</sup> end-to-end (via the CM method).</li>
 <li><b>Restricted one-shot ECPP</b>: the sub-family with no listed primes &mdash; the point&rsquo;s order must be
 n&sup2;-smooth outright. The smoothness exponent doubles: p<sup>1/4+o(1)</sup> candidates (SEA), p<sup>1/2+o(1)</sup>
@@ -122,13 +123,13 @@ end-to-end (CM). This interpolates between Pomerance proofs and one-shot ECPP; c
 <a href="https://github.com/AndrewVSutherland/ShortPrimalityProofs">ShortPrimalityProofs</a>):
 a <i>chain</i> of such certificates in which each level&rsquo;s point order is (n&sup2;-smooth)&thinsp;&times;&thinsp;(one
 prime p&#8321;&nbsp;&lt;&nbsp;&radic;p&#8320;), and the next level certifies p&#8321;. Bit-lengths at least halve per level, so
-certificates stay linear in log&nbsp;p and verification quasi-quadratic &mdash; but the free prime factor makes
-certificates <i>findable</i> in heuristic subexponential time
-L<sub>p</sub>(1/3,&nbsp;&asymp;1.3).</li>
+certificates stay linear in log&nbsp;p and verification is O(n&sup2;&thinsp;log&nbsp;n) bit operations &mdash;
+Pomerance-order (&sect;6.2) &mdash; while the free prime factor makes certificates <i>findable</i> in heuristic
+subexponential time L<sub>p</sub>(1/3,&nbsp;&asymp;1.3).</li>
 <li><b>Classical ECPP</b> (Goldwasser&ndash;Kilian, Atkin&ndash;Morain): the chain descends by an O(log&nbsp;n)-bit
 shrink per step with an essentially unconstrained cofactor. Finding is heuristic polynomial time
 &mdash; (log&nbsp;p)<sup>4+&epsilon;</sup> for fastECPP &mdash; at the price of quadratic-size certificates and
-quasi-cubic verification.</li>
+O(n&sup3;)-bit-operation verification.</li>
 </ol>
 
 <p>The five formats form a hierarchy. A Pomerance triple <i>is</i> a restricted one-shot certificate
@@ -142,15 +143,19 @@ and deterministic, all finding costs are heuristic; constants and derivations in
 
 <table>
 <tr><th>certificate</th><th>size (bits)</th><th>verification (bit ops)</th><th>finding (heuristic)</th><th>exists for</th></tr>
-<tr><td class="l">Pratt [<a href="#Pra75">Pra75</a>]</td><td>O(n&sup2;)</td><td>O(n&sup2;) mults = &Otilde;(n&sup3;)</td><td class="l">needs factorization of p&minus;1, recursively; L<sub>p</sub>(1/3) via NFS</td><td>all p</td></tr>
+<tr><td class="l">Pratt [<a href="#Pra75">Pra75</a>]</td><td>O(n&sup2;)</td><td>O(n&sup3;&thinsp;log&nbsp;n)</td><td class="l">needs factorization of p&minus;1, recursively; L<sub>p</sub>(1/3) via NFS</td><td>all p</td></tr>
 <tr><td class="l">AKS (empty certificate) [<a href="#AKS04">AKS04</a>, <a href="#LP19">LP19</a>]</td><td>0</td><td>(log&nbsp;p)<sup>6+o(1)</sup></td><td class="l">&mdash;</td><td>all p</td></tr>
-<tr><td class="l">Pomerance triple [<a href="#Pom87">Pom87</a>, <a href="#DANGER3">DANGER3</a>]</td><td>&asymp;&thinsp;2n</td><td>(5/2+o(1))&thinsp;n mults = O(n&sup2;log&nbsp;n)</td><td class="l">&Theta;&#771;(&radic;p) = &Theta;&#771;(2<sup>n/2</sup>)</td><td>all p&nbsp;&gt;&nbsp;3</td></tr>
+<tr><td class="l">Pomerance triple [<a href="#Pom87">Pom87</a>, <a href="#DANGER3">DANGER3</a>]</td><td>&asymp;&thinsp;2n</td><td>O(n&sup2;&thinsp;log&nbsp;n)&ensp;[(5/2+o(1))n mults]</td><td class="l">&Theta;&#771;(&radic;p) = &Theta;&#771;(2<sup>n/2</sup>)</td><td>all p&nbsp;&gt;&nbsp;3</td></tr>
 <tr><td class="l">restricted one-shot (&sect;5)</td><td>&asymp;&thinsp;2.5n</td><td>O(n&sup2;(log&nbsp;n)&sup2;)</td><td class="l">p<sup>1/4+o(1)</sup> SEA;&ensp;p<sup>1/2+o(1)</sup> CM</td><td>all p&nbsp;&gt;&nbsp;3</td></tr>
 <tr><td class="l">one-shot, n&#8308;-smooth [<a href="#OneShot">OneShot</a>]</td><td>&asymp;&thinsp;2.5n&ndash;4n</td><td>O(n&sup2;(log&nbsp;n)&sup2;)</td><td class="l">p<sup>1/8+o(1)</sup> candidates (SEA);&ensp;p<sup>1/4+o(1)</sup> CM end-to-end</td><td>all p&nbsp;&gt;&nbsp;3</td></tr>
-<tr><td class="l">short ECPP [<a href="#Short">Short</a>]</td><td>O(n), &asymp;&thinsp;5n&ndash;7n</td><td>O(n&sup2;(log&nbsp;n)&sup2;)</td><td class="l">L<sub>p</sub>(1/3, c), c&nbsp;&asymp;&nbsp;1.31 (SEA) / 1.39 (CM)</td><td>all p&nbsp;&ge;&nbsp;5</td></tr>
+<tr><td class="l">short ECPP [<a href="#Short">Short</a>]</td><td>O(n), &asymp;&thinsp;5n&ndash;7n</td><td>O(n&sup2;&thinsp;log&nbsp;n)&thinsp;&dagger;</td><td class="l">L<sub>p</sub>(1/3, c), c&nbsp;&asymp;&nbsp;1.31 (SEA) / 1.39 (CM)</td><td>all p&nbsp;&ge;&nbsp;5</td></tr>
 <tr><td class="l">descent chain, ratio b [<a href="#OSF">OSF</a>]</td><td>O(n)/(1&minus;b)</td><td>O(n&sup2;log&nbsp;n)/(1&minus;b&sup2;)</td><td class="l">L<sub>p</sub>(1/3, c(b)), c(b)&nbsp;=&nbsp;(2/3)(18(1&minus;b))<sup>1/3</sup>&nbsp;&rarr;&nbsp;0</td><td>all p (heuristic)</td></tr>
-<tr><td class="l">classical ECPP [<a href="#GK99">GK86</a>, <a href="#AM93">AM93</a>]</td><td>&Theta;(n&sup2;/log&nbsp;n)</td><td>&Otilde;(n&sup3;)</td><td class="l">(log&nbsp;p)<sup>4+&epsilon;</sup> fastECPP; (log&nbsp;p)<sup>5+&epsilon;</sup> basic</td><td>all p (heuristic; almost all provable, all p in ZPP)</td></tr>
+<tr><td class="l">classical ECPP [<a href="#GK99">GK86</a>, <a href="#AM93">AM93</a>]</td><td>&Theta;(n&sup2;/log&nbsp;n)</td><td>O(n&sup3;)</td><td class="l">(log&nbsp;p)<sup>4+&epsilon;</sup> fastECPP; (log&nbsp;p)<sup>5+&epsilon;</sup> basic</td><td>all p (heuristic; almost all provable, all p in ZPP)</td></tr>
 </table>
+
+<p class="note">&dagger;&thinsp;For fillers m<sub>i</sub>&nbsp;&le;&nbsp;n<sup>O(1)</sup> &mdash; every published
+certificate, and always arrangeable (&sect;6.2). The format&rsquo;s worst case, already attained by its
+k&nbsp;=&nbsp;0 stratum (=&nbsp;the restricted one-shot), is O(n&sup2;(log&nbsp;n)&sup2;).</p>
 
 <p>Two engines supply candidate curve orders throughout, and they trade off differently in every section:
 <b>SEA</b> point counting (sample a curve, compute its order; polynomial cost per candidate, orders
@@ -169,7 +174,9 @@ wins asymptotically. Measured crossovers appear in &sect;4.3 and &sect;5.2.</p>
 <b>n&nbsp;=&nbsp;&lceil;log&#8322;&nbsp;p&rceil;</b> its bit length. M(t) denotes the bit cost of multiplying two t-bit
 integers; M(t)&nbsp;=&nbsp;O(t&nbsp;log&nbsp;t) unconditionally [<a href="#HvdH21">HvdH21</a>]. A
 &ldquo;multiplication mod&nbsp;p&rdquo; costs O(M(n)); following Pomerance we count squarings as multiplications and
-ignore additions. &Otilde;(&middot;) suppresses polylogarithmic factors. The subexponential scale is
+ignore additions. Every complexity bound below is stated in bit operations; multiplication counts appear only
+where an exact constant is the natural statement (as in Pomerance&rsquo;s theorem), convertible at
+1 mult&nbsp;=&nbsp;&Theta;(M(n)) bit operations. &Otilde;(&middot;) suppresses polylogarithmic factors. The subexponential scale is
 </p>
 <div class="eq">L<sub>p</sub>(&alpha;, c) &nbsp;=&nbsp; exp( (c+o(1)) (ln p)<sup>&alpha;</sup> (ln ln p)<sup>1&minus;&alpha;</sup> ),</div>
 <p>so L<sub>p</sub>(0,&nbsp;c) is polynomial in log&nbsp;p, L<sub>p</sub>(1,&nbsp;c) fully exponential,
@@ -596,7 +603,8 @@ O(1) multiplications mod p, plus &Otilde;(n&sup2;) bit operations of sieving and
 <b>O(n&sup2;(log&nbsp;n)&sup2;) bit operations and O(n&sup2;) bits of memory</b> &mdash; quasi-quadratic, a factor
 &asymp;&nbsp;log&nbsp;log&nbsp;p above Pomerance triples (the depth of the product tree), against quasi-cubic for a
 classical ECPP chain (&sect;7). Measured [<a href="#OSF">OSF</a>]: 8&ndash;14 ms in pure Python at
-256&ndash;333 bits.</div>
+256&ndash;333 bits. This is the worst case over certificates; &sect;6.2 gives the accounting parametrized by the
+number of distinct primes of m, which recovers O(n&sup2;&thinsp;log&nbsp;n) when that number is bounded.</div>
 
 <h3>4.3&ensp;Finding certificates</h3>
 
@@ -735,9 +743,11 @@ cores); the race data of &sect;4.3(c) reached 448 bits in two spot-hours, and th
 factor of m below n&sup2; &mdash; the k&nbsp;=&nbsp;0 stratum of &sect;4, equivalently a zero-level short ECPP
 (&sect;6). The verifier is unchanged (<code>voneshot.py</code> with an empty list): it factors m completely by trial
 division below n&sup2; and needs no supplied data beyond m itself. Existence for every p&nbsp;&gt;&nbsp;3 again
-follows from Pomerance triples (2 is n&sup2;-smooth); verification is the same
-O(n&sup2;(log&nbsp;n)&sup2;) with a slightly smaller constant (no rough part to validate); the certificate is
-&asymp;&nbsp;2.5n bits. What changes &mdash; dramatically &mdash; is the search.</p>
+follows from Pomerance triples (2 is n&sup2;-smooth); the certificate is &asymp;&nbsp;2.5n bits. Verification
+costs O((n/2)(1&nbsp;+&nbsp;log&nbsp;k)&thinsp;M(n)&nbsp;+&nbsp;M(n&sup2;)) bit operations for a certificate
+whose m has k distinct primes (&sect;6.2): Pomerance-order O(n&sup2;&thinsp;log&nbsp;n) for bounded k &mdash; a
+Pomerance triple is the case k&nbsp;=&nbsp;1 &mdash; and O(n&sup2;(log&nbsp;n)&sup2;) in the worst case
+k&nbsp;=&nbsp;&Theta;(n/log&nbsp;n). What changes &mdash; dramatically &mdash; is the search.</p>
 
 <h3>5.2&ensp;Finding: the exponent doubles</h3>
 
@@ -783,20 +793,21 @@ structure corrections and geometric variance:</p>
 <tr><td>10&sup2;&#8304;+39</td><td>67</td><td>12</td><td>213</td><td class="l">33 s, 1 core</td><td class="l">2&sup3;&middot;5&sup3;&middot;7&middot;13&middot;37&middot;47&middot;89</td></tr>
 <tr><td>10&sup3;&#8304;+57</td><td>100</td><td>1.1&times;10&sup2;</td><td>117</td><td class="l">33 s, 1 core</td><td class="l">2&middot;7&sup3;&middot;43&middot;109&middot;241&middot;251&middot;6899</td></tr>
 <tr><td>10&#8308;&#8304;+121</td><td>133</td><td>1.3&times;10&sup3;</td><td>&asymp;8&times;10&sup3;</td><td class="l">17 min, 8 workers</td><td class="l">2&middot;17&middot;37&middot;73&middot;197&middot;283&middot;673&middot;2797&middot;11827</td></tr>
-<tr><td>10&#8309;&#8304;+151</td><td>167</td><td>1.7&times;10&#8308;</td><td colspan="3" class="l">search in flight at publication time (&gt;10&#8308; curves); see the repository for the certificate</td></tr>
+<tr><td>10&#8309;&#8304;+151</td><td>167</td><td>1.7&times;10&#8308;</td><td>&asymp;5.3&times;10&#8308;</td><td class="l">&asymp;2 core-h (68 min, 12&ndash;24 workers)</td><td class="l">2&middot;3&middot;7&middot;29&middot;37&middot;211&middot;337&middot;347&middot;449&middot;467&middot;3527&middot;12613</td></tr>
 <tr><td>10&#8310;&#8304;+7</td><td>200</td><td>2.5&times;10&#8309;</td><td colspan="3" class="l">not run to completion (4.8&times;10&sup3; curves sampled without a winner); predicted &asymp;10&sup2;&ndash;10&sup3; core-hours</td></tr>
 </table>
 
-<details><summary>The three completed certificates (format &ldquo;p A x&#8320; m&rdquo;; each verified True by <code>voneshot.py</code>)</summary>
+<details><summary>The four completed certificates (format &ldquo;p A x&#8320; m&rdquo;; each verified True by <code>voneshot.py</code>)</summary>
 <pre>100000000000000000039 19352331390561983207 80662701055625636343 14084161000
 1000000000000000000000000000057 640307721818372374714786296071 821106379164368261893854100371 1341825306264338
-10000000000000000000000000000000000000121 9206317171817454415338197777434159186965 1798766695016208561785106447263414920568 113982529425281128058</pre>
+10000000000000000000000000000000000000121 9206317171817454415338197777434159186965 1798766695016208561785106447263414920568 113982529425281128058
+100000000000000000000000000000000000000000000000151 52854763757971328428601223341553948579729822167 41413023321438028880723015756658658164929271447635 10372368086928809543163162</pre>
 </details>
 
 <p class="note">Method: <code>ecpp/restricted.gp</code> in [<a href="#OSF">OSF</a>] (the challenge&rsquo;s
 <code>oneshot.gp</code> search with the smoothness bound lowered from n&#8308; to n&sup2;), independent seeded
 workers, first winner wins; curve counts are aggregates over all workers at the moment of the first win. The
-observed-over-predicted ratios (18, 1.1, 6) show the same order-of-magnitude scatter as the &sect;4.3 race
+observed-over-predicted ratios (18, 1.1, 6, 3) show the same order-of-magnitude scatter as the &sect;4.3 race
 densities &mdash; single-draw variance dominates at these pool sizes.</p>
 
 <p>The 256-bit case (&asymp;3&times;10&#8311; candidates at &asymp;5&ndash;10 core-seconds each) is a months-scale
@@ -845,19 +856,67 @@ triples (take k&nbsp;=&nbsp;0, m&#8320;&nbsp;=&nbsp;2<sup>&kappa;</sup>); the re
 below 2&#8312; (201,072 short ECPPs; every prime 5&nbsp;&le;&nbsp;p&nbsp;&le;&nbsp;2&#8312; admits one, while
 p&nbsp;=&nbsp;2,&nbsp;3 admit none, which is why the format takes p&#8320;&nbsp;&ge;&nbsp;5).</p>
 
-<h3>6.2&ensp;Verification</h3>
+<h3>6.2&ensp;Verification: Pomerance-order bit complexity</h3>
 
-<p>The reference verifier <code>vsmallECPP.py</code> runs the &sect;4.2 procedure at every level with the same
-sieve (the bound n&sup2; is fixed by p&#8320;, so one sieve serves the whole chain): recover m<sub>i</sub> and
-p<sub>i+1</sub> by trial division of the carried product, check the window and minimality, check
-[m<sub>i</sub>p<sub>i+1</sub>]P<sub>i</sub>&nbsp;=&nbsp;O genuinely, and check exactness of the order over the
-primes of m<sub>i</sub> together with p<sub>i+1</sub>. Level i works on b<sub>i</sub>&nbsp;&asymp;&nbsp;n/2<sup>i</sup>-bit
-moduli with half-length scalars, so the elliptic work is
-&Sigma;<sub>i</sub>&nbsp;O(b<sub>i</sub>&thinsp;log&nbsp;b<sub>i</sub>) group operations at M(b<sub>i</sub>) each
-&mdash; a geometric series dominated by its top term:
-<b>O(n&sup2;(log&nbsp;n)&sup2;)&nbsp;=&nbsp;O((log&nbsp;p&#8320;)<sup>2+o(1)</sup>) bit operations</b>, the same
-quasi-quadratic class as the one-shot, with the trial division (shared sieve plus remainder trees per level) also
-&Otilde;(n&sup2;). </p>
+<p>The reference verifier <code>vsmallECPP.py</code> processes the levels in order, working modulo p<sub>i</sub>
+at level i (write b<sub>i</sub>&nbsp;=&nbsp;&lceil;log&#8322;&nbsp;p<sub>i</sub>&rceil;, so
+b<sub>i+1</sub>&nbsp;&le;&nbsp;&lceil;b<sub>i</sub>/2&rceil; and
+&Sigma;<sub>i</sub>&nbsp;b<sub>i</sub>&nbsp;&lt;&nbsp;2n&nbsp;+&nbsp;O(log&nbsp;n); one sieve to n&sup2; serves
+the whole chain since n is fixed at the top): it recovers m<sub>i</sub> and
+p<sub>i+1</sub>&nbsp;=&nbsp;o<sub>i</sub>/m<sub>i</sub> by trial division of the carried product o<sub>i</sub>
+over the primes &le;&nbsp;n&sup2;, checks the window, minimality, and descent
+p<sub>i+1</sub>&sup2;&nbsp;&lt;&nbsp;p<sub>i</sub>, checks that [o<sub>i</sub>](x<sub>i</sub>:1) is a genuine
+point at infinity, and establishes exactness of the order by the &sect;4.2 divide-and-conquer with
+p<sub>i+1</sub> participating as one of the &ldquo;primes&rdquo; (its primality being the next level&rsquo;s job).
+For the accounting it pays to organize the exactness checks so that <i>the big prime is peeled first</i>: compute
+U&nbsp;=&nbsp;[m<sub>i</sub>]P and check gcd(Z<sub>U</sub>,&nbsp;p<sub>i</sub>)&nbsp;=&nbsp;1 &mdash; this
+<i>is</i> the (o<sub>i</sub>/p<sub>i+1</sub>)-cofactor condition &mdash; then check
+[p<sub>i+1</sub>]U&nbsp;=&nbsp;O, then run the divide-and-conquer only over the primes of m<sub>i</sub>, applied
+to V&nbsp;=&nbsp;[p<sub>i+1</sub>]P. The tree depth then multiplies only the filler&rsquo;s bits, never the big
+prime&rsquo;s. (The reference implementation keeps p<sub>i+1</sub> inside the tree; for bounded k<sub>i</sub> this
+changes nothing, and in general it costs at most one extra factor log&nbsp;k<sub>i</sub> on the
+b<sub>i</sub> term.)</p>
+
+<div class="thm"><b class="hd">Proposition (verification cost, bit operations).</b>&ensp;Let a valid short ECPP
+for an n-bit p&#8320; have levels i&nbsp;=&nbsp;0,&hellip;,k with fillers m<sub>i</sub> having k<sub>i</sub>
+distinct prime factors. With the primes below n&sup2; and their product tree precomputed &mdash; a
+certificate-independent table depending only on n, built once in O(n&sup2;(log&nbsp;n)&sup2;) bit operations and
+stored in O(n&sup2;) bits &mdash; the certificate is verified in
+<div class="eq">O(&thinsp;&Sigma;<sub>i</sub> [ b<sub>i</sub> + log&nbsp;m<sub>i</sub>&middot;(1 + log&nbsp;k<sub>i</sub>) ]&thinsp;M(b<sub>i</sub>) &nbsp;+&nbsp; M(n&sup2;)&thinsp;)</div>
+bit operations: per level, O(b<sub>i</sub>) ladder bits for [o<sub>i</sub>]P and the peeled big-prime checks plus
+O(log&nbsp;m<sub>i</sub>) ladder bits on each of the &lceil;log&#8322;&nbsp;k<sub>i</sub>&rceil; levels of the
+exactness tree, each ladder bit costing O(1) multiplications mod p<sub>i</sub>; globally, one batched trial
+division of all the o<sub>i</sub> against the prime table at M(n&sup2;)&nbsp;=&nbsp;O(n&sup2;&thinsp;log&nbsp;n)
+[<a href="#Bern04">Bern04</a>] (the sieve itself is O(n&sup2;&thinsp;log&nbsp;log&nbsp;n)). Consequently,
+<b>whenever the fillers satisfy log&nbsp;m<sub>i</sub>&middot;log&nbsp;k<sub>i</sub>&nbsp;=&nbsp;O(b<sub>i</sub>)
+&mdash; in particular whenever m<sub>i</sub>&nbsp;&le;&nbsp;n<sup>O(1)</sup>, which holds for every certificate in
+the challenge table (the largest filler there has 35 bits) and can always be arranged (2-power fillers,
+&sect;3.2) &mdash; verification costs O(n&sup2;&thinsp;log&nbsp;n) bit operations: the same order as verifying a
+Pomerance triple, exceeded only by a constant factor.</b></div>
+
+<p>The constant is roughly an order of magnitude with the reference formulas: the two-register ladder spends 12
+multiplications per scalar bit against the doubling-only chain&rsquo;s 5, the level sum
+&Sigma;&thinsp;b<sub>i</sub> approaches 2n against Pomerance&rsquo;s single (n/2)-bit chain, and the
+trial-division pass adds &asymp;&nbsp;M(n&sup2;)&nbsp;&asymp;&nbsp;2n&sup2;&thinsp;log&#8322;&thinsp;n. In the
+format&rsquo;s worst case &mdash; a filler of &Theta;(b<sub>i</sub>) bits with
+&Theta;(b<sub>i</sub>/log&nbsp;b<sub>i</sub>) distinct primes, which the definition permits and which is exactly
+what the k&nbsp;=&nbsp;0 stratum (=&nbsp;the restricted one-shot, &sect;5) can look like &mdash; the tree factor
+is genuine and verification degrades to &Theta;(n&sup2;(log&nbsp;n)&sup2;), the one-shot bound, as the inclusion
+of &sect;5 forces. Both statements sharpen the repository&rsquo;s O((log&nbsp;p&#8320;)<sup>2+o(1)</sup>); the
+chain structure &mdash; one big prime per level, geometrically shrinking moduli, small smooth fillers &mdash; is
+precisely what deletes the one-shot&rsquo;s extra log factor, the same mechanism as in the fixed-ratio chains of
+&sect;6.5.</p>
+
+<p>One formula in fact covers the elliptic work of the whole family of &sect;&sect;3&ndash;6:
+O(&Sigma;<sub>i</sub>&thinsp;[log&nbsp;o<sub>i</sub>&nbsp;+&nbsp;log&nbsp;m<sub>i</sub>(1+log&nbsp;k<sub>i</sub>)]&thinsp;M(b<sub>i</sub>))
+bit operations, where o<sub>i</sub> is the certified point order at level i and m<sub>i</sub> its smooth part with
+k<sub>i</sub> distinct primes. A Pomerance triple is one level with log&nbsp;m&nbsp;=&nbsp;n/2 and
+k&nbsp;=&nbsp;1: O(n&thinsp;M(n))&nbsp;=&nbsp;O(n&sup2;&thinsp;log&nbsp;n). A restricted one-shot has
+log&nbsp;m&nbsp;=&nbsp;n/2 with k free: Pomerance-order for bounded k, and
+&Theta;(n&sup2;(log&nbsp;n)&sup2;) at k&nbsp;=&nbsp;&Theta;(n/log&nbsp;n). The n&#8308; one-shot is the same with
+its listed primes included in k. A short ECPP keeps every log&nbsp;m<sub>i</sub> small and pushes all the large
+bits into the once-per-level big prime &mdash; which is why it alone combines subexponential findability with
+Pomerance-order verification.</p>
 
 <h3>6.3&ensp;Finding certificates: the free prime makes it subexponential</h3>
 
@@ -989,11 +1048,13 @@ wall-clock time on a linear number of cores.</li>
 <h3>7.2&ensp;Certificates and verification</h3>
 
 <p>A classical certificate stores, per step, (p<sub>i</sub>,&nbsp;curve,&nbsp;m<sub>i</sub>,&nbsp;q<sub>i+1</sub>,&nbsp;P<sub>i</sub>):
-&asymp;&nbsp;5 integers of b<sub>i</sub> bits with b<sub>i</sub> shrinking only &Theta;(log&nbsp;n) per step, so
-&Theta;(n&sup2;/log&nbsp;n) bits in all. Verification re-runs the two scalar multiplications of every step:
-&Sigma;<sub>i</sub>&nbsp;O(b<sub>i</sub>)&thinsp;M(b<sub>i</sub>)&nbsp;=&nbsp;<b>&Otilde;(n&sup3;) bit operations</b>
-&mdash; quasi-cubic, the benchmark against which the quasi-quadratic formats of &sect;&sect;3&ndash;6 are the
-improvement. (Verification is embarrassingly parallel across steps, a fact used in practice for the record
+&asymp;&nbsp;5 integers of b<sub>i</sub> bits with b<sub>i</sub> shrinking only &theta;&nbsp;=&nbsp;&Theta;(log&nbsp;n)
+per step, so &Theta;(n&sup2;/log&nbsp;n) bits in all. Verification re-runs the two scalar multiplications of
+every step: &Sigma;<sub>j</sub>&nbsp;O(b<sub>j</sub>)&thinsp;M(b<sub>j</sub>) over &Theta;(n/&theta;) steps of
+linearly decaying size is O(n&sup3;&thinsp;log&nbsp;n&thinsp;/&thinsp;&theta;)&nbsp;=&nbsp;<b>O(n&sup3;) bit
+operations</b> for the customary cofactor lengths &mdash; the M-factor cancels against the step count &mdash;
+quasi-cubic, the benchmark against which the O(n&sup2;&thinsp;log&nbsp;n)-class formats of
+&sect;&sect;3&ndash;6 are the improvement. (Verification is embarrassingly parallel across steps, a fact used in practice for the record
 certificates below.)</p>
 
 <h3>7.3&ensp;Results to date</h3>
