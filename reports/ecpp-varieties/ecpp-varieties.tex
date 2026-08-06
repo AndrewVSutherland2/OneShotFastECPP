@@ -130,7 +130,8 @@ certificate & size (bits) & verification (bit ops) & finding (heuristic) & exist
 \midrule
 Pratt \cite{Pra75} & $O(n^2)$ & $O(n^3\log n)$ &
   $\Lp{1/3}{(64/9)^{1/3}{\approx}1.923}$ (NFS) & all $p$\\
-AKS (empty cert.) \cite{AKS04,LP19} & $0$ & $O(n^6\log^{c+o(1)} n)$ & --- & all $p$\\
+AKS--Bernstein certificate \cite{AKS04,Berr05,Ber07,LP19} & $n^{1+o(1)}$ & $(\log p)^{4+o(1)}$ &
+  $(\log p)^{2+o(1)}$ rand.;\ \ $(\log p)^{6}(2{+}\log\log p)^{c_0}$ det. & all $p$\\
 Pomerance triple \cite{Pom87,DANGER3} & ${\approx}\,2n$ & $O(n^2\log n)$ &
   $\Tt(\sqrt p) = \Tt(2^{n/2})$ & all $p>3$\\
 restricted one-shot (\S\ref{sec:restricted}) & ${\approx}\,2.5n$ & $O(n^2(\log n)^2)$ &
@@ -140,7 +141,7 @@ one-shot, $n^4$-smooth \cite{OneShot} & ${\approx}\,2.5n$--$4n$ & $O(n^2(\log n)
 short ECPP \cite{Short} & $O(n)$, ${\approx}\,5n$--$7n$ & $O(n^2\log n)^{\dagger}$ &
   $\Lp{1/3}{c}$, $c \approx 1.31$ SEA; $1.39$ CM & all $p\ge 5$\\
 ECPP \cite{GK86,AM93} & $\Theta(n^2/\log n)$ & $O(n^3)$ &
-  $(\log p)^{5+\eps}$ SEA;\ \ $(\log p)^{4+\eps}$ CM & all $p$ (heur.)\rlap{${}^{\ddagger}$}\\
+  $(\log p)^{6+o(1)}$ SEA;\ \ $(\log p)^{4+\eps}$ CM & all $p$ (heur.)\rlap{${}^{\ddagger}$}\\
 \bottomrule
 \end{tabular}}
 \medskip
@@ -150,11 +151,39 @@ ${}^{\dagger}$For fillers $m_i \le n^{O(1)}$ --- every published
 certificate, and always arrangeable (\S\ref{sec:shortverif}); the format's worst case, already attained
 by its $k=0$ stratum ($=$ the restricted one-shot), is $O(n^2(\log n)^2)$.
 ${}^{\ddagger}$Heuristic for all $p$; provable for almost all $p$, and for all $p$ in expected
-polynomial time (ZPP) via \cite{AH92}.  The AKS entry is the Lenstra--Pomerance bound
-$(\log p)^6(2+\log\log p)^{O(1)}$ \cite{LP19} rewritten in $n$; the Pratt entry is the cost of factoring
-$p-1$ (and recursively below, a geometrically decreasing cost) by the number field sieve.}
+polynomial time (ZPP) via \cite{AH92}.  The AKS--Bernstein row is discussed in
+Remark~\ref{rem:aks}; the deterministic finding entry is the Lenstra--Pomerance decision bound, whose
+exponent $c_0$ is effectively computable but has never been made explicit.  The Pratt entry is the cost
+of factoring $p-1$ (and recursively below, a geometrically decreasing cost) by the number field
+sieve.}
 \label{tab:summary}
 \end{table}
+
+\begin{remark}[the AKS family, in certificate form]\label{rem:aks}
+Agrawal, Kayal, and Saxena \cite{AKS04} decide primality deterministically with no certificate at all,
+in time $(\log p)^{21/2+o(1)}$; Lenstra and Pomerance \cite{LP19} reduce the exponent to $6$: their
+Theorem~1 gives a deterministic algorithm running ``in time at most
+$(\log n)^6\cdot(2+\log\log n)^{c_0}$'' for ``some effectively computable real number $c_0$'' ---
+effectively computable in the sense that their proofs ``implicitly contain an algorithm for computing
+$c_0$,'' which no one has carried out; so the sharpest citable deterministic bound is exactly
+$(\log p)^6(2+\log\log p)^{c_0}$, and the $c$ in a formulation $O(n^6\log^{c+o(1)}n)$ is not known.
+The \emph{certificate} form of the family descends from Berrizbeitia \cite{Berr05} through Cheng and
+Mih\u{a}ilescu--Avanzi to Bernstein \cite{Ber07} (see \cite{Ber07} for the history): a certificate is
+a tuple $(d, e, c, c_-, f, r, S)$ with $e \mid p^d-1$, $f$ a monic degree-$d$ polynomial over
+$\Z/p\Z$, $r$ an element of $R = (\Z/p\Z)[y]/f$, and $S \subset R$ a small set, subject to cheap unit
+conditions and the congruences $(x-s)^{p^d} = r^{(p^d-1)/e}x - s$ in $R[x]/(x^e-r)$ for $s \in S$;
+validity forces $p$ to be a prime power \cite[Thm.~3.2]{Ber07}, and a $(\log p)^{1+o(1)}$
+perfect-power test completes the proof.  Every prime has such a certificate with
+$d = (\log p)^{o(1)}$, $e = (\log p)^{2+o(1)}$, $S = \{1\}$ --- total size $(\log p)^{1+o(1)}$ bits,
+i.e.\ $n^{1+o(1)}$, essentially the same order as the elliptic certificates --- findable in
+\emph{expected time $(\log p)^{2+o(1)}$} (the only randomness is sampling an irreducible $f$ and an
+$r$ whose $(p^d-1)/e$ power has order $e$, both dense) and verifiable in $(\log p)^{4+o(1)}$ bit
+operations \cite{Ber07}.  As a concrete instance, $(1,\,57449,\,28724,\,16826,\,y,\,2,\,\{1\})$ is a
+certificate for $2^{1024}+643$.  Deterministically, trying candidates for $f$ and $r$ in a fixed
+order heuristically finds a certificate in the same $(\log p)^{2+o(1)}$ time (only the guarantee is
+lost); the proven deterministic route remains the \cite{LP19} decision algorithm, whence the two
+finding entries in the table.
+\end{remark}
 
 Two engines supply candidate curve orders throughout, and they trade off differently in every section:
 \textbf{SEA} point counting (sample a curve, compute its order; polynomial cost per candidate, orders
@@ -1081,9 +1110,10 @@ over $\F_p$, count points, and keep a curve with $\#E = 2q$, $q$ a probable prim
 the chain sheds one bit per step).  Expected $O(\log p)$ curves per step by the prime number theorem
 \emph{if} the Hasse interval contains the expected number of primes --- provable for all inputs outside
 a set of primes of relative density zero using unconditional results on primes in short intervals
-\cite{HB88}, conjecturally for all.  With SEA at $\Ot((\log p)^4)$ per count, a step costs
-$(\log p)^{5+\eps}$; the strict $m = 2q$ descent sheds only one bit per step, so a full downrun of the
-original pays a further log-power, most of which peeling a polynomially smooth cofactor recovers.
+\cite{HB88}, conjecturally for all.  With SEA at $\Ot((\log p)^4)$ per count and $\Theta(\log p)$
+curves per step, a step costs $(\log p)^{5+\eps}$, and the downrun --- $\Theta(\log p)$ steps for the
+strict $m = 2q$ descent, a logarithmic factor fewer with polynomially smooth cofactors peeled ---
+puts the route at $(\log p)^{6+o(1)}$ in total.
 Adleman and Huang \cite{AH92} closed the gap of exceptional primes by a random reduction through
 Jacobians of genus-2 curves, putting primality in ZPP: \emph{every} prime has an
 elliptic-curve-style certificate findable in expected polynomial time --- a theorem, though never a
@@ -1202,6 +1232,12 @@ Comp.}\ 61 (1993), 29--68.
 
 \bibitem[Ber04]{Bern04} D.~J. Bernstein, How to find smooth parts of integers, preprint, 2004,
 \url{https://cr.yp.to/papers.html#smoothparts}.
+
+\bibitem[Ber07]{Ber07} D.~J. Bernstein, Proving primality in essentially quartic random time,
+\emph{Math.\ Comp.}\ 76 (2007), 389--403.
+
+\bibitem[Berr05]{Berr05} P.~Berrizbeitia, Sharpening ``PRIMES is in P'' for a large family of
+numbers, \emph{Math.\ Comp.}\ 74 (2005), 2043--2059.
 
 \bibitem[BLS75]{BLS75} J.~Brillhart, D.~H. Lehmer, J.~L. Selfridge, New primality criteria and
 factorizations of $2^m\pm 1$, \emph{Math.\ Comp.}\ 29 (1975), 620--647.
