@@ -1,0 +1,1130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elliptic curve primality proofs, from very short to one-shot</title>
+<style>
+:root { --bg:#ffffff; --fg:#1a1a24; --dim:#5a5a6e; --accent:#7c3aed; --rule:#e2e2ea;
+        --code:#f4f2fa; --th:#f0edf8; --ok:#0a7d33; --warn:#b45309; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14141c; --fg:#e6e4f0; --dim:#9a97ad; --accent:#a78bfa; --rule:#2e2e3e;
+          --code:#1e1d2c; --th:#232134; --ok:#4ade80; --warn:#fbbf24; }
+}
+body { margin:0 auto; max-width:62rem; padding:2rem 1.2rem 4rem; background:var(--bg);
+       color:var(--fg); font:16px/1.58 Georgia,'Times New Roman',serif; }
+h1 { font-size:1.75rem; line-height:1.25; margin:0 0 .3rem; }
+h2 { font-size:1.3rem; margin:2.4rem 0 .6rem; border-bottom:1px solid var(--rule); padding-bottom:.25rem; }
+h3 { font-size:1.08rem; margin:1.6rem 0 .4rem; }
+h4 { font-size:1rem; margin:1.2rem 0 .3rem; }
+.sub { color:var(--dim); margin-bottom:1.4rem; }
+code, pre { font-family:ui-monospace,'Cascadia Code',Menlo,monospace; font-size:.86em;
+            background:var(--code); border-radius:4px; }
+code { padding:.08em .35em; }
+pre { padding:.7rem .9rem; overflow-x:auto; line-height:1.45; }
+table { border-collapse:collapse; margin:1rem 0; font-size:.92rem; max-width:100%; overflow-x:auto; display:block; }
+th, td { border:1px solid var(--rule); padding:.35rem .6rem; text-align:right; white-space:nowrap; }
+th { background:var(--th); text-align:center; }
+td:first-child, th:first-child { text-align:left; }
+td.l { text-align:left; white-space:normal; }
+.eq { text-align:center; margin:.9rem 0; font-style:italic; }
+.thm { border-left:3px solid var(--accent); padding:.55rem .95rem; margin:1rem 0; background:var(--code); }
+.thm b.hd { font-style:normal; color:var(--accent); }
+.warn { border-left:3px solid var(--warn); padding:.5rem .9rem; margin:.9rem 0; background:var(--code); }
+.note { color:var(--dim); font-size:.92rem; }
+.ok { color:var(--ok); font-weight:bold; }
+sup, sub { line-height:0; }
+a { color:var(--accent); text-decoration:none; }
+a:hover { text-decoration:underline; }
+.bib { font-size:.93rem; }
+.bib dt { float:left; clear:left; width:5.4rem; font-weight:bold; }
+.bib dd { margin:0 0 .45rem 6.2rem; }
+details { margin:.5rem 0; }
+summary { cursor:pointer; color:var(--accent); }
+.toc { columns:2; font-size:.95rem; }
+.toc ul { margin:.2rem 0; padding-left:1.2rem; }
+@media (max-width:640px) { .toc { columns:1; } }
+</style>
+</head>
+<body>
+
+<h1>Elliptic curve primality proofs, from very short to one&#8209;shot</h1>
+<p class="sub">Algorithms, heuristic search complexity, and rigorous verification complexity for four families of
+elliptic curve primality certificates &mdash; Pomerance proofs, one-shot ECPP (in its n&#8308;-smooth and restricted
+n&sup2;-smooth forms), short ECPP, and classical ECPP &mdash; with the best results obtained to date.
+Prepared August 5, 2026, in the
+<a href="https://github.com/AndrewVSutherland2/OneShotFastECPP">OneShotFastECPP</a> repository.</p>
+
+<div class="toc">
+<ul>
+<li><a href="#s1">1&ensp;Introduction and summary</a></li>
+<li><a href="#s2">2&ensp;Preliminaries</a>
+  <ul>
+  <li><a href="#s21">2.1&ensp;Cost model and notation</a></li>
+  <li><a href="#s22">2.2&ensp;Curves over &#8484;/p&#8484;, Montgomery arithmetic</a></li>
+  <li><a href="#s23">2.3&ensp;The certification lemma</a></li>
+  <li><a href="#s24">2.4&ensp;The supply of curve orders</a></li>
+  <li><a href="#s25">2.5&ensp;Smooth numbers</a></li>
+  <li><a href="#s26">2.6&ensp;Two engines for curve orders: SEA and CM</a></li>
+  <li><a href="#s27">2.7&ensp;The prover&rsquo;s factoring toolbox</a></li>
+  </ul></li>
+<li><a href="#s3">3&ensp;Pomerance proofs</a></li>
+<li><a href="#s4">4&ensp;One-shot ECPP</a></li>
+<li><a href="#s5">5&ensp;Restricted one-shot ECPP (n&sup2;-smooth)</a></li>
+<li><a href="#s6">6&ensp;Short ECPP</a></li>
+<li><a href="#s7">7&ensp;Classical ECPP</a></li>
+<li><a href="#s8">8&ensp;Synthesis and open problems</a></li>
+<li><a href="#s9">References</a></li>
+</ul>
+</div>
+
+<h2 id="s1">1&ensp;Introduction and summary</h2>
+
+<p>A <i>primality certificate</i> for an integer p is data whose validity (i)&nbsp;can be checked by an efficient
+deterministic algorithm and (ii)&nbsp;implies, unconditionally, that p is prime. Pratt [<a href="#Pra75">Pra75</a>]
+observed that the classical Lucas criterion yields such a certificate for every prime &mdash; placing primality in
+NP &mdash; but his certificates require the complete factorization of p&nbsp;&minus;&nbsp;1 (recursively), so
+<i>finding</i> them appears to require integer factorization, and verifying them takes
+O(log&sup2;&nbsp;p) modular multiplications. Two later developments changed the landscape.
+Goldwasser and Kilian [<a href="#GK99">GK86</a>] showed how to use elliptic curves over
+&#120125;<sub>p</sub>, whose group orders vary over a Hasse interval of width 4&radic;p, to <i>construct</i>
+certificates in (heuristic, and for almost all primes provable) polynomial time; and
+Pomerance [<a href="#Pom87">Pom87</a>] showed that elliptic curves make certificates dramatically
+<i>cheaper to verify</i>: every prime p admits a proof requiring only
+(5/2&nbsp;+&nbsp;o(1))&thinsp;log&#8322;&nbsp;p multiplications modulo p &mdash; a constant number of
+multiplications per bit, matching (up to the constant) Pepin&rsquo;s test for Fermat primes and the
+Lucas&ndash;Lehmer test for Mersenne primes, but now valid for <i>every</i> prime.</p>
+
+<p>Pomerance&rsquo;s construction was an existence proof; he noted that finding such certificates
+&ldquo;may well take exponential time.&rdquo; A cluster of 2026 challenge repositories of Sutherland
+[<a href="#DANGER3">DANGER3</a>, <a href="#OneShot">OneShot</a>, <a href="#Short">Short</a>] makes the
+gap between <i>finding</i> and <i>verifying</i> quantitative, by fixing precise certificate formats
+(each with a reference verifier) and soliciting certificates for ever-larger primes. The four families,
+in the order treated here:</p>
+
+<ol>
+<li><b>Pomerance proofs</b> (repository <a href="https://github.com/AndrewVSutherland/DANGER3">DANGER3</a>):
+a single Montgomery curve with a point of order 2<sup>k</sup>, where 2<sup>k</sup> is the <i>least</i> power of two
+exceeding the Goldwasser&ndash;Kilian threshold &asymp;&nbsp;&radic;p. The certificate is three integers; verification is
+&asymp;&nbsp;(5/2)&thinsp;log&#8322;&nbsp;p multiplications; the best known search is
+&Theta;&#771;(&radic;p) time.</li>
+<li><b>One-shot ECPP</b> (repository
+<a href="https://github.com/AndrewVSutherland/OneShotPrimalityProofs">OneShotPrimalityProofs</a>):
+the power of two is relaxed to any n&#8308;-smooth order in a minimal window above the threshold
+(n&nbsp;=&nbsp;&lceil;log&#8322;&nbsp;p&rceil;), with the certificate listing the prime factors in
+(n&sup2;,&nbsp;n&#8308;). Verification is quasi-quadratic; the best known searches are
+p<sup>1/8+o(1)</sup> (candidate orders, via SEA sampling) and p<sup>1/4+o(1)</sup> end-to-end (via the CM method).</li>
+<li><b>Restricted one-shot ECPP</b>: the sub-family with no listed primes &mdash; the point&rsquo;s order must be
+n&sup2;-smooth outright. The smoothness exponent doubles: p<sup>1/4+o(1)</sup> candidates (SEA), p<sup>1/2+o(1)</sup>
+end-to-end (CM). This interpolates between Pomerance proofs and one-shot ECPP; certificates for
+10&sup2;&#8304;&hellip;10&#8310;&#8304;&thinsp;+&thinsp;&epsilon; produced for this write-up appear in &sect;5.</li>
+<li><b>Short ECPP</b> (repository
+<a href="https://github.com/AndrewVSutherland/ShortPrimalityProofs">ShortPrimalityProofs</a>):
+a <i>chain</i> of such certificates in which each level&rsquo;s point order is (n&sup2;-smooth)&thinsp;&times;&thinsp;(one
+prime p&#8321;&nbsp;&lt;&nbsp;&radic;p&#8320;), and the next level certifies p&#8321;. Bit-lengths at least halve per level, so
+certificates stay linear in log&nbsp;p and verification quasi-quadratic &mdash; but the free prime factor makes
+certificates <i>findable</i> in heuristic subexponential time
+L<sub>p</sub>(1/3,&nbsp;&asymp;1.3).</li>
+<li><b>Classical ECPP</b> (Goldwasser&ndash;Kilian, Atkin&ndash;Morain): the chain descends by an O(log&nbsp;n)-bit
+shrink per step with an essentially unconstrained cofactor. Finding is heuristic polynomial time
+&mdash; (log&nbsp;p)<sup>4+&epsilon;</sup> for fastECPP &mdash; at the price of quadratic-size certificates and
+quasi-cubic verification.</li>
+</ol>
+
+<p>The five formats form a hierarchy. A Pomerance triple <i>is</i> a restricted one-shot certificate
+(m&nbsp;=&nbsp;2<sup>k</sup> is certainly n&sup2;-smooth), which is a one-shot certificate with an empty prime list,
+and also a zero-level short ECPP; a short ECPP is a maximally steep descent chain; classical ECPP relaxes the
+descent rate and the order structure entirely. Existence for <i>every</i> prime p&nbsp;&gt;&nbsp;3 is inherited
+down the whole hierarchy from Pomerance&rsquo;s theorem &mdash; unconditionally, with no heuristics &mdash; while each
+relaxation strictly enlarges the set of valid certificates and thereby lowers the cost of finding one.
+The summary (n&nbsp;=&nbsp;&lceil;log&#8322;&nbsp;p&rceil;; sizes exclude p itself; all verification bounds are rigorous
+and deterministic, all finding costs are heuristic; constants and derivations in the sections below):</p>
+
+<table>
+<tr><th>certificate</th><th>size (bits)</th><th>verification (bit ops)</th><th>finding (heuristic)</th><th>exists for</th></tr>
+<tr><td class="l">Pratt [<a href="#Pra75">Pra75</a>]</td><td>O(n&sup2;)</td><td>O(n&sup2;) mults = &Otilde;(n&sup3;)</td><td class="l">needs factorization of p&minus;1, recursively; L<sub>p</sub>(1/3) via NFS</td><td>all p</td></tr>
+<tr><td class="l">AKS (empty certificate) [<a href="#AKS04">AKS04</a>, <a href="#LP19">LP19</a>]</td><td>0</td><td>(log&nbsp;p)<sup>6+o(1)</sup></td><td class="l">&mdash;</td><td>all p</td></tr>
+<tr><td class="l">Pomerance triple [<a href="#Pom87">Pom87</a>, <a href="#DANGER3">DANGER3</a>]</td><td>&asymp;&thinsp;2n</td><td>(5/2+o(1))&thinsp;n mults = O(n&sup2;log&nbsp;n)</td><td class="l">&Theta;&#771;(&radic;p) = &Theta;&#771;(2<sup>n/2</sup>)</td><td>all p&nbsp;&gt;&nbsp;3</td></tr>
+<tr><td class="l">restricted one-shot (&sect;5)</td><td>&asymp;&thinsp;2.5n</td><td>O(n&sup2;(log&nbsp;n)&sup2;)</td><td class="l">p<sup>1/4+o(1)</sup> SEA;&ensp;p<sup>1/2+o(1)</sup> CM</td><td>all p&nbsp;&gt;&nbsp;3</td></tr>
+<tr><td class="l">one-shot, n&#8308;-smooth [<a href="#OneShot">OneShot</a>]</td><td>&asymp;&thinsp;2.5n&ndash;4n</td><td>O(n&sup2;(log&nbsp;n)&sup2;)</td><td class="l">p<sup>1/8+o(1)</sup> candidates (SEA);&ensp;p<sup>1/4+o(1)</sup> CM end-to-end</td><td>all p&nbsp;&gt;&nbsp;3</td></tr>
+<tr><td class="l">short ECPP [<a href="#Short">Short</a>]</td><td>O(n), &asymp;&thinsp;5n&ndash;7n</td><td>O(n&sup2;(log&nbsp;n)&sup2;)</td><td class="l">L<sub>p</sub>(1/3, c), c&nbsp;&asymp;&nbsp;1.31 (SEA) / 1.39 (CM)</td><td>all p&nbsp;&ge;&nbsp;5</td></tr>
+<tr><td class="l">descent chain, ratio b [<a href="#OSF">OSF</a>]</td><td>O(n)/(1&minus;b)</td><td>O(n&sup2;log&nbsp;n)/(1&minus;b&sup2;)</td><td class="l">L<sub>p</sub>(1/3, c(b)), c(b)&nbsp;=&nbsp;(2/3)(18(1&minus;b))<sup>1/3</sup>&nbsp;&rarr;&nbsp;0</td><td>all p (heuristic)</td></tr>
+<tr><td class="l">classical ECPP [<a href="#GK99">GK86</a>, <a href="#AM93">AM93</a>]</td><td>&Theta;(n&sup2;/log&nbsp;n)</td><td>&Otilde;(n&sup3;)</td><td class="l">(log&nbsp;p)<sup>4+&epsilon;</sup> fastECPP; (log&nbsp;p)<sup>5+&epsilon;</sup> basic</td><td>all p (heuristic; almost all provable, all p in ZPP)</td></tr>
+</table>
+
+<p>Two engines supply candidate curve orders throughout, and they trade off differently in every section:
+<b>SEA</b> point counting (sample a curve, compute its order; polynomial cost per candidate, orders
+statistically &ldquo;random&rdquo;) and the <b>CM method</b> (enumerate imaginary quadratic discriminants D with
+4p&nbsp;=&nbsp;t&sup2;&nbsp;+&nbsp;|D|v&sup2;; orders p+1&plusmn;t arrive at polylogarithmic amortized cost, but only
+&Theta;&#771;(&radic;B) of them from discriminants up to B, and committing to a winner costs a class polynomial of degree
+h(D)&nbsp;&asymp;&nbsp;&radic;|D|). Where the searched event is polynomially rare, CM&rsquo;s cheap candidates win;
+where it is exponentially rare, the &radic;B supply curve throttles CM and SEA&rsquo;s flat polynomial cost per candidate
+wins asymptotically. Measured crossovers appear in &sect;4.3 and &sect;5.2.</p>
+
+<h2 id="s2">2&ensp;Preliminaries</h2>
+
+<h3 id="s21">2.1&ensp;Cost model and notation</h3>
+
+<p>p always denotes the integer whose primality is at issue (a &ldquo;probable prime&rdquo; during a search), and
+<b>n&nbsp;=&nbsp;&lceil;log&#8322;&nbsp;p&rceil;</b> its bit length. M(t) denotes the bit cost of multiplying two t-bit
+integers; M(t)&nbsp;=&nbsp;O(t&nbsp;log&nbsp;t) unconditionally [<a href="#HvdH21">HvdH21</a>]. A
+&ldquo;multiplication mod&nbsp;p&rdquo; costs O(M(n)); following Pomerance we count squarings as multiplications and
+ignore additions. &Otilde;(&middot;) suppresses polylogarithmic factors. The subexponential scale is
+</p>
+<div class="eq">L<sub>p</sub>(&alpha;, c) &nbsp;=&nbsp; exp( (c+o(1)) (ln p)<sup>&alpha;</sup> (ln ln p)<sup>1&minus;&alpha;</sup> ),</div>
+<p>so L<sub>p</sub>(0,&nbsp;c) is polynomial in log&nbsp;p, L<sub>p</sub>(1,&nbsp;c) fully exponential,
+L<sub>p</sub>(1/2,&nbsp;&middot;) the ECM/quadratic-sieve scale, and L<sub>p</sub>(1/3,&nbsp;&middot;) the number field
+sieve scale. &ldquo;p<sup>&theta;+o(1)</sup>&rdquo; means exp((&theta;+o(1))&thinsp;ln&nbsp;p); the o(1) terms here go to
+zero slowly (they hide ln&nbsp;ln factors in the exponent), which is why observed behavior at a few hundred bits is far
+friendlier than the exponent suggests &mdash; a point made quantitative in &sect;4 and &sect;5.</p>
+
+<p>All <i>verification</i> statements below are rigorous, deterministic, and unconditional: a verifier that outputs
+True proves primality with no hypotheses. All <i>finding</i> statements are heuristic, resting on the two randomness
+assumptions of &sect;2.4&ndash;2.5 (curve orders behave like uniform Hasse-interval integers up to explicit local
+corrections; smooth-part probabilities follow the Dickman distribution). This asymmetry &mdash; unconditional
+verification, heuristic search &mdash; is intrinsic to the subject and is the reason certificates matter at all: the
+expensive, unrigorous part need be run only once, by anyone, while the cheap, rigorous part can be repeated by
+everyone.</p>
+
+<h3 id="s22">2.2&ensp;Curves over &#8484;/p&#8484; and Montgomery arithmetic</h3>
+
+<p>For prime p&nbsp;&gt;&nbsp;3, an elliptic curve over &#120125;<sub>p</sub> in Montgomery form is
+</p>
+<div class="eq">E<sub>A,B</sub> :&ensp; B y&sup2; = x&sup3; + A x&sup2; + x, &emsp; B(A&sup2;&minus;4) &ne; 0,</div>
+<p>with the usual chord&ndash;tangent group law on its projective points; #E denotes the number of points including
+the point at infinity O [<a href="#Sil09">Sil09</a>, <a href="#Mon87">Mon87</a>]. Every Montgomery curve has the
+rational 2-torsion point (0,0), so 4&nbsp;|&nbsp;#E always (the three 2-torsion x-coordinates are 0 and the roots of
+x&sup2;+Ax+1; at least one lies on E or forces a point of order 4). Montgomery&rsquo;s x-only arithmetic works with
+classes (X&nbsp;:&nbsp;Z) representing x&nbsp;=&nbsp;X/Z on the <i>Kummer line</i>, identifying P with &minus;P:
+doubling costs 5 multiplications
+(with c&nbsp;=&nbsp;(A+2)/4 precomputed: U&nbsp;=&nbsp;(X+Z)&sup2;, V&nbsp;=&nbsp;(X&minus;Z)&sup2;,
+X&prime;&nbsp;=&nbsp;UV, Z&prime;&nbsp;=&nbsp;(U&minus;V)(V&nbsp;+&nbsp;c(U&minus;V))), differential addition costs 6,
+and the Montgomery ladder computes (X:Z) of [k]P in &asymp;&nbsp;11&thinsp;log&#8322;&nbsp;k multiplications. Two
+features matter for certificates:</p>
+
+<ul>
+<li><b>Twist-agnosticism.</b> The x-only formulas depend only on A, not B, and are simultaneously valid on
+E<sub>A,1</sub> and its quadratic twist. Every x&#8320;&nbsp;&isin;&nbsp;&#120125;<sub>p</sub> is the x-coordinate of a
+point on one of the two (which one depends on whether x&#8320;&sup3;+Ax&#8320;&sup2;+x&#8320; is a square). All four
+certificate formats therefore quantify over &ldquo;there exist B, y&#8320; such that (x&#8320;,&nbsp;y&#8320;) lies on
+B y&sup2;&nbsp;=&nbsp;x&sup3;+Ax&sup2;+x&rdquo;: the verifier never tests whether x&#8320; is &ldquo;on the
+curve,&rdquo; because it is always on one of the pair, and the order condition is what carries the proof. This
+matches the set-up of [<a href="#Pom87">Pom87</a>], whose homogeneous model
+y&sup2;z&nbsp;=&nbsp;x&sup3;+ax&sup2;z+bxz&sup2; is the general curve with a rational point of order 2.</li>
+<li><b>Soundness over &#8484;/p&#8484; for composite p.</b> The verifier runs the same formulas modulo a p not yet
+known to be prime. The computation then commutes with reduction modulo every prime &#8467;&nbsp;|&nbsp;p
+<i>provided no ring division by a zero-divisor occurs</i>; verifiers enforce this with gcd guards
+(gcd(A&sup2;&minus;4,&nbsp;p)&nbsp;=&nbsp;1; a claimed point at infinity must be (X&nbsp;:&nbsp;0) with
+gcd(X,&nbsp;p)&nbsp;=&nbsp;1; a claimed non-identity must have gcd(Z,&nbsp;p)&nbsp;=&nbsp;1). A failed guard either
+rejects or exhibits a proper factor of p. This is the same discipline as Lenstra&rsquo;s
+&ldquo;pseudocurves&rdquo; in ECM [<a href="#Len87">Len87</a>], run in reverse: ECM hopes for a zero-divisor,
+verification insists on their absence.</li>
+</ul>
+
+<h3 id="s23">2.3&ensp;The certification lemma</h3>
+
+<p>All four families rest on one lemma, essentially Goldwasser&ndash;Kilian&rsquo;s
+[<a href="#GK99">GK86</a>], in the single-curve form of [<a href="#Pom87">Pom87</a>]. Write
+</p>
+<div class="eq">L(p) &nbsp;=&nbsp; q + 1 + &lfloor;2&radic;q&rfloor;, &emsp; q = &lfloor;&radic;p&rfloor;,</div>
+<p>the integer form of (p<sup>1/4</sup>+1)&sup2;: by the Hasse bound
+[<a href="#Sil09">Sil09</a>, V.1], L(p) is the largest possible order of a point on any elliptic curve over any field
+&#120125;<sub>&#8467;</sub> with &#8467;&nbsp;&le;&nbsp;&radic;p.</p>
+
+<div class="thm"><b class="hd">Lemma (elliptic certification).</b>&ensp;Let p&nbsp;&gt;&nbsp;3 be an odd integer, and
+suppose that for every prime &#8467; dividing p, the reduction modulo &#8467; of some fixed pair (A,&nbsp;x&#8320;)
+yields a point of order exactly m on a Montgomery curve By&sup2;&nbsp;=&nbsp;x&sup3;+Ax&sup2;+x over
+&#120125;<sub>&#8467;</sub>, for one and the same integer m&nbsp;&gt;&nbsp;L(p). Then p is prime.
+<br><i>Proof.</i> If p were composite it would have a prime divisor &#8467;&nbsp;&le;&nbsp;&radic;p. The point&rsquo;s
+order m divides #E(&#120125;<sub>&#8467;</sub>)&nbsp;&le;&nbsp;&#8467;&nbsp;+&nbsp;1&nbsp;+&nbsp;2&radic;&#8467;
+&le;&nbsp;L(p)&nbsp;&lt;&nbsp;m, a contradiction.&ensp;&#9633;</div>
+
+<p>Establishing &ldquo;order exactly m modulo every prime divisor&rdquo; from x-only data is the verifier&rsquo;s whole
+job: it checks that [m](x&#8320;:1) is the genuine point at infinity (Z&nbsp;&equiv;&nbsp;0 and
+gcd(X,&nbsp;p)&nbsp;=&nbsp;1, which forces [m]P&nbsp;=&nbsp;O modulo <i>every</i> &#8467;&nbsp;|&nbsp;p), and that
+[m/&#8467;&#8467;&prime;&hellip;](x&#8320;:1) is a unit-Z point (hence &ne;&nbsp;O modulo every &#8467;&nbsp;|&nbsp;p) for
+each maximal proper divisor m/q of m, q running over the distinct primes of m. This requires <i>knowing the prime
+factorization of m</i> &mdash; which is why every format constrains m&rsquo;s arithmetic shape, and why the differences
+between the formats are exactly differences in how m may be built.</p>
+
+<div class="warn"><b>Why &ldquo;modulo every prime divisor&rdquo; and not &ldquo;order in
+E(&#8484;/p&#8484;)&rdquo;.</b> The order of a point over the ring &#8484;/p&#8484; is, by CRT, only the <i>least common
+multiple</i> of its orders modulo the primes dividing p; for composite p the required order can be split between
+factors with every local order strictly smaller than m. A concrete counterexample from
+[<a href="#Short">Short</a>]: p&#8320;&nbsp;=&nbsp;4410667997551&nbsp;=&nbsp;2098153&nbsp;&middot;&nbsp;2102167 with
+the tuple <code>(p&#8320;, 1365834658413, 107710304518, 4200232, &hellip;)</code> has a point of order exactly
+8&nbsp;&middot;&nbsp;525029 in E(&#8484;/p&#8320;&#8484;) &mdash; order 8 modulo the first prime and 525029 modulo
+the second &mdash; and would pass a verifier that read &ldquo;order&rdquo; in &#8484;/p&#8320;&#8484;. The gcd guards
+are what rule this out: they force the ladder&rsquo;s intermediate values to behave identically modulo every prime
+divisor, so the order is m locally everywhere, and the reference verifiers reject the example (exposing both factors
+of p&#8320; along the way).</div>
+
+<h3 id="s24">2.4&ensp;The supply of curve orders</h3>
+
+<p>Fix a prime p. Which integers occur as #E for E/&#120125;<sub>p</sub>, and how are they distributed? Three
+classical facts calibrate every heuristic in this write-up.</p>
+
+<ul>
+<li><b>Hasse [<a href="#Sil09">Sil09</a>].</b> #E&nbsp;=&nbsp;p&nbsp;+&nbsp;1&nbsp;&minus;&nbsp;t with
+|t|&nbsp;&le;&nbsp;2&radic;p: orders live in the <i>Hasse interval</i> of length 4&radic;p centered at p+1.</li>
+<li><b>Deuring [<a href="#Deu41">Deu41</a>, <a href="#Wat69">Wat69</a>].</b> Conversely <i>every</i> such t occurs
+for some E/&#120125;<sub>p</sub> (p prime). Quantitatively, the number of curves with trace t, counted up to
+isomorphism and weighted naturally, is the Hurwitz class number H(4p&minus;t&sup2;)
+[<a href="#Deu41">Deu41</a>, <a href="#Scho87">Scho87</a>], of typical size &radic;p up to logarithmic factors: a
+random curve has an essentially uniformly distributed trace, modulated by a smooth semicircular-type density and by
+class number fluctuations.</li>
+<li><b>Group structure.</b> E(&#120125;<sub>p</sub>)&nbsp;&cong;&nbsp;&#8484;/n&#8321;&nbsp;&times;&nbsp;&#8484;/n&#8322;
+with n&#8321;&nbsp;|&nbsp;n&#8322; and n&#8321;&nbsp;|&nbsp;p&minus;1; a point of order m exists iff
+m&nbsp;|&nbsp;n&#8322; (the exponent). For a curve chosen at random, n&#8321; is 1 or very small with high
+probability, and one can always move within the isogeny class to make any given Sylow subgroup cyclic
+(&sect;4.3).</li>
+</ul>
+
+<p><b>The randomness heuristic.</b> For searching we model the order of a random curve as a uniform random integer
+in the Hasse interval, corrected by known local biases: #E is even with probability &asymp;&nbsp;2/3 over all curves,
+and exactly 1 for Montgomery curves (which force 4&nbsp;|&nbsp;#E); more generally
+Pr[&#8467;&nbsp;|&nbsp;#E]&nbsp;&asymp;&nbsp;&#8467;/(&#8467;&sup2;&minus;1) for small primes &#8467;
+[<a href="#Len87">Len87</a>, Prop.&nbsp;1.14]. These biases <i>help</i> every smoothness-hunting search below by a
+constant factor, and are one ingredient of the O(1) &ldquo;fudge factors&rdquo; between the clean Dickman model and
+observed candidate counts (measured in &sect;4.3 and &sect;5.3 to lie between about 1/2 and 20).</p>
+
+<h3 id="s25">2.5&ensp;Smooth numbers</h3>
+
+<p>An integer is <b>y-smooth</b> if all its prime factors are &le;&nbsp;y. With
+&Psi;(x,&nbsp;y)&nbsp;=&nbsp;#{&thinsp;m&nbsp;&le;&nbsp;x : m is y-smooth&thinsp;}, the fundamental estimate
+[<a href="#Dic30">Dic30</a>, <a href="#CEP83">CEP83</a>, <a href="#Hil86">Hil86</a>] is
+</p>
+<div class="eq">&Psi;(x, y) &nbsp;=&nbsp; x&thinsp;&rho;(u)<sup>1+o(1)</sup>, &emsp; u = ln&nbsp;x / ln&nbsp;y,</div>
+<p>uniformly for u&nbsp;&lt;&nbsp;y<sup>1&minus;&epsilon;</sup>, where the Dickman function &rho; satisfies
+&rho;(u)&nbsp;=&nbsp;1 on [0,1] and u&rho;&prime;(u)&nbsp;=&nbsp;&minus;&rho;(u&minus;1); asymptotically
+&rho;(u)&nbsp;=&nbsp;u<sup>&minus;u(1+o(1))</sup>&nbsp;=&nbsp;exp(&minus;u(ln&nbsp;u&nbsp;+&nbsp;ln&nbsp;ln&nbsp;u&nbsp;&minus;&nbsp;1&nbsp;+&nbsp;o(1))).
+See [<a href="#Gran08">Gran08</a>] for a survey. Two consequences are used constantly:</p>
+
+<ul>
+<li><b>Fully smooth orders.</b> Pr[a random Hasse-interval integer is y-smooth]&nbsp;&asymp;&nbsp;&rho;(u) with
+u&nbsp;=&nbsp;ln&nbsp;p&thinsp;/&thinsp;ln&nbsp;y. With y polylogarithmic in p, u&nbsp;&asymp;&nbsp;ln&nbsp;p&thinsp;/&thinsp;(c&nbsp;ln&nbsp;ln&nbsp;p)
+and &rho;(u)&nbsp;=&nbsp;p<sup>&minus;1/c&thinsp;+&thinsp;o(1)</sup>: <i>polylog-smooth orders are a positive power of p
+rare</i>. This single computation drives all the exponents 1/2, 1/4, 1/8 below.</li>
+<li><b>Smooth parts.</b> Write S<sub>y</sub>(N) for the largest y-smooth divisor of N. The certificates of
+&sect;&sect;4&ndash;6 need only S<sub>y</sub>(#E)&nbsp;&gt;&nbsp;L(p)&nbsp;&asymp;&nbsp;&radic;p &mdash; half the bits
+&mdash; not full smoothness. For N&nbsp;&asymp;&nbsp;p random,
+Pr[S<sub>y</sub>(N)&nbsp;&gt;&nbsp;&radic;N]&nbsp;=&nbsp;&rho;(u/2)<sup>1+o(1)</sup>: up to factors absorbed in the
+o(1) (an e<sup>&minus;&gamma;</sup> from the rough cofactor, an integral over how far above &radic;N the smooth part
+lands), demanding a smooth <i>part</i> above &radic;N costs what full smoothness would cost for &radic;N. Halving the
+bits that must be smooth halves u, and since &rho; is doubly exponential in u this is an enormous relaxation:
+at 256 bits with y&nbsp;=&nbsp;n&#8308; it is the difference between &rho;(8)&nbsp;&asymp;&nbsp;3&thinsp;&times;&thinsp;10<sup>&minus;8</sup>
+and &rho;(4)&nbsp;&asymp;&nbsp;5&thinsp;&times;&thinsp;10<sup>&minus;3</sup>.</li>
+</ul>
+
+<h3 id="s26">2.6&ensp;Two engines for curve orders: SEA and CM</h3>
+
+<p>Every finder below is a filter over candidate pairs (curve, order). There are exactly two known ways to
+manufacture such pairs, and their cost structures are dual.</p>
+
+<h4>Point counting: Schoof&ndash;Elkies&ndash;Atkin</h4>
+<p>Schoof&rsquo;s algorithm [<a href="#Scho85">Scho85</a>] computes #E for arbitrary E/&#120125;<sub>p</sub> in
+deterministic polynomial time by computing the trace t mod &#8467; for the primes &#8467;&nbsp;=&nbsp;O(log&nbsp;p),
+working in the &#8467;-division polynomials of degree &Theta;(&#8467;&sup2;); with fast arithmetic it runs in
+&Otilde;(n&#8309;). The Elkies&ndash;Atkin improvements [<a href="#Scho95">Scho95</a>, <a href="#Elk98">Elk98</a>]
+replace division polynomials, for the &asymp;&thinsp;half of primes &#8467; that are &ldquo;Elkies primes,&rdquo; by
+degree-&Theta;(&#8467;) kernel polynomials of rational &#8467;-isogenies located via the modular polynomial
+&Phi;<sub>&#8467;</sub>(X,&nbsp;j(E)), giving the SEA algorithm with heuristic cost &Otilde;(n&#8308;)
+(the heuristic being the supply of Elkies primes; see [<a href="#SS14">SS14</a>] for what is provable on average).
+As an order <i>supply</i>, SEA has two decisive properties: the cost per candidate is a <i>flat polynomial</i>
+&mdash; independent of how many candidates one consumes &mdash; and each quadratic twist comes free
+(#E&nbsp;+&nbsp;#E<sup>tw</sup>&nbsp;=&nbsp;2p+2), so one count yields two candidate orders. Its constant is large in
+practice: a stock PARI/GP <code>ellcard</code> costs 7&ndash;14 core-seconds per curve at 384&ndash;448 bits
+[<a href="#OSF">OSF</a>, sea-crossover].</p>
+
+<h4>Complex multiplication: prescribed traces from small discriminants</h4>
+<p>The CM method inverts the problem: instead of choosing a curve and learning its order, choose the order and
+construct a curve. If D&nbsp;&lt;&nbsp;0 is an imaginary quadratic discriminant with
+</p>
+<div class="eq">4p = t&sup2; + |D|v&sup2;</div>
+<p>solvable in integers (equivalently, p splits suitably in the ring class field of discriminant D), then there are
+curves E/&#120125;<sub>p</sub> with CM by the order of discriminant D and trace &plusmn;t, hence orders
+p+1&minus;t and p+1+t; for D&nbsp;=&nbsp;&minus;3, &minus;4 the extra units give six resp. four orders
+[<a href="#AM93">AM93</a>, <a href="#Cox13">Cox13</a>]. The machinery has three separately-priced stages:</p>
+<ol>
+<li><b>Which D are usable, and what are t, v?</b> Testing one D costs a Legendre symbol, a square root of D mod p,
+and Cornacchia&rsquo;s algorithm [<a href="#Cor08">Cor08</a>, <a href="#CP05">CP05</a>&nbsp;&sect;2.3.4] &mdash;
+polylogarithmic. Batched over many D, the square roots reduce to one square root per prime factor of the
+discriminants plus one modular multiplication per D (Shallit&rsquo;s trick; credited in
+[<a href="#Mor07">Mor07</a>, <a href="#FKMW04">FKMW04</a>]), and restricting to discriminants all of whose prime
+discriminant factors are residues on p boosts the solvability probability by genus theory
+(Pr&nbsp;=&nbsp;2<sup>#factors&minus;1</sup>/h(D) for such D). The engine of [<a href="#OSF">OSF</a>] scans
+5&ndash;20 million discriminants per second at 128&ndash;384 bits this way.</li>
+<li><b>How many orders does a budget of discriminants buy?</b> This is the binding constraint. The solvability
+probability for a single D is &asymp;&nbsp;c/h(D)&nbsp;&asymp;&nbsp;c&prime;/&radic;|D| (up to
+L(1,&nbsp;&chi;<sub>D</sub>) factors), so discriminants up to B yield only
+</p>
+<div class="eq">#{usable (D,&nbsp;t)} &nbsp;&asymp;&nbsp; &Sigma;<sub>|D|&le;B</sub> &Theta;(1/&radic;|D|) &nbsp;&asymp;&nbsp; &Theta;&#771;(&radic;B)</div>
+<p>candidate orders, at scan cost &Theta;&#771;(B). Empirically the constant is &asymp;&nbsp;0.5: the run of
+[<a href="#OSF">OSF</a>] on 10&sup1;&sup1;&#8304;+7 measured a pool of 39,878 orders at
+B&nbsp;=&nbsp;8&times;10&#8313;&nbsp;&asymp;&nbsp;0.45&radic;B. <i>Producing K candidate orders by CM costs
+&Theta;&#771;(K&sup2;).</i></li>
+<li><b>Committing to a winner.</b> Only the finally-selected D requires the expensive step: the Hilbert class
+polynomial H<sub>D</sub> (or a smaller class invariant) of degree h(D)&nbsp;&asymp;&nbsp;&radic;|D|, computable in
+quasi-linear time &Otilde;(|D|) by the CRT method [<a href="#Suth11">Suth11</a>, <a href="#Enge09">Enge09</a>,
+<a href="#Suth12">Suth12</a>], one root of it mod p, the j-invariant, the right twist, and a point of the desired
+order. Isogeny-volcano navigation [<a href="#Kohel96">Kohel96</a>, <a href="#FM02">FM02</a>,
+<a href="#Suth13">Suth13</a>] fixes group-structure obstructions (&sect;4.3).</li>
+</ol>
+
+<p>The duality, which recurs in every section: <b>SEA pays poly(n) per candidate forever; CM pays
+polylog per candidate but quadratically in the number of candidates.</b> If a search needs K candidates, SEA costs
+&Otilde;(K)&thinsp;poly(n) and CM costs &Otilde;(K&sup2;)&thinsp;+&thinsp;&Otilde;(K polylog). CM wins when K is
+modest (all of classical ECPP, one-shot to &asymp;&thinsp;450 bits); SEA wins when K explodes (one-shot beyond
+&asymp;&thinsp;500 bits, the restricted variant, and &mdash; in the degenerate single-candidate sense of &sect;3 &mdash;
+never for Pomerance triples, where the admissible orders are known in advance and neither engine is needed).</p>
+
+<h3 id="s27">2.7&ensp;The prover&rsquo;s factoring toolbox</h3>
+
+<p>Several finders must partially factor candidate orders (never as part of any certificate&rsquo;s validity &mdash;
+only to <i>recognize</i> a usable order). Trial division to y costs &pi;(y) divisions per candidate naively, and
+amortizes to polylogarithmic per candidate over large batches via product/remainder trees
+[<a href="#Bern04">Bern04</a>]; ECM [<a href="#Len87">Len87</a>] finds a prime factor
+q&nbsp;&le;&nbsp;y of N in heuristic expected time L<sub>y</sub>(1/2,&nbsp;&radic;2)&thinsp;&middot;&thinsp;&Otilde;(M(log&nbsp;N)),
+so &ldquo;peel everything &le;&nbsp;y from N&rdquo; costs L<sub>y</sub>(1/2,&nbsp;&radic;2) up to polynomial factors;
+the number field sieve [<a href="#LL93">LL93</a>] factors N completely in heuristic
+L<sub>N</sub>(1/3,&nbsp;(64/9)<sup>1/3</sup>&asymp;1.923). The interplay &ldquo;how much peeling per candidate vs. how
+rare is a peelable candidate&rdquo; is what produces the L(1/3) finding costs of &sect;6.</p>
+
+<h2 id="s3">3&ensp;Pomerance proofs</h2>
+
+<h3>3.1&ensp;The problem</h3>
+
+<p>Pomerance&rsquo;s 1987 theorem [<a href="#Pom87">Pom87</a>, Thm.&nbsp;1]: <i>for every prime p there is a proof of
+its primality whose verification requires (5/2&nbsp;+&nbsp;o(1))&thinsp;log&#8322;&nbsp;p multiplications
+mod&nbsp;p.</i> His certificate exhibits a point of order 2<sup>k</sup> on an elliptic curve, with
+2<sup>k</sup> just above the threshold L(p) of &sect;2.3, so that verification is nothing but k&nbsp;&asymp;&nbsp;&frac12;&thinsp;log&#8322;&nbsp;p
+successive doublings. The <a href="https://github.com/AndrewVSutherland/DANGER3">DANGER3</a> repository
+(the data challenge of the April 2026 BIRS workshop <i>DANGER: Data, Numbers, and Geometry</i>) fixes the modern
+Montgomery-form refinement:</p>
+
+<div class="thm"><b class="hd">Definition [<a href="#DANGER3">DANGER3</a>].</b>&ensp;A <b>Pomerance triple</b> is a
+triple of integers (p,&nbsp;A,&nbsp;x&#8320;) with p a positive odd integer,
+0&nbsp;&le;&nbsp;A,&nbsp;x&#8320;&nbsp;&lt;&nbsp;p, A&nbsp;&ne;&nbsp;&plusmn;2 mod p, such that there exist B and
+y&#8320; making (x&#8320;,&nbsp;y&#8320;) a point of order 2<sup>k</sup> on the Montgomery curve
+By&sup2;&nbsp;=&nbsp;x&sup3;&nbsp;+&nbsp;Ax&sup2;&nbsp;+&nbsp;x modulo every prime divisor of p, where k is the
+<i>least</i> integer with 2<sup>k</sup>&nbsp;&gt;&nbsp;q&nbsp;+&nbsp;1&nbsp;+&nbsp;2&radic;q,
+q&nbsp;=&nbsp;&lfloor;&radic;p&rfloor;. Operationally: applying the Montgomery doubling law k&minus;1 times to
+(x&#8320;&thinsp;:&thinsp;1) gives a point with Z-coordinate coprime to p, and the k-th doubling gives
+Z&nbsp;&equiv;&nbsp;0 (mod p).</div>
+
+<p>By the certification lemma a valid triple proves p prime (2<sup>k</sup>&nbsp;&gt;&nbsp;L(p)), and by
+[<a href="#Pom87">Pom87</a>, Lemmas 2.1&ndash;2.2] the doubling-chain behavior (Z&nbsp;&ne;&nbsp;0 at step
+k&minus;1, Z&nbsp;=&nbsp;0 at step k) characterizes &ldquo;order exactly 2<sup>k</sup>&rdquo; on the Kummer line.
+The certificate is <i>two</i> integers beyond p itself &mdash; about 2n bits &mdash; the shortest of the
+elliptic-curve formats.</p>
+
+<h3>3.2&ensp;Existence: every prime has one</h3>
+
+<p>This is the part that uses the full strength of Deuring&rsquo;s theorem, and it is worth sketching because every
+other format inherits its existence statement from this argument
+[<a href="#Pom87">Pom87</a>, Thm.&nbsp;3.3].</p>
+
+<ol>
+<li>Minimality puts 2<sup>k</sup> in (L(p),&nbsp;2L(p)], which is below the Hasse interval&rsquo;s width
+4&radic;p once p&nbsp;&gt;&nbsp;34, so the interval (p+1&minus;2&radic;p,&nbsp;p+1+2&radic;p) contains a multiple
+m&nbsp;=&nbsp;2<sup>k</sup>c of 2<sup>k</sup>.</li>
+<li>By Deuring [<a href="#Deu41">Deu41</a>], some E/&#120125;<sub>p</sub> has #E&nbsp;=&nbsp;m (m is even, so E can
+be taken with a rational 2-torsion point, i.e. in the model of &sect;2.2).</li>
+<li>E(&#120125;<sub>p</sub>) is a product of at most two cyclic groups. If some curve of order m has a point of
+order 2<sup>k</sup>, done (Pomerance&rsquo;s &ldquo;type&nbsp;1&rdquo; certificate). Otherwise the 2-Sylow subgroup
+splits; Pomerance&rsquo;s &ldquo;type&nbsp;2&rdquo; certificate exhibits two points of orders
+2<sup>k&#8321;</sup>, 2<sup>k&#8322;</sup> with k&#8321;+k&#8322;&nbsp;=&nbsp;k generating a subgroup of order
+2<sup>k</sup>, which suffices for the same contradiction. For the single-point Montgomery format one instead moves
+within the isogeny class: descending the 2-isogeny volcano to its floor [<a href="#Kohel96">Kohel96</a>,
+<a href="#Suth13">Suth13</a>] makes the 2-Sylow subgroup cyclic, so a point of order 2<sup>k</sup> exists there, and
+the floor curve is Montgomery-representable. This is the &ldquo;minor refinement&rdquo; recorded in
+[<a href="#DANGER3">DANGER3</a>]: <i>Pomerance triples exist for all primes p&nbsp;&gt;&nbsp;3</i>.</li>
+</ol>
+
+<p>Empirically the repository verifies this exhaustively far beyond the theorem&rsquo;s needs: all
+43&thinsp;million triples with p&nbsp;&lt;&nbsp;2<sup>14</sup>, and at least one triple for <i>every</i> prime
+3&nbsp;&lt;&nbsp;p&nbsp;&lt;&nbsp;2<sup>32</sup> (203,280,219 of them).</p>
+
+<h3>3.3&ensp;Verification, exactly</h3>
+
+<p>The reference verifier <code>vpp.py</code> [<a href="#DANGER3">DANGER3</a>] computes
+k&nbsp;=&nbsp;bit-length of q+1+&lfloor;2&radic;q&rfloor;, checks gcd(A&sup2;&minus;4,&nbsp;p)&nbsp;=&nbsp;1, and
+runs k Montgomery doublings from (x&#8320;&thinsp;:&thinsp;1) at 5 multiplications each (&sect;2.2), accepting iff
+Z<sub>k</sub>&nbsp;&equiv;&nbsp;0 and gcd(Z<sub>k&minus;1</sub>,&nbsp;p)&nbsp;=&nbsp;1. Total:
+</p>
+<div class="eq">5k + O(1) &nbsp;=&nbsp; (5/2 + o(1))&thinsp;log&#8322;&thinsp;p &ensp;multiplications mod p,
+&emsp;i.e.&ensp; O(n&nbsp;M(n)) = O(n&sup2;&thinsp;log&nbsp;n) bit operations,</div>
+<p>plus two gcds. This realizes Pomerance&rsquo;s constant: his Theorem 3.3 proves
+(7/2)&thinsp;log&#8322;&nbsp;p&nbsp;+&nbsp;O(1) multiplications with the 7-multiplication doubling of his general
+two-parameter model, and the remarks following it reduce 7/2 to 5/2 &mdash; precisely the 5-multiplication
+Montgomery doubling (Montgomery&rsquo;s paper [<a href="#Mon87">Mon87</a>] appears in the same volume of
+<i>Mathematics of Computation</i>). For calibration: a <i>single</i> strong-pseudoprime test &mdash; which proves
+nothing &mdash; costs (1+o(1))&thinsp;log&#8322;&nbsp;p multiplications; a Pomerance triple proves primality
+outright for 2.5&times; that. The repository also provides <code>lean_vpp.py</code>, which emits a Lean&nbsp;4
+script certifying a given triple, so verification can even be delegated to a proof assistant&rsquo;s kernel.</p>
+
+<h3>3.4&ensp;Finding certificates: &Theta;&#771;(&radic;p), and why</h3>
+
+<p>Here the supply engines of &sect;2.6 are both nearly useless, which is what makes this family the hardest to
+find and the sharpest illustration of the find/verify gap.</p>
+
+<p><b>The counting heuristic.</b> A curve is usable iff #E is one of the multiples of 2<sup>k</sup> in the Hasse
+interval &mdash; two to four integers, <i>computable in advance from p alone</i> since
+2<sup>k</sup>&nbsp;&isin;&nbsp;(L(p),&nbsp;2L(p)]&nbsp;&asymp;&nbsp;(1&hellip;2)&radic;p &mdash; and iff its group
+has a cyclic-enough 2-Sylow subgroup with the sampled point generating its full 2-part. Under &sect;2.4 each
+admissible order is hit with probability &Theta;&#771;(1/&radic;p), and the structure conditions cost only a
+constant, so the per-curve success probability is &Theta;&#771;(1/&radic;p), the hidden constant wobbling by a
+factor &asymp;&thinsp;4 with the position of &radic;p between consecutive powers of two. So
+&Theta;&#771;(&radic;p) curves must be sampled, and the algorithmic content is making the per-candidate test
+essentially free.</p>
+
+<p><b>The 2-Sylow projection test</b> (Ruehle&rsquo;s implementation [<a href="#Rue26">Rue26</a>], used for the
+10<sup>19</sup> and 10<sup>21</sup> records). Let N&#8321;,&hellip;,N<sub>j</sub> (j&nbsp;&le;&nbsp;4) be the
+admissible orders and c<sub>i</sub>&nbsp;=&nbsp;N<sub>i</sub>/2<sup>v&#8322;(N<sub>i</sub>)</sup> their odd parts.
+For a random pair (A,&nbsp;x&#8320;): one Montgomery ladder computes
+[&prod;c<sub>i</sub>](x&#8320;&thinsp;:&thinsp;1), which lands in the 2-Sylow subgroup <i>whenever the curve&rsquo;s
+order is admissible</i>; then repeated doublings with early abort either die (reject) or reach
+Z&nbsp;=&nbsp;0 at exactly depth k (accept, and the affine x-coordinate of the point k steps back is the
+certificate&rsquo;s x&#8320;). Without the projection, a random point has 2-power order with probability only
+&Theta;&#771;(1/p) &mdash; the projection is what turns p trials into &radic;p trials. Per-candidate cost: one
+ladder of O(n) bits plus O(k) cheap doublings, i.e. O(n) multiplications on numbers that fit in one or two machine
+words at challenge sizes &mdash; a few hundred nanoseconds on a CPU core, a few nanoseconds amortized on a GPU.
+Sampling curve families with prescribed 2-power torsion (via the modular curve X&#8321;(16)) conditions
+v&#8322;(#E) and buys a further constant factor, as observed in the 10&sup2;&sup3; search
+[<a href="#McL26">McL26</a>] &mdash; explicitly a constant-factor gain, not an asymptotic one.</p>
+
+<p><b>Why neither engine helps.</b> SEA point counting per candidate (&Otilde;(n&#8308;) each) is strictly worse
+than the &Otilde;(n)-multiplication direct test, and no partial-information shortcut is useful: t mod 2<sup>j</sup>
+for j up to k&nbsp;&asymp;&nbsp;n/2 is exactly as hard as the event being tested. The CM route would need a small
+discriminant D with 4p&nbsp;=&nbsp;t&sup2;+|D|v&sup2; and t&nbsp;&equiv;&nbsp;p+1 (mod 2<sup>k</sup>); only O(1)
+values of t satisfy the congruence inside the Hasse range, and for fixed t the probability that
+4p&minus;t&sup2; has squarefull part large enough to leave |D|&nbsp;&le;&nbsp;X is &asymp;&nbsp;&radic;(X/p) &mdash;
+total expected work p<sup>1/2&minus;o(1)</sup> regardless. Isogeny walks preserve the order, torsion families fix
+only O(1) bits of v&#8322;(#E), and the admissible set has no multiplicative structure to sieve on. Nothing better
+than &Theta;&#771;(&radic;p) is known, and the DANGER3 progression (below) is the empirical record of that
+&radic;p wall being pushed one decimal digit &mdash; half a bit of &radic;p &mdash; at a time.</p>
+
+<h3>3.5&ensp;Results to date</h3>
+
+<p>[<a href="#DANGER3">DANGER3</a>] lists example triples for p&nbsp;=&nbsp;10<sup>12</sup>+39 through
+10<sup>18</sup>+3, then a challenge log in which every entry is a human&ndash;LLM collaboration. Candidates are
+(A,&nbsp;x&#8320;) pairs tested by the projection method; &radic;p is shown for comparison with the
+&Theta;&#771;(&radic;p) heuristic.</p>
+
+<table>
+<tr><th>p</th><th>&radic;p</th><th>candidates tested</th><th>time / hardware</th><th>found by</th><th>date</th></tr>
+<tr><td>10<sup>19</sup>+51</td><td>3.2&times;10&#8313;</td><td>3.7&times;10&#8313;</td><td class="l">400 s, multithreaded C</td><td class="l">F. Ruehle + Claude Opus 4.6</td><td>Apr 2026</td></tr>
+<tr><td>10&sup2;&#8304;+39</td><td>1.0&times;10&sup1;&#8304;</td><td>1.2&times;10&#8313;</td><td class="l">7 h</td><td class="l">V. Jejjala + GPT 5.4 Pro</td><td>Apr 2026</td></tr>
+<tr><td>10&sup2;&sup1;+117</td><td>3.2&times;10&sup1;&#8304;</td><td>5.3&times;10&sup1;&#8304;</td><td class="l">16 h</td><td class="l">F. Ruehle + Claude Opus 4.6</td><td>Apr 2026</td></tr>
+<tr><td>10&sup2;&sup2;+9</td><td>1.0&times;10&sup1;&sup1;</td><td>5.9&times;10&sup1;&#8304;</td><td class="l">16 h</td><td class="l">A. McLain + GPT 5.5 Codex</td><td>May 2026</td></tr>
+<tr><td>10&sup2;&sup3;+117</td><td>3.2&times;10&sup1;&sup1;</td><td>3.1&times;10&sup1;&#8304;</td><td class="l">&mdash;</td><td class="l">A. McLain + GPT 5.5 Codex</td><td>Jun 2026</td></tr>
+<tr><td>10&sup2;&#8308;+7</td><td>1.0&times;10&sup1;&sup2;</td><td>1.8&times;10&sup1;&#8304;</td><td class="l">6 h, Apple M3 laptop</td><td class="l">J. Shi + Claude Fable 5</td><td>Jun 2026</td></tr>
+<tr><td>10&sup2;&#8309;+13</td><td>3.2&times;10&sup1;&sup2;</td><td>2.0&times;10&sup1;&sup1;</td><td class="l">&mdash;</td><td class="l">A. McLain + GPT 5.5 Codex</td><td>Jun 2026</td></tr>
+<tr><td>10&sup2;&#8310;+67</td><td>1.0&times;10&sup1;&sup3;</td><td>1.4&times;10&sup1;&sup1;</td><td class="l">45 min, RTX 6000 GPU</td><td class="l">A. McLain + GPT 5.5 Codex</td><td>Jun 2026</td></tr>
+</table>
+
+<p>The observed candidate counts sit between 0.01&radic;p and 1.7&radic;p &mdash; the spread reflecting the
+2<sup>k</sup>/&radic;p wobble, torsion conditioning, twist usage, and single-draw geometric variance &mdash; and the
+per-candidate cost has been driven from CPU-microseconds to GPU-nanoseconds. The open challenge as of this writing
+is p&nbsp;=&nbsp;10&sup2;&#8311;+103 (&radic;p&nbsp;&asymp;&nbsp;3.2&times;10<sup>13</sup> candidates &mdash;
+roughly ten RTX-6000-hours at the 10&sup2;&#8310; rate: within reach). Note the striking asymmetry these records
+quantify: a certificate that takes GPU-<i>hours</i> to find is verified in
+&asymp;&nbsp;220 multiplications of 90-bit numbers &mdash; microseconds.</p>
+
+<h2 id="s4">4&ensp;One-shot ECPP</h2>
+
+<h3>4.1&ensp;The problem</h3>
+
+<p>The <a href="https://github.com/AndrewVSutherland/OneShotPrimalityProofs">OneShotPrimalityProofs</a> repository
+(part of the DARPA expMath program) generalizes the Pomerance triple by relaxing &ldquo;order a power of two&rdquo;
+to &ldquo;order n&#8308;-smooth,&rdquo; keeping the single curve &mdash; one shot, no recursion &mdash; and the
+quasi-quadratic verification.</p>
+
+<div class="thm"><b class="hd">Definition [<a href="#OneShot">OneShot</a>].</b>&ensp;A <b>one-shot ECPP</b> is a
+tuple (p,&nbsp;A,&nbsp;x&#8320;,&nbsp;m,&nbsp;q&#8321;,&hellip;,q<sub>k</sub>) with p&nbsp;&gt;&nbsp;1 odd,
+0&nbsp;&le;&nbsp;A,&nbsp;x&#8320;&nbsp;&lt;&nbsp;p, A&nbsp;&ne;&nbsp;&plusmn;2 mod p, such that
+(x&#8320;,&nbsp;y&#8320;) is a point of order m on By&sup2;&nbsp;=&nbsp;x&sup3;+Ax&sup2;+x (for some B, y&#8320;),
+where, with n&nbsp;=&nbsp;&lceil;log&#8322;&nbsp;p&rceil; and L&nbsp;=&nbsp;L(p):
+m is <b>n&#8308;-smooth</b>; <b>L&nbsp;&lt;&nbsp;m&nbsp;&lt;&nbsp;L&middot;r</b> where r is the least prime divisor
+of m; and q&#8321;&nbsp;&lt;&nbsp;&hellip;&nbsp;&lt;&nbsp;q<sub>k</sub> are the prime divisors of m in
+(n&sup2;,&nbsp;n&#8308;).</div>
+
+<p>Every Pomerance triple is the case k&nbsp;=&nbsp;0, m&nbsp;=&nbsp;2<sup>k</sup> minimal &mdash; so one-shot
+certificates exist for every prime p&nbsp;&gt;&nbsp;3, unconditionally. The minimality window
+m&nbsp;&lt;&nbsp;L&middot;r generalizes &ldquo;least power of two above L&rdquo;: it forces
+m/r&nbsp;&le;&nbsp;L, i.e. removing the smallest prime of m would fall out of the window, keeping
+log&nbsp;m&nbsp;=&nbsp;&frac12;log&nbsp;p&nbsp;+&nbsp;O(log&nbsp;n) and the certificate canonical-small. Since
+each listed prime exceeds n&sup2;, k&nbsp;&lt;&nbsp;n/(4&thinsp;log&#8322;&nbsp;n)&nbsp;+&nbsp;O(1), so the whole
+certificate is &asymp;&nbsp;2.5n&ndash;4n bits.</p>
+
+<h3>4.2&ensp;Verification</h3>
+
+<p>The reference verifier <code>voneshot.py</code> [<a href="#OneShot">OneShot</a>] establishes
+&ldquo;order exactly m modulo every prime divisor of p&rdquo; and the window conditions, as follows.</p>
+
+<ol>
+<li><b>Window:</b> L&nbsp;&lt;&nbsp;m&nbsp;&le;&nbsp;p+1+&lfloor;2&radic;p&rfloor; (a point&rsquo;s order cannot
+exceed the Hasse bound if p is prime; if p is composite the proof never reaches a contradiction from this check
+alone &mdash; soundness rests on the lemma).</li>
+<li><b>Nonsingularity:</b> gcd(A&sup2;&minus;4,&nbsp;p)&nbsp;=&nbsp;1.</li>
+<li><b>Factor m:</b> sieve the primes to n&sup2; and extract m&rsquo;s prime divisors below n&sup2; by batched
+remainder trees [<a href="#Bern04">Bern04</a>]; strip them to get the n&sup2;-rough part m&prime;; then check that
+the listed q<sub>i</sub> are strictly increasing, lie in (n&sup2;,&nbsp;n&#8308;), and <i>exactly exhaust
+m&prime;</i>. Two design points deserve emphasis:
+  <ul>
+  <li><i>The q<sub>i</sub> need no primality tests.</i> Any divisor of m&prime; below n&#8308; is automatically
+  prime: a composite one would have two factors &gt;&nbsp;n&sup2;, exceeding n&#8308;. The certificate format
+  chose the exponent 4 precisely to make the listed primes self-certifying.</li>
+  <li><i>The q<sub>i</sub> are validated against m&prime;, not m.</i> Validating against m would admit a
+  &ldquo;fold attack&rdquo;: a repeated small prime c&nbsp;&le;&nbsp;n&sup2; of m could be folded into a fake
+  &ldquo;large prime&rdquo; cq dividing m but not m&prime;, corrupting the exact-order argument. (A concrete
+  attack tuple rejected by this check is in the verifier&rsquo;s test suite.)</li>
+  </ul></li>
+<li><b>Minimality:</b> m&nbsp;&lt;&nbsp;L&middot;r with r the least prime found.</li>
+<li><b>[m]P&nbsp;=&nbsp;O genuinely:</b> the ladder value (X&thinsp;:&thinsp;Z) at m must have
+Z&nbsp;&equiv;&nbsp;0 <i>and</i> gcd(X,&nbsp;p)&nbsp;=&nbsp;1 &mdash; the second condition rejects the degenerate
+(0&thinsp;:&thinsp;0) that arises if the ladder ran past the local order modulo some prime divisor of p, and is
+what makes the step sound over &#8484;/p&#8484; (&sect;2.3).</li>
+<li><b>Exact order:</b> with R&nbsp;=&nbsp;&prod;&thinsp;q over the distinct primes q&nbsp;|&nbsp;m, compute
+Q&nbsp;=&nbsp;[m/R]P once, then verify (m/q)P&nbsp;&ne;&nbsp;O for every q by a balanced divide-and-conquer over
+the prime set: split the primes in halves, multiply Q by each half&rsquo;s product, recurse on the opposite half.
+Each of the O(log&nbsp;n) recursion levels costs O(n) group operations in total.</li>
+</ol>
+
+<div class="thm"><b class="hd">Verification cost (rigorous).</b>&ensp;O(n&thinsp;log&nbsp;n) group operations, each
+O(1) multiplications mod p, plus &Otilde;(n&sup2;) bit operations of sieving and trial division:
+<b>O(n&sup2;(log&nbsp;n)&sup2;) bit operations and O(n&sup2;) bits of memory</b> &mdash; quasi-quadratic, a factor
+&asymp;&nbsp;log&nbsp;log&nbsp;p above Pomerance triples (the depth of the product tree), against quasi-cubic for a
+classical ECPP chain (&sect;7). Measured [<a href="#OSF">OSF</a>]: 8&ndash;14 ms in pure Python at
+256&ndash;333 bits.</div>
+
+<h3>4.3&ensp;Finding certificates</h3>
+
+<p>Since m divides #E and every divisor of the n&#8308;-smooth part of #E is reachable as a point order (up to
+group-structure corrections handled below), a curve is usable precisely when</p>
+<div class="eq">S<sub>n&#8308;</sub>(#E) &nbsp;&gt;&nbsp; L &nbsp;&asymp;&nbsp; &radic;p,</div>
+<p>in which case the minimal in-window divisor m of the smooth part is extracted greedily (strip the largest primes
+while staying above L; the greedy endpoint automatically satisfies m&nbsp;&lt;&nbsp;L&middot;r). By &sect;2.5 the
+per-candidate probability is &rho;(u/2)<sup>1+o(1)</sup> with
+u&nbsp;=&nbsp;ln&nbsp;p&thinsp;/&thinsp;ln&nbsp;n&#8308;&nbsp;=&nbsp;ln&nbsp;p&thinsp;/&thinsp;(4&thinsp;ln&thinsp;ln&thinsp;p)(1+o(1)),
+and</p>
+<div class="eq">&rho;(u/2) = exp(&minus;(u/2)(ln&nbsp;u)(1+o(1))) = p<sup>&minus;1/8&nbsp;+&nbsp;o(1)</sup>,</div>
+<p>so <b>p<sup>1/8+o(1)</sup> candidate orders</b> are needed. The o(1) is strongly negative at practical sizes:
+1/&rho;(u/2) is only &asymp;&nbsp;200 at 256 bits, 1.6&times;10&#8308; at 384, 1.6&times;10&#8309; at 448,
+&asymp;&nbsp;3&times;10&#8312; at 640 bits. What the two engines pay per candidate then separates them:</p>
+
+<h4>(a) SEA sampling &mdash; p<sup>1/8+o(1)</sup> end-to-end</h4>
+<p>The repository&rsquo;s <code>oneshot.gp</code> and the race harness <code>sea_supply.py</code>
+[<a href="#OSF">OSF</a>] sample random Montgomery coefficients A, compute #E by SEA (both twists per count),
+batch-test the smoothness gate, and assemble the winner. Per candidate: half an SEA count
+(&Otilde;(n&#8308;) heuristic) plus polylogarithmic gate work, so the total is
+p<sup>1/8+o(1)</sup>&middot;poly(n)&nbsp;=&nbsp;p<sup>1/8+o(1)</sup>. The measured per-candidate cost with stock
+PARI (<code>ellcard</code>) is flat: 7.2 / 10.1 / 13.7 core-seconds at 384 / 416 / 448 bits.</p>
+
+<h4>(b) The CM engine &mdash; p<sup>1/4+o(1)</sup> end-to-end, far cheaper per candidate today</h4>
+<p>The <a href="https://github.com/AndrewVSutherland2/OneShotFastECPP">OneShotFastECPP</a> engine
+[<a href="#OSF">OSF</a>] is a fastECPP-style pipeline specialized to the one-shot problem &mdash; unusual in that
+its p is small (hundreds of bits) while its discriminants are huge (|D| up to 10<sup>11</sup>), the opposite of
+classical fastECPP, which relocates all the costs:</p>
+<ol>
+<li><b>Discriminant scan</b> (&ldquo;dscan&rdquo;): enumerate every fundamental D with |D|&nbsp;&lt;&nbsp;B all of
+whose prime discriminant factors are residues on p (genus theory maximizes the solvability rate and keeps
+&radic;D mod p computable multiplicatively from a factor base of &radic;q* values &mdash; one Tonelli&ndash;Shanks
+per factor-base prime, one modular multiplication per D, Shallit-style); run the fast-path Cornacchia on each.
+5&ndash;20 million discriminants/second on 16 cores; yield &Theta;&#771;(&radic;B) orders for cost
+&Theta;&#771;(B).</li>
+<li><b>Batched smoothness</b>: maintain each candidate&rsquo;s running n&#8308;-smooth part across an adaptive
+ladder of cached prime-product segments starting just above n&sup2; (Bernstein remainder trees
+[<a href="#Bern04">Bern04</a>]; the ladder deepens toward n&#8308; or widens the discriminant pool by a
+work-balance trigger, and winners usually appear octaves below n&#8308;).</li>
+<li><b>Commit</b>: for the winner (D,&nbsp;t), compute the class polynomial for the best class invariant
+(25&ndash;50&times; smaller than the Hilbert polynomial [<a href="#Suth12">Suth12</a>]) by the CRT method
+[<a href="#Suth11">Suth11</a>], parallelized across CRT primes; find one root mod p; map invariant&nbsp;&rarr;&nbsp;j;
+assemble the Montgomery curve and a point of exact order m. Group-structure obstructions (a Montgomery model needs
+4&nbsp;|&nbsp;N, and additionally 8&nbsp;|&nbsp;N when p&nbsp;&equiv;&nbsp;3 mod 4; a point of order m needs
+m&nbsp;|&nbsp;exponent) are <i>removed rather than filtered</i>: for each prime &#8467; with non-cyclic
+&#8467;-torsion, walk the &#8467;-isogeny volcano to its floor [<a href="#Suth13">Suth13</a>,
+<a href="#FM02">FM02</a>], where the &#8467;-Sylow subgroup is cyclic and the curve is always representable.</li>
+</ol>
+<p>Because the scan must reach B&nbsp;&asymp;&nbsp;(#candidates)&sup2;, the end-to-end heuristic cost is
+p<sup>1/4+o(1)</sup> even though only p<sup>1/8+o(1)</sup> candidates are consumed; H<sub>D</sub> and root-finding
+stay at &Otilde;(p<sup>1/8</sup>) (h(D)&nbsp;&asymp;&nbsp;&radic;|D|&nbsp;&asymp;&nbsp;p<sup>1/8</sup>; the largest
+committed class polynomial to date had h&nbsp;=&nbsp;35,085 at 10<sup>100</sup>). Direct enumeration of solutions
+(t,&nbsp;v)&nbsp;&rarr;&nbsp;D is worse (&Theta;&#771;(p<sup>3/8</sup>) over the v-range that matters), so closing
+the gap to p<sup>1/8</sup> would require enumerating usable (D,&nbsp;t,&nbsp;v) in time proportional to their number
+&mdash; not currently known, and the natural open problem of this section.</p>
+
+<h4>(c) The measured SEA/CM crossover</h4>
+<p>A head-to-head race on the same primes [<a href="#OSF">OSF</a>, report <i>sea-crossover</i>], 192-core machines,
+everything verified by <code>voneshot.py</code>:</p>
+
+<table>
+<tr><th>bits</th><th>u/2</th><th>1/&rho;(u/2)</th><th>CM wall</th><th>SEA wall</th><th>CM candidates (pool)</th><th>SEA candidates</th><th>per-candidate: SEA vs CM (core-s)</th></tr>
+<tr><td>256</td><td>4.00</td><td>204</td><td>4.1 s</td><td>68 s</td><td>6,644</td><td>728</td><td>&mdash; vs &mdash; (16-core box)</td></tr>
+<tr><td>384</td><td>5.59</td><td>1.6&times;10&#8308;</td><td>2,306 s</td><td>615 s</td><td>126,282</td><td>16,000</td><td>7.2 vs 3.5</td></tr>
+<tr><td>416</td><td>5.97</td><td>4.8&times;10&#8308;</td><td>1,774 s</td><td>2,805 s</td><td>152,484</td><td>52,000</td><td>10.1 vs 2.2</td></tr>
+<tr><td>448</td><td>6.36</td><td>1.6&times;10&#8309;</td><td>7,182 s</td><td>(stopped, 20,035 s)</td><td>309,264</td><td>&ge;275,600</td><td>13.7 vs 4.5</td></tr>
+</table>
+
+<p>Individual walls flip on winner-density luck (the density draw has exponential-scale variance), but the
+per-candidate costs are unambiguous: SEA pays a flat 7&ndash;14 core-seconds while CM&rsquo;s average &mdash;
+mostly-linear segment building plus the quadratically-growing scan and winner class polynomial &mdash; was still
+2&ndash;4.5 core-seconds at pools up to 3&times;10&#8309;. Extrapolating both curves puts the plain-SEA crossover at
+roughly <b>480&ndash;512 bits</b>; SEA-side accelerations that need SEA internals (an early-abort gate from the
+order mod small &#8467; during the Elkies phase, batch tails, torsion-family bias; modeled &times;3&ndash;5) would
+pull it toward &asymp;&nbsp;380 bits, while the CM route&rsquo;s scan and winner-classpoly economics cap it near
+&asymp;&nbsp;500 bits regardless of patience. Beyond the crossover SEA sampling continues as p<sup>1/8+o(1)</sup>
+until the density itself walls out around 640 bits (&asymp;3&times;10&#8312; candidates &times; &asymp;20
+core-seconds &asymp; two hundred core-years). The observed winner densities track the Dickman model within a factor of
+1&ndash;8 across all measured sizes &mdash; the &ldquo;fudge&rdquo; collecting the window/multiplicity/torsion
+structure conditions and sampling variance.</p>
+
+<h4>(d) Special forms: algebraic shortcuts</h4>
+<p>Two independent contributions to the challenge table exploit structure instead of search
+[<a href="#OneShot">OneShot</a>]:</p>
+<ul>
+<li><b>The supersingular shortcut</b> (McLain + Claude, NIST P-384 and P-521). If
+p&nbsp;&equiv;&nbsp;3 mod 4, the curve y&sup2;&nbsp;=&nbsp;x&sup3;+x is supersingular with order exactly p+1 and is
+already Montgomery (A&nbsp;=&nbsp;0); a certificate exists iff S<sub>n&#8308;</sub>(p+1)&nbsp;&gt;&nbsp;L, with no
+discriminant search and no class polynomial. Generalized-Mersenne primes make this likely because p+1 factors
+algebraically: for P-384, p+1&nbsp;=&nbsp;2&sup3;&sup2;(2&#8310;&#8308;&minus;1)(2&sup2;&#8312;&#8312;+2&sup2;&sup2;&#8308;+2&sup1;&#8310;&#8304;+2&#8313;&#8310;&minus;1)
+has a 197-bit smooth part against a 193-bit L. For p&nbsp;=&nbsp;2&#8309;&sup2;&sup1;&minus;1 (P-521),
+p+1&nbsp;=&nbsp;2&#8309;&sup2;&sup1; is entirely smooth and the certificate is a power-of-two Pomerance triple with
+m&nbsp;=&nbsp;2&sup2;&#8310;&sup1;. (For p&nbsp;&equiv;&nbsp;1 mod 4 the route is impossible in this format:
+p+1&nbsp;&equiv;&nbsp;2 mod 4 while every Montgomery order is divisible by 4.) This is the elliptic analogue of the
+classical p+1 tests of [<a href="#BLS75">BLS75</a>].</li>
+<li><b>Reverse-CM order generation</b> (McLain + Claude Fable 5, 10<sup>80</sup>+129, 25 CPU-minutes): the same
+architecture as (b) rediscovered independently at small scale &mdash; <code>qfbcornacchia</code> over
+D&nbsp;&le;&nbsp;8&times;10&#8310;, an 8&nbsp;|&nbsp;N intake filter for Montgomery representability, budgeted
+Brent&ndash;rho smooth parts, a subset-product search for m with exponents capped by
+v<sub>q</sub>(m)&nbsp;&le;&nbsp;v<sub>q</sub>(N)&nbsp;&minus;&nbsp;min(&lfloor;v<sub>q</sub>(N)/2&rfloor;,&nbsp;v<sub>q</sub>(p&minus;1))
+so that m divides the group exponent for every possible group structure, and one <code>polclass</code> for the
+winner.</li>
+</ul>
+
+<h3>4.4&ensp;Results to date</h3>
+
+<p>The challenge table [<a href="#OneShot">OneShot</a>] holds verified certificates for the least prime above
+10<sup>c</sup> for c&nbsp;=&nbsp;27&hellip;120 and for cryptographically famous primes. Selected entries
+(all verified by <code>voneshot.py</code>):</p>
+
+<table>
+<tr><th>p</th><th>bits</th><th>route</th><th>time / resources</th></tr>
+<tr><td>10&sup2;&#8311;+103 &hellip; 10&#8309;&#8304;+151</td><td>90&ndash;167</td><td class="l">SEA sampling (<code>oneshot.gp</code>)</td><td class="l">2&ndash;170 CPU-s each</td></tr>
+<tr><td>10&#8309;&#8309;+21 &hellip; 10&#8311;&#8309;+129</td><td>183&ndash;250</td><td class="l">CM engine [<a href="#OSF">OSF</a>]</td><td class="l">&asymp;1&ndash;7 s on 16 cores</td></tr>
+<tr><td>2&sup2;&#8309;&#8309;&minus;19 (Curve25519)</td><td>255</td><td class="l">CM engine</td><td class="l">&asymp;4 s on 16 cores</td></tr>
+<tr><td>P-256 field prime; secp256k1 field prime</td><td>256</td><td class="l">CM engine</td><td class="l">&asymp;11 s; &asymp;8 s (16 cores)</td></tr>
+<tr><td>10&#8312;&#8304;+129</td><td>266</td><td class="l">reverse-CM (independent)</td><td class="l">&asymp;25 CPU-min</td></tr>
+<tr><td>10&#8312;&#8309;+103 &hellip; 10&sup1;&#8304;&#8309;+3</td><td>283&ndash;349</td><td class="l">CM engine</td><td class="l">24&ndash;500 s on 16 cores</td></tr>
+<tr><td>10&sup1;&sup1;&#8304;+7, 10&sup1;&sup1;&#8309;+79, 10&sup1;&sup2;&#8304;+79</td><td>366&ndash;399</td><td class="l">CM engine</td><td class="l">121&ndash;226 s on 192&ndash;256 cores</td></tr>
+<tr><td>BLS12-381 field prime</td><td>381</td><td class="l">CM engine</td><td class="l">&asymp;18 s on 256 cores</td></tr>
+<tr><td>NIST P-384 field prime</td><td>384</td><td class="l">supersingular shortcut</td><td class="l">&lt;1 s, no search</td></tr>
+<tr><td>2&#8309;&sup2;&sup1;&minus;1 (P-521)</td><td>521</td><td class="l">supersingular; m&nbsp;=&nbsp;2&sup2;&#8310;&sup1;</td><td class="l">&lt;1 s, no search</td></tr>
+</table>
+
+<p>The frontier for <i>generic</i> primes stands just below 400 bits (10<sup>120</sup>+79, 2 minutes on 256
+cores); the race data of &sect;4.3(c) reached 448 bits in two spot-hours, and the density model prices generic
+512&ndash;640-bit certificates at tens to hundreds of core-years &mdash; possible, not yet done. Special-form primes
+(smooth p+1) escape the wall entirely, as P-521 shows at 521 bits.</p>
+
+<h2 id="s5">5&ensp;Restricted one-shot ECPP: m must be n&sup2;-smooth</h2>
+
+<h3>5.1&ensp;The problem, and where it sits in the hierarchy</h3>
+
+<p>Now forbid the listed primes: the certificate is (p,&nbsp;A,&nbsp;x&#8320;,&nbsp;m) with <i>every</i> prime
+factor of m below n&sup2; &mdash; the k&nbsp;=&nbsp;0 stratum of &sect;4, equivalently a zero-level short ECPP
+(&sect;6). The verifier is unchanged (<code>voneshot.py</code> with an empty list): it factors m completely by trial
+division below n&sup2; and needs no supplied data beyond m itself. Existence for every p&nbsp;&gt;&nbsp;3 again
+follows from Pomerance triples (2 is n&sup2;-smooth); verification is the same
+O(n&sup2;(log&nbsp;n)&sup2;) with a slightly smaller constant (no rough part to validate); the certificate is
+&asymp;&nbsp;2.5n bits. What changes &mdash; dramatically &mdash; is the search.</p>
+
+<h3>5.2&ensp;Finding: the exponent doubles</h3>
+
+<p>The usable-curve condition becomes S<sub>n&sup2;</sub>(#E)&nbsp;&gt;&nbsp;L: the same half of #E&rsquo;s bits
+must now be built from primes below n&sup2; instead of n&#8308;. The Dickman parameter doubles
+(u&nbsp;=&nbsp;ln&nbsp;p&thinsp;/&thinsp;ln&nbsp;n&sup2;&nbsp;=&nbsp;2&thinsp;ln&nbsp;p&thinsp;/&thinsp;(4&thinsp;ln&thinsp;ln&thinsp;p)(1+o(1))),
+so the per-candidate probability is</p>
+<div class="eq">&rho;(u/2)<sup>1+o(1)</sup> &nbsp;=&nbsp; p<sup>&minus;1/4&nbsp;+&nbsp;o(1)</sup>,</div>
+<p>the square of the n&#8308; density: <b>p<sup>1/4+o(1)</sup> candidates via SEA sampling, and
+p<sup>1/2+o(1)</sup> end-to-end for the CM route</b> (scan budget B&nbsp;&asymp;&nbsp;candidates&sup2;) &mdash; the
+CM engine loses its practical edge entirely here, degenerating to the same &radic;p order as the Pomerance brute
+force, while SEA sampling stays genuinely sub-&radic;p. Concretely, with the race&rsquo;s measured SEA rates:</p>
+
+<table>
+<tr><th>bits</th><th>u/2 (n&sup2;)</th><th>1/&rho;(u/2) (candidates)</th><th>SEA cost estimate</th></tr>
+<tr><td>67 (10&sup2;&#8304;)</td><td>2.74</td><td>12</td><td class="l">seconds, one core</td></tr>
+<tr><td>100 (10&sup3;&#8304;)</td><td>3.75</td><td>1.1&times;10&sup2;</td><td class="l">seconds, one core</td></tr>
+<tr><td>133 (10&#8308;&#8304;)</td><td>4.71</td><td>1.3&times;10&sup3;</td><td class="l">minutes, one core</td></tr>
+<tr><td>167 (10&#8309;&#8304;)</td><td>5.62</td><td>1.7&times;10&#8308;</td><td class="l">&asymp;1 h, one core</td></tr>
+<tr><td>200 (10&#8310;&#8304;)</td><td>6.52</td><td>2.5&times;10&#8309;</td><td class="l">&asymp;100 core-h</td></tr>
+<tr><td>256</td><td>8.00</td><td>3.1&times;10&#8311;</td><td class="l">&asymp;5&ndash;10 core-years (fleet-scale)</td></tr>
+<tr><td>320</td><td>9.61</td><td>&asymp;9&times;10&#8313;</td><td class="l">&asymp;10&sup3;&ndash;10&#8308; core-years</td></tr>
+<tr><td>384</td><td>11.18</td><td>&asymp;3&times;10&sup1;&sup2;</td><td class="l">out of reach</td></tr>
+</table>
+
+<p>The n&#8308; window with its self-certifying listed primes is thus worth a full halving of the exponent
+(1/4&nbsp;&rarr;&nbsp;1/8) at zero asymptotic cost to the verifier &mdash; the cleanest illustration in the family
+of how a small amount of certificate data (the q<sub>i</sub>, a few hundred bits) buys an enormous amount of
+findability.</p>
+
+<h3>5.3&ensp;Results: first generic certificates</h3>
+
+<p>The only previously existing restricted certificate at challenge scale was the special-form P-521 entry
+(m&nbsp;=&nbsp;2&sup2;&#8310;&sup1;, from p+1&nbsp;=&nbsp;2&#8309;&sup2;&sup1;). For this write-up we produced
+generic restricted certificates for the least primes above 10&sup2;&#8304;&hellip;10&#8310;&#8304; by SEA sampling
+(a 15-line wrapper over the repository&rsquo;s <code>oneshot.gp</code> with the smoothness bound set to n&sup2;;
+first-winner-wins parallel workers; every certificate verified by <code>voneshot.py</code> with an empty prime
+list). Observed candidate counts sit within an order of magnitude of 1/&rho;(u/2), as expected given the O(1)
+structure corrections and geometric variance:</p>
+
+<table>
+<tr><th>p</th><th>bits</th><th>1/&rho;(u/2) predicted</th><th>curves tested</th><th>time / cores</th><th>m of the certificate</th></tr>
+<tr><td>10&sup2;&#8304;+39</td><td>67</td><td>12</td><td>213</td><td class="l">33 s, 1 core</td><td class="l">2&sup3;&middot;5&sup3;&middot;7&middot;13&middot;37&middot;47&middot;89</td></tr>
+<tr><td>10&sup3;&#8304;+57</td><td>100</td><td>1.1&times;10&sup2;</td><td>117</td><td class="l">33 s, 1 core</td><td class="l">2&middot;7&sup3;&middot;43&middot;109&middot;241&middot;251&middot;6899</td></tr>
+<tr><td>10&#8308;&#8304;+121</td><td>133</td><td>1.3&times;10&sup3;</td><td>&asymp;8&times;10&sup3;</td><td class="l">17 min, 8 workers</td><td class="l">2&middot;17&middot;37&middot;73&middot;197&middot;283&middot;673&middot;2797&middot;11827</td></tr>
+<tr><td>10&#8309;&#8304;+151</td><td>167</td><td>1.7&times;10&#8308;</td><td colspan="3" class="l">search in flight at publication time (&gt;10&#8308; curves); see the repository for the certificate</td></tr>
+<tr><td>10&#8310;&#8304;+7</td><td>200</td><td>2.5&times;10&#8309;</td><td colspan="3" class="l">not run to completion (4.8&times;10&sup3; curves sampled without a winner); predicted &asymp;10&sup2;&ndash;10&sup3; core-hours</td></tr>
+</table>
+
+<details><summary>The three completed certificates (format &ldquo;p A x&#8320; m&rdquo;; each verified True by <code>voneshot.py</code>)</summary>
+<pre>100000000000000000039 19352331390561983207 80662701055625636343 14084161000
+1000000000000000000000000000057 640307721818372374714786296071 821106379164368261893854100371 1341825306264338
+10000000000000000000000000000000000000121 9206317171817454415338197777434159186965 1798766695016208561785106447263414920568 113982529425281128058</pre>
+</details>
+
+<p class="note">Method: <code>ecpp/restricted.gp</code> in [<a href="#OSF">OSF</a>] (the challenge&rsquo;s
+<code>oneshot.gp</code> search with the smoothness bound lowered from n&#8308; to n&sup2;), independent seeded
+workers, first winner wins; curve counts are aggregates over all workers at the moment of the first win. The
+observed-over-predicted ratios (18, 1.1, 6) show the same order-of-magnitude scatter as the &sect;4.3 race
+densities &mdash; single-draw variance dominates at these pool sizes.</p>
+
+<p>The 256-bit case (&asymp;3&times;10&#8311; candidates at &asymp;5&ndash;10 core-seconds each) is a months-scale
+project on a ~3,000-core fleet with stock SEA &mdash; feasible in principle, unattempted; 384 bits is out of reach.
+For comparison, the <i>unrestricted</i> one-shot search handled 256 bits in 4 seconds (&sect;4.3(c)): the two
+exponents 1/8 vs 1/4 are separated by exactly this practical chasm.</p>
+
+<h2 id="s6">6&ensp;Short ECPP</h2>
+
+<h3>6.1&ensp;The problem</h3>
+
+<p>The <a href="https://github.com/AndrewVSutherland/ShortPrimalityProofs">ShortPrimalityProofs</a> repository adds
+the one ingredient the one-shot format forbids &mdash; recursion &mdash; while keeping everything else as small as
+possible.</p>
+
+<div class="thm"><b class="hd">Definition [<a href="#Short">Short</a>].</b>&ensp;A <b>short ECPP</b> is a sequence
+of integers (p&#8320;,&nbsp;A&#8320;,&nbsp;x&#8320;,&nbsp;m&#8320;p&#8321;,&nbsp;A&#8321;,&nbsp;x&#8321;,&nbsp;m&#8321;p&#8322;,&nbsp;&hellip;,&nbsp;A<sub>k</sub>,&nbsp;x<sub>k</sub>,&nbsp;m<sub>k</sub>p<sub>k+1</sub>)
+with k&nbsp;&ge;&nbsp;0, p&#8320;&nbsp;&ge;&nbsp;5, and n&nbsp;=&nbsp;&lceil;log&#8322;&nbsp;p&#8320;&rceil;
+<i>fixed for the whole chain</i>, in which: the p<sub>i</sub> are odd with
+n&sup2;&nbsp;&lt;&nbsp;p<sub>i+1</sub>&nbsp;&lt;&nbsp;&radic;p<sub>i</sub> for i&nbsp;&lt;&nbsp;k and
+p<sub>k+1</sub>&nbsp;=&nbsp;1; each m<sub>i</sub> is n&sup2;-smooth with
+L<sub>i</sub>&nbsp;&lt;&nbsp;m<sub>i</sub>p<sub>i+1</sub>&nbsp;&lt;&nbsp;r<sub>i</sub>L<sub>i</sub>, where
+L<sub>i</sub>&nbsp;=&nbsp;L(p<sub>i</sub>) and r<sub>i</sub> is the least prime divisor of m<sub>i</sub>; and
+(x<sub>i</sub>,&nbsp;y<sub>i</sub>) is a point of order m<sub>i</sub>p<sub>i+1</sub> on
+B<sub>i</sub>y&sup2;&nbsp;=&nbsp;x&sup3;+A<sub>i</sub>x&sup2;+x <i>modulo every prime divisor of
+p<sub>i</sub></i>.</div>
+
+<p>Soundness is downward induction on the certification lemma: p<sub>k+1</sub>&nbsp;=&nbsp;1 makes the last
+level&rsquo;s order fully n&sup2;-smooth (a restricted one-shot certificate for p<sub>k</sub>); each earlier level&rsquo;s
+order m<sub>i</sub>p<sub>i+1</sub>&nbsp;&gt;&nbsp;L<sub>i</sub> proves p<sub>i</sub> prime <i>given</i> that
+p<sub>i+1</sub> is prime. Note m<sub>i</sub>&nbsp;&ge;&nbsp;2 always (else the order would be
+p<sub>i+1</sub>&nbsp;&lt;&nbsp;&radic;p<sub>i</sub>&nbsp;&lt;&nbsp;L<sub>i</sub>), so r<sub>i</sub> is
+well-defined; and the certificate stores only the <i>product</i> m<sub>i</sub>p<sub>i+1</sub> &mdash; the verifier
+recovers p<sub>i+1</sub> as its n&sup2;-rough part by trial division below n&sup2;, and never needs a primality
+test on it (the next level is the primality proof). The &ldquo;modulo every prime divisor&rdquo; phrasing is
+essential and is exactly the point of the CRT counterexample quoted in &sect;2.3, which was found in the course of
+pinning this definition down.</p>
+
+<p><b>Structure of the chain.</b> p<sub>i+1</sub>&nbsp;&lt;&nbsp;&radic;p<sub>i</sub> at least halves the bit
+length per level, and p<sub>i+1</sub>&nbsp;&gt;&nbsp;n&sup2; forces termination once
+p<sub>i</sub>&nbsp;&le;&nbsp;n&#8308;: so k&nbsp;=&nbsp;O(log&nbsp;n)&nbsp;=&nbsp;O(log&nbsp;log&nbsp;p&#8320;)
+levels, and the total size is &Sigma;<sub>i</sub>&nbsp;(2&nbsp;+&nbsp;&frac12;)&thinsp;bits(p<sub>i</sub>)
+&asymp;&nbsp;5n bits &mdash; <i>linear</i> in log&nbsp;p&#8320;, like a Pomerance triple, against the quadratic
+size of a classical chain. Existence for every prime p&#8320;&nbsp;&ge;&nbsp;5 is again inherited from Pomerance
+triples (take k&nbsp;=&nbsp;0, m&#8320;&nbsp;=&nbsp;2<sup>&kappa;</sup>); the repository verifies it exhaustively
+below 2&#8312; (201,072 short ECPPs; every prime 5&nbsp;&le;&nbsp;p&nbsp;&le;&nbsp;2&#8312; admits one, while
+p&nbsp;=&nbsp;2,&nbsp;3 admit none, which is why the format takes p&#8320;&nbsp;&ge;&nbsp;5).</p>
+
+<h3>6.2&ensp;Verification</h3>
+
+<p>The reference verifier <code>vsmallECPP.py</code> runs the &sect;4.2 procedure at every level with the same
+sieve (the bound n&sup2; is fixed by p&#8320;, so one sieve serves the whole chain): recover m<sub>i</sub> and
+p<sub>i+1</sub> by trial division of the carried product, check the window and minimality, check
+[m<sub>i</sub>p<sub>i+1</sub>]P<sub>i</sub>&nbsp;=&nbsp;O genuinely, and check exactness of the order over the
+primes of m<sub>i</sub> together with p<sub>i+1</sub>. Level i works on b<sub>i</sub>&nbsp;&asymp;&nbsp;n/2<sup>i</sup>-bit
+moduli with half-length scalars, so the elliptic work is
+&Sigma;<sub>i</sub>&nbsp;O(b<sub>i</sub>&thinsp;log&nbsp;b<sub>i</sub>) group operations at M(b<sub>i</sub>) each
+&mdash; a geometric series dominated by its top term:
+<b>O(n&sup2;(log&nbsp;n)&sup2;)&nbsp;=&nbsp;O((log&nbsp;p&#8320;)<sup>2+o(1)</sup>) bit operations</b>, the same
+quasi-quadratic class as the one-shot, with the trial division (shared sieve plus remainder trees per level) also
+&Otilde;(n&sup2;). </p>
+
+<h3>6.3&ensp;Finding certificates: the free prime makes it subexponential</h3>
+
+<p>The search problem at one level of the chain: given p (a level modulus), find a curve and a divisor
+o&nbsp;=&nbsp;mq of #E with m n&sup2;-smooth, q prime in (n&sup2;,&nbsp;&radic;p), and o in the window
+(L,&nbsp;rL). Compare &sect;5: the order may now contain <i>one arbitrary prime</i> up to &radic;p &mdash; but the
+prover must <i>discover</i> q, i.e. partially factor #E. The reference finder <code>short.gp</code>
+[<a href="#Short">Short</a>] (SEA on random curves and their twists, so two orders per point count) recognizes
+winners through three channels of increasing cost:</p>
+
+<ol>
+<li><b>Terminal:</b> some divisor of the n&sup2;-smooth part s of #E lands in the window &mdash; a restricted
+one-shot certificate; ends the chain (p<sub>next</sub>&nbsp;=&nbsp;1). Density as in &sect;5: &rho;(u/2) with
+u&nbsp;=&nbsp;ln&nbsp;p/ln&nbsp;n&sup2;.</li>
+<li><b>Cheap prime rough part:</b> the rough cofactor R&nbsp;=&nbsp;#E/s is itself prime and below &radic;p.
+Costs one pseudoprimality test, but demands that the entire discarded half of #E be n&sup2;-smooth: measured
+density 25% of curves at 10<sup>10</sup>, 0 of 200 by 10<sup>40</sup> &mdash; this channel alone does not
+scale.</li>
+<li><b>General descent (the workhorse):</b> factor R under a time budget (<code>factorint</code> inside an
+<code>alarm</code>; the budget is an early abort that keeps the search on curves whose orders factor easily) and
+use any exposed prime q&nbsp;&isin;&nbsp;(n&sup2;,&nbsp;&radic;p) with a smooth filler m&nbsp;|&nbsp;s completing
+the window. The discarded cofactor #E/o is unconstrained &mdash; this is what channel (b) lacked.</li>
+</ol>
+
+<p>Unlucky sub-chains are abandoned by bounded backtracking (a descent gets a budget of 64 curves before the parent
+resamples), and <code>parallel_short.py</code> races independent workers mixing complete- and partial-factorization
+strategies. At small levels complete factorization is available and the finder descends faster than square-root
+(observed chains like 665&nbsp;&rarr;&nbsp;333&nbsp;&rarr;&nbsp;159&nbsp;&rarr;&nbsp;47 bits).</p>
+
+<div class="thm"><b class="hd">Heuristic cost.</b>&ensp;Model channel (c) with ECM as the budgeted factoring engine
+and reach y: a candidate order N&nbsp;&asymp;&nbsp;p wins if N&nbsp;=&nbsp;S&middot;q with q prime
+&le;&nbsp;&radic;p&nbsp;&asymp;&nbsp;N<sup>&sigma;</sup> (&sigma;&nbsp;=&nbsp;&frac12;) and the cofactor S
+y-smooth; winners concentrate at cofactor size &asymp;&nbsp;p<sup>&sigma;</sup>, so the per-candidate probability
+is &rho;(u), u&nbsp;=&nbsp;&sigma;&thinsp;ln&nbsp;p&thinsp;/&thinsp;ln&nbsp;y, and each candidate costs an SEA
+count plus ECM peeling L<sub>y</sub>(1/2,&nbsp;&radic;2). Optimizing y (which lands at
+y&nbsp;=&nbsp;L<sub>p</sub>(2/3,&nbsp;&middot;)) gives total heuristic cost
+<div class="eq">L<sub>p</sub>(1/3,&nbsp;(9&sigma;/2)<sup>1/3</sup>) &nbsp;=&nbsp; L<sub>p</sub>(1/3,&nbsp;(9/4)<sup>1/3</sup>&nbsp;&asymp;&nbsp;1.31)
+&emsp;(SEA supply),</div>
+and with a CM-supplied candidate pool (scan cost &asymp; candidates&sup2;) the constant becomes
+(2/3)(18&sigma;)<sup>1/3</sup>&nbsp;&asymp;&nbsp;1.39. Levels shrink geometrically, so the top level dominates and
+the whole chain costs the same L<sub>p</sub>(1/3,&nbsp;&asymp;1.31&ndash;1.39) &mdash; subexponential, and with a
+smaller constant than the L<sub>p</sub>(1/3,&nbsp;1.923) of factoring p itself by NFS
+[<a href="#LL93">LL93</a>]. Derivation and the b-parametrized generalization in [<a href="#OSF">OSF</a>, report
+<i>descent-chain</i>]; the robust conclusions are the exponent 1/3, the (1&minus;b)<sup>1/3</sup> shape, and
+&ldquo;cheaper than factoring.&rdquo;</div>
+
+<h3>6.4&ensp;Results to date</h3>
+
+<p>The challenge table [<a href="#Short">Short</a>] holds verified short ECPPs for the least prime above
+10<sup>c</sup>, c&nbsp;=&nbsp;10,&nbsp;20,&nbsp;&hellip;,&nbsp;200 &mdash; the top entry at 665 bits, twice the
+one-shot frontier, found on hardware where the deepest one-shot runs needed hundreds of cores:</p>
+
+<table>
+<tr><th>p</th><th>bits</th><th>levels</th><th>CPU time</th><th></th><th>p</th><th>bits</th><th>levels</th><th>CPU time</th></tr>
+<tr><td>10&sup1;&#8304;+19</td><td>34</td><td>2</td><td>&lt;1 s</td><td></td><td>10&sup1;&sup1;&#8304;+7</td><td>366</td><td>4</td><td>&asymp;850 s</td></tr>
+<tr><td>10&sup2;&#8304;+39</td><td>67</td><td>2</td><td>&asymp;1 s</td><td></td><td>10&sup1;&sup2;&#8304;+79</td><td>399</td><td>4</td><td>&asymp;1400 s</td></tr>
+<tr><td>10&sup3;&#8304;+57</td><td>100</td><td>2</td><td>&asymp;1 s</td><td></td><td>10&sup1;&sup3;&#8304;+1113</td><td>432</td><td>3</td><td>&asymp;55 s</td></tr>
+<tr><td>10&#8308;&#8304;+121</td><td>133</td><td>3</td><td>&asymp;2 s</td><td></td><td>10&sup1;&#8308;&#8304;+13</td><td>466</td><td>4</td><td>&asymp;800 s</td></tr>
+<tr><td>10&#8309;&#8304;+151</td><td>167</td><td>3</td><td>&asymp;3 s</td><td></td><td>10&sup1;&#8309;&#8304;+67</td><td>499</td><td>5</td><td>&asymp;1500 s</td></tr>
+<tr><td>10&#8310;&#8304;+7</td><td>200</td><td>3</td><td>&asymp;3 s</td><td></td><td>10&sup1;&#8310;&#8304;+303</td><td>532</td><td>5</td><td>&asymp;1200 s</td></tr>
+<tr><td>10&#8311;&#8304;+33</td><td>233</td><td>4</td><td>&asymp;45 s</td><td></td><td>10&sup1;&#8311;&#8304;+63</td><td>565</td><td>4</td><td>&asymp;830 s</td></tr>
+<tr><td>10&#8312;&#8304;+129</td><td>266</td><td>4</td><td>&asymp;180 s</td><td></td><td>10&sup1;&#8312;&#8304;+313</td><td>599</td><td>4</td><td>&asymp;850 s</td></tr>
+<tr><td>10&#8313;&#8304;+289</td><td>299</td><td>3</td><td>&asymp;350 s</td><td></td><td>10&sup1;&#8313;&#8304;+253</td><td>632</td><td>4</td><td>&asymp;1400 s</td></tr>
+<tr><td>10&sup1;&#8304;&#8304;+267</td><td>333</td><td>3</td><td>&asymp;800 s</td><td></td><td>10&sup2;&#8304;&#8304;+357</td><td>665</td><td>4</td><td>&asymp;4400 s</td></tr>
+</table>
+
+<p class="note">Entries through c&nbsp;=&nbsp;100 by <code>short.gp</code> on a single core (AVS and Claude Code,
+Fable 5); c&nbsp;=&nbsp;110&hellip;200 by <code>parallel_short.py</code> workers. The growth from 3 s at 200 bits
+to 4,400 s at 665 bits &mdash; a factor &asymp;10&sup3; over a &times;3.3 size increase, with large per-draw
+variance (the lucky 432-bit chain cost 55 s) &mdash; is consistent with the gentle L(1/3) curve; extrapolating,
+10&sup3;&#8304;&#8304; (997 bits) is a core-days-to-weeks project.</p>
+
+<h3>6.5&ensp;Interpolating toward classical ECPP: fixed-ratio descent chains</h3>
+
+<p>Relaxing the descent rate from &ldquo;square root&rdquo; to a parameter: a chain in which each step&rsquo;s
+certified prime satisfies q&nbsp;&le;&nbsp;p<sup>b</sup> (and the point order is just c&middot;q with no minimality
+demanded) was analyzed and prototyped in [<a href="#OSF">OSF</a>, report <i>descent-chain</i>] for
+b&nbsp;&isin;&nbsp;(&frac12;,&nbsp;1): certificate size O(n)/(1&minus;b); verification
+O(n&sup2;&thinsp;log&nbsp;n)/(1&minus;b&sup2;) bit operations &mdash; Pomerance&rsquo;s order, the geometric shrink
+killing the one-shot&rsquo;s extra log factor; finding
+L<sub>p</sub>(1/3,&nbsp;(2/3)(18(1&minus;b))<sup>1/3</sup>), which tends to 0 as b&nbsp;&rarr;&nbsp;1 &mdash;
+recovering polynomial-time classical ECPP in the limit, at the price of &Theta;(n) levels and quadratic
+certificates. Short ECPP is the b&nbsp;=&nbsp;&frac12; endpoint with minimized orders. Measured with
+b&nbsp;=&nbsp;0.85 on a 16-core desktop: 2&sup2;&#8309;&#8309;&minus;19 proved in 3.7 s (vs &asymp;15 s one-shot),
+10&sup1;&#8304;&#8304;+267 in 3.7 s (vs 7.9 min one-shot), 1024 bits in 128 s (9 steps, verification 405 ms),
+2048 bits in 5.2 h (12 steps, verification 2.65 s) &mdash; sizes far beyond any one-shot&rsquo;s reach, with
+verification still two orders of magnitude cheaper than a classical chain&rsquo;s at equal size.</p>
+
+<h2 id="s7">7&ensp;Classical ECPP</h2>
+
+<h3>7.1&ensp;The problem and the two classical algorithms</h3>
+
+<p>The classical elliptic curve primality proof drops all structural demands on the order: a chain
+p&nbsp;=&nbsp;p&#8320;&nbsp;&gt;&nbsp;p&#8321;&nbsp;&gt;&nbsp;&hellip;, where one step exhibits, for
+p&nbsp;=&nbsp;p<sub>i</sub>, a curve E/&#120125;<sub>p</sub> with #E&nbsp;=&nbsp;c&middot;q, q a probable prime
+exceeding L(p), together with a point P such that Q&nbsp;=&nbsp;[c]P&nbsp;&ne;&nbsp;O and [q]Q&nbsp;=&nbsp;O; the
+next level certifies q&nbsp;=&nbsp;p<sub>i+1</sub>. By the certification lemma (applied to the point Q of prime
+order q&nbsp;&gt;&nbsp;L(p) modulo every prime divisor) each step is sound, and the chain bottoms out at a size
+testable by trial division. The exhibited order is a single prime; the cofactor c needs no factorization and
+carries no burden of proof &mdash; its peelability is purely the prover&rsquo;s recognition problem. Two ways to
+run a step:</p>
+
+<ul>
+<li><b>Goldwasser&ndash;Kilian [<a href="#GK99">GK86</a>]:</b> sample random curves over &#120125;<sub>p</sub>,
+count points by Schoof&rsquo;s algorithm, and keep a curve with #E&nbsp;=&nbsp;2q, q a probable prime
+(&asymp;&nbsp;p/2, so the chain sheds one bit per step: &Theta;(n) steps). Expected
+O(n) curves per step by the prime number theorem <i>if</i> the Hasse interval contains the expected number of
+primes &mdash; provable for all inputs outside a set of primes of relative density zero using unconditional results
+on primes in short intervals [<a href="#HB88">HB88</a>], conjecturally for all. With SEA at
+&Otilde;(n&#8308;) per count, a step costs &Otilde;(n&#8309;) and the chain heuristically &Otilde;(n&#8310;).
+Adleman and Huang [<a href="#AH92">AH92</a>] closed the gap of exceptional primes by a random reduction through
+Jacobians of genus-2 curves, putting primality in ZPP: <i>every</i> prime has an elliptic-curve-style certificate
+findable in expected polynomial time &mdash; a theorem, though never a practical algorithm.</li>
+<li><b>Atkin&ndash;Morain (ECPP) [<a href="#AM93">AM93</a>]:</b> replace point counting by the CM supply of
+&sect;2.6: for each small discriminant D with 4p&nbsp;=&nbsp;t&sup2;+|D|v&sup2;, the candidate orders
+p+1&plusmn;t are known before any curve is built; trial-divide them, keep one of the form c&middot;q with c smooth
+and q a probable prime, and only then construct the curve from a root of H<sub>D</sub>. Because tiny
+discriminants suffice (the step needs only <i>some</i> usable order, an event of probability
+&asymp;&nbsp;1/log&nbsp;p per candidate), the class polynomials stay small, and the certified prime can be pushed
+down by the cofactor&rsquo;s length (typically &Theta;(log&nbsp;n) bits per step, giving &Theta;(n/log&nbsp;n) to
+&Theta;(n) steps). Heuristic cost (log&nbsp;p)<sup>5+&epsilon;</sup>; the <b>fastECPP</b> variant
+[<a href="#FKMW04">FKMW04</a>, <a href="#Mor07">Mor07</a>] batches the modular square roots &radic;D mod p across
+all D via one square root per small prime discriminant factor (Shallit&rsquo;s trick) and reaches
+<b>(log&nbsp;p)<sup>4+&epsilon;</sup></b> &mdash; the fastest known heuristic primality <i>proving</i> complexity
+for general p. Enge&rsquo;s MPI implementation [<a href="#Enge24">Enge24</a>] parallelizes it to quasi-cubic
+wall-clock time on a linear number of cores.</li>
+</ul>
+
+<h3>7.2&ensp;Certificates and verification</h3>
+
+<p>A classical certificate stores, per step, (p<sub>i</sub>,&nbsp;curve,&nbsp;m<sub>i</sub>,&nbsp;q<sub>i+1</sub>,&nbsp;P<sub>i</sub>):
+&asymp;&nbsp;5 integers of b<sub>i</sub> bits with b<sub>i</sub> shrinking only &Theta;(log&nbsp;n) per step, so
+&Theta;(n&sup2;/log&nbsp;n) bits in all. Verification re-runs the two scalar multiplications of every step:
+&Sigma;<sub>i</sub>&nbsp;O(b<sub>i</sub>)&thinsp;M(b<sub>i</sub>)&nbsp;=&nbsp;<b>&Otilde;(n&sup3;) bit operations</b>
+&mdash; quasi-cubic, the benchmark against which the quasi-quadratic formats of &sect;&sect;3&ndash;6 are the
+improvement. (Verification is embarrassingly parallel across steps, a fact used in practice for the record
+certificates below.)</p>
+
+<h3>7.3&ensp;Results to date</h3>
+
+<p>Classical ECPP is the workhorse of general-purpose primality proving, with three decades of records: from the
+sub-1,000-digit proofs of the first ECPP implementations [<a href="#AM93">AM93</a>] through
+&asymp;&nbsp;10&#8308;&ndash;2&times;10&#8308; digits in the fastECPP era of the mid-2000s
+[<a href="#FKMW04">FKMW04</a>, <a href="#Mor07">Mor07</a>], to today&rsquo;s frontier held by Enge&rsquo;s
+CM/fastECPP-over-MPI [<a href="#Enge24">Enge24</a>] and Marcel Martin&rsquo;s Primo (the standard desktop tool).
+The largest ECPP-proven primes as of mid-2026 [<a href="#t5k">t5k</a>]:</p>
+
+<table>
+<tr><th>prime</th><th>digits</th><th>date</th><th>notes</th></tr>
+<tr><td class="l">R(109297) = (10<sup>109297</sup>&minus;1)/9</td><td>109,297</td><td>May 2025</td><td class="l">repunit; A. Enge &amp; P. Underwood, fastECPP/MPI</td></tr>
+<tr><td class="l">R(86453)</td><td>86,453</td><td>May 2023</td><td class="l">repunit; previous record</td></tr>
+<tr><td class="l">5<sup>104824</sup>+1048245</td><td>73,269</td><td>Feb 2023</td><td class="l"></td></tr>
+<tr><td class="l">(2<sup>221509</sup>&minus;1)/292391881</td><td>66,673</td><td>Oct 2023</td><td class="l">Mersenne cofactor</td></tr>
+</table>
+
+<p>For perspective across the whole write-up: at 10&#8309; digits the <i>only</i> practical route is the classical
+one &mdash; every other format in this survey buys its cheaper verification with a finding cost that is
+subexponential-to-exponential in the bit length and hence confined to hundreds of bits (one-shot) or
+&asymp;&nbsp;10&sup3; bits (short/descent chains). Conversely, at the sizes where they do apply, the
+&sect;3&ndash;6 formats verify orders of magnitude faster than a classical chain, with certificates orders of
+magnitude smaller.</p>
+
+<h2 id="s8">8&ensp;Synthesis and open problems</h2>
+
+<p>The five formats populate a two-parameter design space: <i>how much order structure is demanded</i> (a power of
+two; n&sup2;-smooth; n&#8308;-smooth with listed witnesses; smooth&thinsp;&times;&thinsp;one-prime; a single free
+prime) and <i>how much recursion is allowed</i> (none; square-root descent; ratio-b descent; free descent). Moving
+along either axis trades finding cost against verification cost and certificate size, and the table of &sect;1
+summarizes the endpoints. The empirical record across all four challenge repositories matches the heuristic model
+remarkably well: candidate counts within a factor 1&ndash;20 of the Dickman/counting predictions at every measured
+size, with the systematic part of the discrepancy accounted for by known local biases and structure conditions
+(&sect;2.4), and single-draw geometric variance dominating the rest.</p>
+
+<p>Open problems, in roughly increasing order of depth:</p>
+
+<ol>
+<li><b>Find a Pomerance triple for 10&sup2;&#8311;+103</b> [<a href="#DANGER3">DANGER3</a>] &mdash; the standing
+challenge; &asymp;&nbsp;3&times;10<sup>13</sup> candidates at the measured GPU rate is around ten GPU-hours.</li>
+<li><b>Beat &Theta;&#771;(&radic;p) for Pomerance triples</b>, or give evidence none of the standard toolkits
+(CM, isogenies, torsion families, sieving) can. The obstruction is that &ldquo;2<sup>k</sup> divides #E&rdquo; is
+a codimension-(n/2) condition with no multiplicative structure (&sect;3.4).</li>
+<li><b>Close the one-shot p<sup>1/8</sup>&nbsp;vs&nbsp;p<sup>1/4</sup> gap</b>: enumerate usable (D,&nbsp;t,&nbsp;v)
+with 4p&nbsp;=&nbsp;t&sup2;+|D|v&sup2; in time proportional to their number rather than to the discriminant bound
+B. Any such enumeration would make the CM route p<sup>1/8+o(1)</sup> end-to-end and move the SEA crossover
+(&sect;4.3(c)) beyond reach.</li>
+<li><b>Instrument SEA for early-abort supply</b>: expose the order modulo small &#8467; during the Elkies phase to
+gate candidates before the full &Otilde;(n&#8308;) count (modeled &times;3&ndash;5 at one-shot sizes; needs
+internals no current library exports).</li>
+<li><b>A generic 256-bit restricted certificate</b> (&sect;5.3): &asymp;&nbsp;3&times;10&#8311; SEA candidates
+&mdash; months on a ~3,000-core fleet with stock tools, much less with item 4.</li>
+<li><b>Rigorous existence with the right densities.</b> Existence of all four quasi-quadratic formats is
+unconditional (via [<a href="#Pom87">Pom87</a>]), but every <i>finding</i> bound in this write-up is heuristic;
+even the classical chain&rsquo;s polynomial time is only &ldquo;almost all p&rdquo; provable
+[<a href="#GK99">GK86</a>, <a href="#HB88">HB88</a>] (all p in expected polynomial time only via
+[<a href="#AH92">AH92</a>]). Proving that a positive proportion of curves over every &#120125;<sub>p</sub> has
+S<sub>y</sub>(#E)&nbsp;&gt;&nbsp;&radic;p for the relevant y would derandomize a whole column of the table.</li>
+<li><b>Lower bounds.</b> Pomerance&rsquo;s discussion [<a href="#Pom87">Pom87</a>, &sect;1] still delimits what is
+known: some primes (Fermat, Mersenne) have (1+o(1))&thinsp;log&#8322;&nbsp;p-multiplication proofs; nothing rules
+out O(log&nbsp;log&nbsp;p) multiplications for special primes; and whether (5/2)&thinsp;log&#8322;&nbsp;p is
+optimal for general p &mdash; he declined to conjecture it &mdash; remains untouched. The formats here show the
+<i>finding</i> cost of the known constructions rising steeply as verification approaches his constant; whether
+that trade-off is intrinsic is open.</li>
+</ol>
+
+<h2 id="s9">References</h2>
+
+<dl class="bib">
+<dt id="AH92">[AH92]</dt><dd>L. M. Adleman, M.-D. A. Huang, <i>Primality Testing and Abelian Varieties over Finite Fields</i>, Lecture Notes in Math. 1512, Springer, 1992.</dd>
+<dt id="AKS04">[AKS04]</dt><dd>M. Agrawal, N. Kayal, N. Saxena, PRIMES is in P, <i>Ann. of Math.</i> 160 (2004), 781&ndash;793.</dd>
+<dt id="AM93">[AM93]</dt><dd>A. O. L. Atkin, F. Morain, Elliptic curves and primality proving, <i>Math. Comp.</i> 61 (1993), 29&ndash;68.</dd>
+<dt id="Bach90">[Bach90]</dt><dd>E. Bach, Explicit bounds for primality testing and related problems, <i>Math. Comp.</i> 55 (1990), 355&ndash;380.</dd>
+<dt id="Bern04">[Bern04]</dt><dd>D. J. Bernstein, How to find smooth parts of integers, preprint, 2004, <a href="https://cr.yp.to/papers.html#smoothparts">cr.yp.to/papers.html#smoothparts</a>.</dd>
+<dt id="BLS75">[BLS75]</dt><dd>J. Brillhart, D. H. Lehmer, J. L. Selfridge, New primality criteria and factorizations of 2<sup>m</sup>&plusmn;1, <i>Math. Comp.</i> 29 (1975), 620&ndash;647.</dd>
+<dt id="BLS12">[BLS12]</dt><dd>R. Br&ouml;ker, K. Lauter, A. V. Sutherland, Modular polynomials via isogeny volcanoes, <i>Math. Comp.</i> 81 (2012), 1201&ndash;1231.</dd>
+<dt id="CEP83">[CEP83]</dt><dd>E. R. Canfield, P. Erd&#337;s, C. Pomerance, On a problem of Oppenheim concerning &ldquo;factorisatio numerorum,&rdquo; <i>J. Number Theory</i> 17 (1983), 1&ndash;28.</dd>
+<dt id="Cor08">[Cor08]</dt><dd>G. Cornacchia, Su di un metodo per la risoluzione in numeri interi dell&rsquo;equazione &Sigma;C<sub>h</sub>x<sup>n&minus;h</sup>y<sup>h</sup>&nbsp;=&nbsp;P, <i>Giornale di Matematiche di Battaglini</i> 46 (1908), 33&ndash;90.</dd>
+<dt id="Cox13">[Cox13]</dt><dd>D. A. Cox, <i>Primes of the Form x&sup2;+ny&sup2;</i>, 2nd ed., Wiley, 2013.</dd>
+<dt id="CP05">[CP05]</dt><dd>R. Crandall, C. Pomerance, <i>Prime Numbers: A Computational Perspective</i>, 2nd ed., Springer, 2005.</dd>
+<dt id="Deu41">[Deu41]</dt><dd>M. Deuring, Die Typen der Multiplikatorenringe elliptischer Funktionenk&ouml;rper, <i>Abh. Math. Sem. Univ. Hamburg</i> 14 (1941), 197&ndash;272.</dd>
+<dt id="Dic30">[Dic30]</dt><dd>K. Dickman, On the frequency of numbers containing prime factors of a certain relative magnitude, <i>Ark. Mat. Astr. Fys.</i> 22A (1930), 1&ndash;14.</dd>
+<dt id="Elk98">[Elk98]</dt><dd>N. D. Elkies, Elliptic and modular curves over finite fields and related computational issues, in <i>Computational Perspectives on Number Theory</i>, AMS/IP Stud. Adv. Math. 7 (1998), 21&ndash;76.</dd>
+<dt id="Enge09">[Enge09]</dt><dd>A. Enge, The complexity of class polynomial computation via floating point approximations, <i>Math. Comp.</i> 78 (2009), 1089&ndash;1107.</dd>
+<dt id="Enge24">[Enge24]</dt><dd>A. Enge, FastECPP over MPI, 2024, <a href="https://arxiv.org/abs/2404.05506">arXiv:2404.05506</a>; software CM/cm-ecpp, <a href="https://www.multiprecision.org/cm/ecpp.html">multiprecision.org/cm</a>.</dd>
+<dt id="FKMW04">[FKMW04]</dt><dd>J. Franke, T. Kleinjung, F. Morain, T. Wirth, Proving the primality of very large numbers with fastECPP, in <i>Algorithmic Number Theory (ANTS-VI)</i>, LNCS 3076, Springer, 2004.</dd>
+<dt id="FM02">[FM02]</dt><dd>M. Fouquet, F. Morain, Isogeny volcanoes and the SEA algorithm, in <i>Algorithmic Number Theory (ANTS-V)</i>, LNCS 2369, Springer, 2002, 276&ndash;291.</dd>
+<dt id="GK99">[GK86]</dt><dd>S. Goldwasser, J. Kilian, Almost all primes can be quickly certified, in <i>Proc. 18th STOC</i>, 1986, 316&ndash;329; journal version: Primality testing using elliptic curves, <i>J. ACM</i> 46 (1999), 450&ndash;472.</dd>
+<dt id="Gran08">[Gran08]</dt><dd>A. Granville, Smooth numbers: computational number theory and beyond, in <i>Algorithmic Number Theory</i>, MSRI Publ. 44, Cambridge, 2008, 267&ndash;323.</dd>
+<dt id="HB88">[HB88]</dt><dd>D. R. Heath-Brown, The number of primes in a short interval, <i>J. reine angew. Math.</i> 389 (1988), 22&ndash;63.</dd>
+<dt id="Hil86">[Hil86]</dt><dd>A. Hildebrand, On the number of positive integers &le;&nbsp;x and free of prime factors &gt;&nbsp;y, <i>J. Number Theory</i> 22 (1986), 289&ndash;307.</dd>
+<dt id="HvdH21">[HvdH21]</dt><dd>D. Harvey, J. van der Hoeven, Integer multiplication in time O(n&nbsp;log&nbsp;n), <i>Ann. of Math.</i> 193 (2021), 563&ndash;617.</dd>
+<dt id="Kohel96">[Kohel96]</dt><dd>D. Kohel, <i>Endomorphism rings of elliptic curves over finite fields</i>, PhD thesis, University of California, Berkeley, 1996.</dd>
+<dt id="Len87">[Len87]</dt><dd>H. W. Lenstra, Jr., Factoring integers with elliptic curves, <i>Ann. of Math.</i> 126 (1987), 649&ndash;673.</dd>
+<dt id="LL93">[LL93]</dt><dd>A. K. Lenstra, H. W. Lenstra, Jr. (eds.), <i>The Development of the Number Field Sieve</i>, Lecture Notes in Math. 1554, Springer, 1993.</dd>
+<dt id="LP19">[LP19]</dt><dd>H. W. Lenstra, Jr., C. Pomerance, Primality testing with Gaussian periods, <i>J. Eur. Math. Soc.</i> 21 (2019), 1229&ndash;1269.</dd>
+<dt id="McL26">[McL26]</dt><dd>A. McLain (with GPT 5.5 Codex / Claude), Danger 2026 Data Challenge code and research notes, 2026, <a href="https://github.com/alexamclain/Danger2026DataChallenge">github.com/alexamclain/Danger2026DataChallenge</a>.</dd>
+<dt id="Mil76">[Mil76]</dt><dd>G. L. Miller, Riemann&rsquo;s hypothesis and tests for primality, <i>J. Comput. System Sci.</i> 13 (1976), 300&ndash;317.</dd>
+<dt id="Mon87">[Mon87]</dt><dd>P. L. Montgomery, Speeding the Pollard and elliptic curve methods of factorization, <i>Math. Comp.</i> 48 (1987), 243&ndash;264.</dd>
+<dt id="Mor07">[Mor07]</dt><dd>F. Morain, Implementing the asymptotically fast version of the elliptic curve primality proving algorithm, <i>Math. Comp.</i> 76 (2007), 493&ndash;505.</dd>
+<dt id="Pom87">[Pom87]</dt><dd>C. Pomerance, Very short primality proofs, <i>Math. Comp.</i> 48 (1987), 315&ndash;322.</dd>
+<dt id="Pra75">[Pra75]</dt><dd>V. R. Pratt, Every prime has a succinct certificate, <i>SIAM J. Comput.</i> 4 (1975), 214&ndash;220.</dd>
+<dt id="Rab80">[Rab80]</dt><dd>M. O. Rabin, Probabilistic algorithm for testing primality, <i>J. Number Theory</i> 12 (1980), 128&ndash;138.</dd>
+<dt id="Rue26">[Rue26]</dt><dd>F. Ruehle (with Claude Opus 4.6), Danger 2026 Data Challenge implementation, 2026, <a href="https://github.com/ruehlef/Danger2026DataChallenge">github.com/ruehlef/Danger2026DataChallenge</a>; see also J. Shi, <a href="https://github.com/JaneShi99/pomerance-p24">pomerance-p24</a>.</dd>
+<dt id="Scho85">[Scho85]</dt><dd>R. Schoof, Elliptic curves over finite fields and the computation of square roots mod p, <i>Math. Comp.</i> 44 (1985), 483&ndash;494.</dd>
+<dt id="Scho87">[Scho87]</dt><dd>R. Schoof, Nonsingular plane cubic curves over finite fields, <i>J. Combin. Theory Ser. A</i> 46 (1987), 183&ndash;211.</dd>
+<dt id="Scho95">[Scho95]</dt><dd>R. Schoof, Counting points on elliptic curves over finite fields, <i>J. Th&eacute;or. Nombres Bordeaux</i> 7 (1995), 219&ndash;254.</dd>
+<dt id="Sil09">[Sil09]</dt><dd>J. H. Silverman, <i>The Arithmetic of Elliptic Curves</i>, 2nd ed., GTM 106, Springer, 2009.</dd>
+<dt id="SS14">[SS14]</dt><dd>I. E. Shparlinski, A. V. Sutherland, On the distribution of Atkin and Elkies primes, <i>Found. Comput. Math.</i> 14 (2014), 285&ndash;297.</dd>
+<dt id="Suth11">[Suth11]</dt><dd>A. V. Sutherland, Computing Hilbert class polynomials with the Chinese remainder theorem, <i>Math. Comp.</i> 80 (2011), 501&ndash;538.</dd>
+<dt id="Suth12">[Suth12]</dt><dd>A. V. Sutherland, Accelerating the CM method, <i>LMS J. Comput. Math.</i> 15 (2012), 172&ndash;204.</dd>
+<dt id="Suth13">[Suth13]</dt><dd>A. V. Sutherland, Isogeny volcanoes, in <i>ANTS-X</i>, Open Book Ser. 1, MSP, 2013, 507&ndash;530.</dd>
+<dt id="t5k">[t5k]</dt><dd>The PrimePages, Top twenty: Elliptic Curve Primality Proof, <a href="https://t5k.org/top20/page.php?id=27">t5k.org/top20/page.php?id=27</a> (accessed Aug 2026).</dd>
+<dt id="Wat69">[Wat69]</dt><dd>W. C. Waterhouse, Abelian varieties over finite fields, <i>Ann. Sci. &Eacute;cole Norm. Sup.</i> (4) 2 (1969), 521&ndash;560.</dd>
+</dl>
+
+<h3>Challenge repositories and code</h3>
+<dl class="bib">
+<dt id="DANGER3">[DANGER3]</dt><dd>A. V. Sutherland, <i>DANGER3</i> (Pomerance triples: definition, verifier <code>vpp.py</code>, Lean verifier, exhaustive data to 2&sup3;&sup2;, challenge log), <a href="https://github.com/AndrewVSutherland/DANGER3">github.com/AndrewVSutherland/DANGER3</a>, 2026.</dd>
+<dt id="OneShot">[OneShot]</dt><dd>A. V. Sutherland, <i>OneShotPrimalityProofs</i> (one-shot ECPP: definition, verifier <code>voneshot.py</code>, finder <code>oneshot.gp</code>, exhaustive data to 2&#8312;, challenge table), <a href="https://github.com/AndrewVSutherland/OneShotPrimalityProofs">github.com/AndrewVSutherland/OneShotPrimalityProofs</a>, 2026. Part of the DARPA expMath program.</dd>
+<dt id="Short">[Short]</dt><dd>A. V. Sutherland, <i>ShortPrimalityProofs</i> (short ECPP: definition, verifier <code>vsmallECPP.py</code>, finders <code>short.gp</code>/<code>parallel_short.py</code>, exhaustive data to 2&#8312;, challenge table), <a href="https://github.com/AndrewVSutherland/ShortPrimalityProofs">github.com/AndrewVSutherland/ShortPrimalityProofs</a>, 2026.</dd>
+<dt id="OSF">[OSF]</dt><dd>A. V. Sutherland and Claude Code, <i>OneShotFastECPP</i> (the CM one-shot engine: <code>dscan</code>/<code>smooth</code>/<code>fproot</code>/<code>cm_method</code>/<code>oneshot</code>; reports <i>descent-chain</i> and <i>sea-crossover</i>; verified certificates), <a href="https://github.com/AndrewVSutherland2/OneShotFastECPP">github.com/AndrewVSutherland2/OneShotFastECPP</a>, 2026.</dd>
+</dl>
+
+<p class="note">Written by Claude (Fable 5) under the direction of Andrew V. Sutherland, August 5, 2026. All
+verification-cost statements were checked against the reference verifiers&rsquo; code; all timing and count data
+are quoted from the repositories named above or measured on this project&rsquo;s hardware (16-core Ryzen AI Max+
+395 for the &sect;5.3 certificates). Heuristic analyses follow the conventions of &sect;2; the Dickman values were
+computed by numerical solution of the delay differential equation and cross-checked against published tables.</p>
+
+</body>
+</html>
