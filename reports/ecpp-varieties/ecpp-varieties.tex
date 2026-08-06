@@ -961,7 +961,8 @@ ladder bit costing $O(1)$ multiplications $\bmod\ p_i$; globally, one batched tr
 $o_i$ against the prime table at $M(n^2) = O(n^2\log n)$ \cite{Bern04} (the sieve itself is
 $O(n^2\log\log n)$).  Consequently, whenever the fillers satisfy
 $\log m_i\cdot\log k_i = O(b_i)$ --- in particular whenever $m_i \le n^{O(1)}$, which holds for every
-certificate in the challenge table (the largest filler there has 35 bits) and can always be arranged
+certificate in the challenge table (the largest filler there has 50 bits, and the largest exponent
+$\log m_i/\log n$ is $6.11$; see Remark~\ref{rem:tightshort}) and can always be arranged
 (2-power fillers, \S\ref{sec:pomexist}) --- \emph{verification costs $O(n^2\log n)$ bit operations: the
 same order as verifying a Pomerance triple, exceeded only by a constant factor}.
 \end{proposition}
@@ -978,7 +979,7 @@ $O((\log p_0)^{2+o(1)})$; the chain structure --- one big prime per level, geome
 moduli, small smooth fillers --- is precisely what deletes the one-shot's extra log factor, the same
 mechanism as in the fixed-ratio chains of \S\ref{sec:bdescent}.
 
-\begin{remark}[a tightened specification with worst-case $O(n^2\log n)$ verification]
+\begin{remark}[tightened specifications with worst-case $O(n^2\log n)$ verification]
 \label{rem:tightshort}
 The two potential sources of a second $\log$ factor in Proposition~\ref{prop:shortverif} are distinct
 in kind.  (a)~\emph{The exactness tree}: its depth $\log k_i$ multiplies the filler bits, and the
@@ -987,31 +988,48 @@ which the top level costs $\Theta(n^2(\log n)^2)$ --- a worst case over certific
 ones the finder produces.  (b)~\emph{The trial division}: the per-certificate cost is
 $M(n^2) = \Theta(n^2\log n)$ --- Pomerance-order --- but only given the precomputed product tree of
 the primes below $n^2$, whose construction costs $\Theta(n^2(\log n)^2)$; a self-contained accounting
-carries the extra log here instead.  Three amendments to the format eliminate both sources without
-affecting the finder:
-\begin{enumerate}
-\item \emph{carry each filler in factored form}, $m_i = \prod_j q_j^{e_j}$ listed (with $p_{i+1} =
-o_i/m_i$).  The verifier checks each $q_j \le n^2$ for primality by trial division to
-$\sqrt{q_j} \le n$ (word-size work) and checks the product; the $\pi(n^2)$-scale table disappears
-entirely, and the $n^2$-roughness of $p_{i+1}$ need not be checked at all --- a composite $p_{i+1}$
-fails at the next level, by the same induction that already carries the soundness proof;
-\item \emph{require $m_i \le n^4$} (equivalently $p_{i+1} \ge o_i/n^4$).  Every certificate in the
-challenge table complies --- the largest published filler has 35 bits --- and the
-$L(1/3)$ finder's winners have $m_i = n^{2+o(1)}$ typically, since the $n^2$-smooth part of a random
-integer has ${\approx}\,2\log_2 n$ bits; the search channel that would produce larger fillers is the
-exponentially rarer one, so the finding complexity is unchanged;
-\item \emph{permit a terminal level only once $p_k \le n^4$} (so the last filler also obeys (2)); this
-costs the finder at most one extra level at a polylogarithmic-size modulus, where complete
-factorization is trivial.
-\end{enumerate}
-The verifier then runs, per level, a \emph{single half-length ladder} $V = [p_{i+1}]P$ plus
-polylogarithmic crumbs --- $[m_i]V$ must be a genuine point at infinity, $[m_i]P \ne O$ (which is the
-$p_{i+1}$-cofactor condition), and $[m_i/q_j]V \ne O$ for each of the ${\le}\,4\log_2 n$ listed
-primes, all with scalars ${\le}\,n^4$ --- for a total of $\sum_i (b_i/2 + O(\log^2 n))$ ladder bits:
-\emph{worst-case} $O(n^2\log n)$ bit operations, $O(n)$ bits of memory (no sieve, no table), and a
-constant roughly $5\times$ Pomerance's with the reference ladder
-($\sum_i b_i/2 \le n + O(\log n)$ ladder bits at ${\approx}\,12$ multiplications per bit, against his
-$(5/2)\,n$).
+carries the extra log here instead.
+
+\emph{Capping the fillers.}  Requiring only $m_i \le n^c$ for a fixed $c$, with the certificate
+payload unchanged, removes both sources --- though one must be careful where the trial division
+happens.  Direct per-prime trial division of $o_i$ cannot run in $o(n_i^3)$ at a level of $n_i$ bits:
+each of the $\pi(n_i^2) \approx n_i^2/(2\ln n_i)$ candidate primes must scan the $(n_i/2)$-bit
+$o_i$, $\Omega(n_i)$ apiece.  Instead the verifier splits the recovery in two stages.  First, extract
+the smooth parts of \emph{all} levels in one batched pass: reduce the primorial
+$P = \prod_{q \le n^2} q$ modulo $\prod_i o_i$ at cost $M(1.44\,n^2) = O(n^2\log n)$, remainder-tree
+down to the individual $o_i$ ($\Ot(n)$), and apply the repeated-squaring gcd trick at each level
+($\Ot(n_i)$).  Second, factor each extracted $m_i \le n_i^c$ --- now a $c\log_2 n_i$-bit integer ---
+directly: trial division to $n_i$ for its small primes, then deterministic Pollard--Strassen
+splitting \cite{Pol74,Str77} of the $O(1)$ remaining factors in $(n_i, n_i^2]$, at
+$\Ot(n_i^{c/4}+n_i)$ per level.  Everything after the single batched reduction is quasi-linear per
+level and sums geometrically, so verification is worst-case $O(n^2\log n)$ --- with the one caveat
+that the primorial, a single $1.44\,n^2$-bit integer depending only on $n$ (about 80\,KB at 665
+bits), is a per-bit-size precomputation whose cold construction still costs $\Theta(n^2(\log n)^2)$.
+A terminal level should then be permitted only once $\sqrt{p_k} \le n_k^{\,c}$, pushing the chain one
+polylogarithmically cheap level deeper.  The exactness checks collapse as in
+Proposition~\ref{prop:shortverif}: one half-length ladder $V = [p_{i+1}]P$ per level plus scalars
+${\le}\,n_i^c$, for $\sum_i(b_i/2 + O(\log^2 n))$ ladder bits and a constant roughly $5\times$
+Pomerance's.
+
+\emph{Empirical compliance.}  Against the twenty published chains (70 levels): keeping the
+smoothness bound at the top-level $n^2$, as in the current definition, a cap with $c = 7$ retains
+every certificate --- the extremal fillers are 46 bits at $10^{50}{+}151$ (level 0,
+$m = n^{6.11}$) and 50 bits at $10^{90}{+}289$ (level 0, $n^{5.97}$).  Re-indexing the bounds per
+level ($n_i = \lceil\log_2 p_i\rceil$, fillers $n_i^2$-smooth and ${\le}\,n_i^c$) is the cleaner
+specification asymptotically but is not backward compatible: 23 of the 70 levels, hitting 17 of the
+20 chains, contain a filler prime exceeding $n_i^2$ (deep and terminal levels were built under the
+top-level bound), and the per-level cap would need $c \ge 6.5$.  Either way the finder is essentially
+unaffected: the $L(1/3)$ channel's fillers are smooth parts of typical size $n_i^{2+o(1)}$, and a cap
+only truncates a thin tail of lucky large-filler winners --- a constant-factor effect, not an
+asymptotic one.
+
+\emph{Factored fillers.}  If one is willing to change the payload instead, carrying each filler in
+factored form removes even the primorial: the verifier checks each listed prime
+$q_j \le n^2$ by trial division to $\sqrt{q_j} \le n$, and the $n^2$-roughness of $p_{i+1}$ need
+never be checked at all --- a composite $p_{i+1}$ fails at the next level, by the same induction that
+already carries the soundness proof.  Verification is then worst-case $O(n^2\log n)$ with $O(n)$
+memory and \emph{no} precomputation of any kind, at the price of certificates that are no longer
+unique for a given $(p_i, A_i, x_i, o_i)$.
 \end{remark}
 
 One formula in fact covers the elliptic work of the whole family of
@@ -1356,7 +1374,7 @@ operations, entirely dominated by step 7.
 
 The quartic cost of step 7 is structural, not an artifact: condition (4) --- the engine of the
 soundness proof --- forces $e\#S \gtrsim \sqrt{e}\,d\log p$ up to logarithmic factors, i.e.\
-$e = \widetilde\Omega((\log p)^2)$ for bounded $\#S$, so the congruence ring has
+$e = \widetilde\Omega((\log p)^2)$ for bounded $\#S$, so that the congruence ring has
 $\widetilde\Omega((\log p)^3)$ bits; and the exponent $p^d$ forces $\Omega(\log p)$ ring squarings.
 Within this proof technique, $(\log p)^{4+o(1)}$ verification is therefore a floor (larger $\#S$
 trades a polylogarithmically smaller $e$ against linearly more congruences, and loses).  The upshot
@@ -1473,6 +1491,9 @@ factorization, \emph{Math.\ Comp.}\ 48 (1987), 243--264.
 \bibitem[Mor07]{Mor07} F.~Morain, Implementing the asymptotically fast version of the elliptic curve
 primality proving algorithm, \emph{Math.\ Comp.}\ 76 (2007), 493--505.
 
+\bibitem[Pol74]{Pol74} J.~M. Pollard, Theorems on factorization and primality testing,
+\emph{Proc.\ Cambridge Philos.\ Soc.}\ 76 (1974), 521--528.
+
 \bibitem[Pom87]{Pom87} C.~Pomerance, Very short primality proofs, \emph{Math.\ Comp.}\ 48 (1987),
 315--322.
 
@@ -1500,6 +1521,9 @@ Springer, 2009.
 
 \bibitem[SS14]{SS14} I.~E. Shparlinski, A.~V. Sutherland, On the distribution of Atkin and Elkies
 primes, \emph{Found.\ Comput.\ Math.}\ 14 (2014), 285--297.
+
+\bibitem[Str77]{Str77} V.~Strassen, Einige Resultate \"uber Berechnungskomplexit\"at,
+\emph{Jahresber.\ Deutsch.\ Math.-Verein.}\ 78 (1976/77), 1--8.
 
 \bibitem[Sut11]{Suth11} A.~V. Sutherland, Computing Hilbert class polynomials with the Chinese
 remainder theorem, \emph{Math.\ Comp.}\ 80 (2011), 501--538.
