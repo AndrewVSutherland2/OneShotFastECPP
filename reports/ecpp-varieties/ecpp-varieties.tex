@@ -1030,6 +1030,19 @@ never be checked at all --- a composite $p_{i+1}$ fails at the next level, by th
 already carries the soundness proof.  Verification is then worst-case $O(n^2\log n)$ with $O(n)$
 memory and \emph{no} precomputation of any kind, at the price of certificates that are no longer
 unique for a given $(p_i, A_i, x_i, o_i)$.
+
+\emph{The uncapped format, all-inclusive.}  Conversely, if one keeps the current definition
+unchanged, the worst case is $O(n^2(\log n)^2)$ \emph{with the per-$n$ precomputation included}:
+the primorial product tree costs $\Theta(n^2(\log n)^2)$ to build, one reduction against
+$\prod_i o_i$ costs $M(n^2) = O(n^2\log n)$, the shared active-branch descent delivering every
+level's prime divisors costs $O(n^2\log n)$ more, and the elliptic worst case (a top-level filler of
+$\Theta(n)$ bits with $\Theta(n/\log n)$ primes) is $\Theta(n^2(\log n)^2)$ exactly --- as it must
+be, since the $k = 0$ stratum is the restricted one-shot.  The one proviso is organizational: the
+trial division must be batched \emph{across the whole chain} (build the tree once, reduce it once
+against $\prod_i o_i$, share the descent); repeating the $n^2$-scale pass level by level costs an
+extra logarithmic factor.  The three regimes, then: the current definition verifies in
+$O(n^2(\log n)^2)$ fully self-contained; capped fillers give $O(n^2\log n)$ plus a once-per-$n$
+$O(n^2(\log n)^2)$ table; factored fillers give $O(n^2\log n)$ outright.
 \end{remark}
 
 One formula in fact covers the elliptic work of the whole family of
