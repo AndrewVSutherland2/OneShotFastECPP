@@ -1040,7 +1040,10 @@ $\Theta(n)$ bits with $\Theta(n/\log n)$ primes) is $\Theta(n^2(\log n)^2)$ exac
 be, since the $k = 0$ stratum is the restricted one-shot.  The one proviso is organizational: the
 trial division must be batched \emph{across the whole chain} (build the tree once, reduce it once
 against $\prod_i o_i$, share the descent); repeating the $n^2$-scale pass level by level costs an
-extra logarithmic factor.  The three regimes, then: the current definition verifies in
+extra logarithmic factor.  (The reference verifier currently does repeat the pass per level, and
+additionally builds its batch products by sequential multiplication, which is quadratic in the batch
+size --- $\Tt(n^3)$ asymptotically, though with so small a constant that it is invisible below
+$n \sim 10^6$; both are local changes to the implementation, not to the format.)  The three regimes, then: the current definition verifies in
 $O(n^2(\log n)^2)$ fully self-contained; capped fillers give $O(n^2\log n)$ plus a once-per-$n$
 $O(n^2(\log n)^2)$ table; factored fillers give $O(n^2\log n)$ outright.
 \end{remark}
