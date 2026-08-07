@@ -1043,7 +1043,9 @@ against $\prod_i o_i$, share the descent); repeating the $n^2$-scale pass level 
 extra logarithmic factor.  (The reference verifier currently does repeat the pass per level, and
 additionally builds its batch products by sequential multiplication, which is quadratic in the batch
 size --- $\Tt(n^3)$ asymptotically, though with so small a constant that it is invisible below
-$n \sim 10^6$; both are local changes to the implementation, not to the format.)  The three regimes, then: the current definition verifies in
+$n \sim 10^6$; both are local changes to the implementation, not to the format.  Patched verifiers
+realizing the batched organization, with unchanged accept/reject behavior, accompany
+\cite{OSF} in \texttt{verifier-batching-pr/}.)  The three regimes, then: the current definition verifies in
 $O(n^2(\log n)^2)$ fully self-contained; capped fillers give $O(n^2\log n)$ plus a once-per-$n$
 $O(n^2(\log n)^2)$ table; factored fillers give $O(n^2\log n)$ outright.
 \end{remark}
