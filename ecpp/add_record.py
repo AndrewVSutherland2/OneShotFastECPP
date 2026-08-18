@@ -16,7 +16,12 @@ import os
 import sys
 from math import isqrt
 
-HERE = os.path.dirname(os.path.abspath(__file__))
+HERE = os.environ.get("SPP_DIR", "")
+if not HERE:
+    for c in ("/home/claude/ShortPrimalityProofs", os.path.expanduser("~/ShortPrimalityProofs")):
+        if os.path.exists(os.path.join(c, "vsmallECPP.py")):
+            HERE = c
+            break
 sys.path.insert(0, HERE)
 from vsmallECPP import verify
 
