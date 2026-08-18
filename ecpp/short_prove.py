@@ -529,6 +529,7 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
     winners = []       # (o, cand, q, hits)
     seen_winner_keys = set()
     B, Bmin = B0, 0
+    fresh_med = None
     pmod4 = p % 4
 
     def note_prime_factor(c, f, fresh=True):
@@ -641,6 +642,12 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
             classify_tails(fresh)
             live_new = [c for c in fresh if not c.dead]
             pool += live_new
+            if live_new:
+                rtb0 = rt.bit_length()
+                idxs = sorted(math.log(max(math.log(max(c.s, 3)), 1.1))
+                              - 0.03 * max(0, c.tail.bit_length() - rtb0)
+                              for c in live_new)
+                fresh_med = idxs[len(idxs) // 2]
             stats["cands"] = stats.get("cands", 0) + len(fresh)
             log("  level %d bits: dscan[%g,%g) +%d D -> +%d orders (%d live) in %.1fs"
                 " (strip %.1fs, classify %.1fs), %d winners"
@@ -679,6 +686,15 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
             live.sort(key=lambda c: -index(c))
             if cap:
                 live = live[:cap]
+                # widen-vs-deepen economics: every failure discounts the
+                # veterans; once the marginal admitted candidate is worth less
+                # than a median fresh draw, the scan is the better buy (its
+                # per-candidate cost is ~1 core-s vs 30-300 for deep tiers)
+                if (fresh_med is not None and live and B < Bmax
+                        and index(live[-1]) < fresh_med - 0.15):
+                    log("    tier B1=%d: admission boundary %.2f < fresh median %.2f; widening"
+                        % (b1, index(live[-1]), fresh_med))
+                    break
             if len(live) < threads and live:
                 # conditional duplicates: pad idle slots with extra concurrent
                 # curve batches for the best candidates, each repeat valued as
