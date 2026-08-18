@@ -80,6 +80,9 @@ static fbase oddfb;                 // odd prime discriminants with (q*/p)=1, as
 static long  tp_val[4]; static mpz_t tp_sq[4]; static int n_tp;  // 2-part options incl. "1"
 static unsigned long Bbound;
 static unsigned long Bminb;         // emit only d >= Bminb (incremental rescans)
+static unsigned long Fbmax;         // 0 = off; else cap factor-base primes at Fbmax
+                                    // (enumerates only Fbmax-smooth D: trades ~rho(ln B/ln Fbmax)
+                                    // of the usable density for a pi(Fbmax)-sized factor base)
 static int do_dump, do_verify, no_corn, do_dumpscan;
 
 // Per-thread scan state.  The DFS partitions cleanly by the smallest prime factor
@@ -194,6 +197,7 @@ int main (int argc, char *argv[])
         else if ( ! strncmp (argv[i], "pbits=", 6) ) pbits = strtoul (argv[i] + 6, 0, 10);
         else if ( ! strncmp (argv[i], "B=", 2) ) Bbound = strtoul (argv[i] + 2, 0, 10);
         else if ( ! strncmp (argv[i], "Bmin=", 5) ) Bminb = strtoul (argv[i] + 5, 0, 10);
+        else if ( ! strncmp (argv[i], "maxfb=", 6) ) Fbmax = strtoul (argv[i] + 6, 0, 10);
         else if ( ! strncmp (argv[i], "seed=", 5) ) seed = strtoul (argv[i] + 5, 0, 10);
         else if ( ! strncmp (argv[i], "threads=", 8) ) n_threads = atoi (argv[i] + 8);
         else if ( ! strncmp (argv[i], "sd=", 3) ) SEED_D = strtoul (argv[i] + 3, 0, 10);
@@ -232,8 +236,10 @@ int main (int argc, char *argv[])
     // odd primes < B: parallel segmented sieve (smooth.c), 64-bit entries -- the
     // factor base legitimately exceeds 2^32 once B does (Bmax defaults to 2e10)
     double t_sieve = wall ();
+    unsigned long fbtop = Bbound;
+    if ( Fbmax && Fbmax < fbtop ) fbtop = Fbmax + 1;
     uint64_t *primes;
-    size_t np = (size_t) sieve_primes_range (2, Bbound - 1, &primes, nth);
+    size_t np = (size_t) sieve_primes_range (2, fbtop - 1, &primes, nth);
     t_sieve = wall () - t_sieve;
 
     // PASS 1 (parallel, Legendre only): which primes are QR mod p
@@ -336,7 +342,7 @@ int main (int argc, char *argv[])
 
     if ( ! do_dump && ! do_dumpscan ) {
         gmp_fprintf (stderr, "p (%lu bits, %lu mod 4) = %Zd\n", (unsigned long) mpz_sizeinbase (p, 2), mpz_fdiv_ui (p, 4), p);
-        fprintf (stderr, "B = %lu   factor base: %zu odd prime discriminants + %d two-part\n", Bbound, oddfb.n, n_tp - 1);
+        fprintf (stderr, "B = %lu   factor base: %zu odd prime discriminants + %d two-part%s\n", Bbound, oddfb.n, n_tp - 1, Fbmax ? " (maxfb-capped)" : "");
         fprintf (stderr, "factor-base build: %.3f s  [sieve %.3f + determine %.3f (Legendre) + %zu roots %.3f (Tonelli)]\n",
                  tfb, t_sieve, t_det, oddfb.n, t_sqrt);
         fprintf (stderr, "scan: %.3f s   D scanned: %lu (%.3f us/D, %.0f D/s, %d threads)\n",
