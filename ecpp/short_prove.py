@@ -193,7 +193,7 @@ def factor_small(s, small_primes):
 # ------------------------------------------------------------ candidate state
 class Cand:
     __slots__ = ("d", "t", "v", "N", "s", "sfac", "mid", "tail", "dead",
-                 "splits", "effort", "prp_checked")
+                 "splits", "effort", "prp_checked", "tcurves", "last_b1")
 
     def __init__(self, d, t, v, N):
         self.d, self.t, self.v, self.N = d, t, v, N
@@ -205,6 +205,8 @@ class Cand:
         self.splits = 0
         self.effort = 0.0
         self.prp_checked = False
+        self.tcurves = 0    # failed curves at the current B1 tier (Bayes discount)
+        self.last_b1 = 0
 
 
 # ------------------------------------------------------------ pool components
@@ -474,17 +476,33 @@ def ecm_timeout(b1, curves, nbits):
 
 
 def ladder_rounds(nbits):
+    """(B1, sweeps, per-sweep cap): each tier's curve budget is split into
+    small sweeps so the pool is round-robined -- every candidate gets its
+    first visit at a tier before any candidate gets a second (admission
+    sorts by effort first), which beats batching because success per curve
+    has diminishing returns on a fixed candidate."""
     if nbits >= 900:
-        return [(2000, 12, 0), (11000, 20, 0), (50000, 32, 12000),
-                (250000, 48, 4000), (1000000, 72, 1200), (3000000, 96, 400)]
-    if nbits >= 700:
-        return [(2000, 12, 0), (11000, 20, 0), (50000, 32, 15000),
-                (250000, 48, 5000), (1000000, 72, 1500), (3000000, 96, 400)]
-    if nbits >= 500:
-        return [(2000, 12, 0), (11000, 20, 0), (50000, 32, 0),
-                (250000, 48, 12000), (1000000, 72, 4000), (3000000, 96, 1000)]
-    return [(2000, 10, 0), (11000, 16, 0), (50000, 28, 0),
-            (250000, 40, 0), (1000000, 64, 0)]
+        tiers = [(2000, [12], 0), (11000, [20], 0), (50000, [16, 16], 12000),
+                 (250000, [12] * 4, 4000), (1000000, [12] * 6, 1200),
+                 (3000000, [12] * 8, 400)]
+    elif nbits >= 700:
+        tiers = [(2000, [12], 0), (11000, [20], 0), (50000, [16, 16], 15000),
+                 (250000, [12] * 4, 5000), (1000000, [12] * 6, 1500),
+                 (3000000, [12] * 8, 400)]
+    elif nbits >= 500:
+        tiers = [(2000, [12], 0), (11000, [20], 0), (50000, [16, 16], 0),
+                 (250000, [12] * 4, 12000), (1000000, [12] * 6, 4000),
+                 (3000000, [12] * 8, 1000)]
+    else:
+        tiers = [(2000, [10], 0), (11000, [16], 0), (50000, [14, 14], 0),
+                 (250000, [10] * 4, 0), (1000000, [16] * 4, 0)]
+    out = []
+    for b1, sweeps, cap in tiers:
+        cum = 0
+        for c in sweeps:
+            cum += c
+            out.append((b1, c, cap, b1 * cum))
+    return out
 
 
 def b_schedule(nbits, B0=None, Bmax=None):
@@ -528,16 +546,24 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
                                    "N": str(c.N), "q": str(f)})
 
     def process_result(c, found, cof):
-        c.splits += len(found)
+        # duplicate-safe: concurrent batches on the same candidate may both
+        # report factors; accept each found factor only if it still divides
+        # the current tail, and recompute the tail directly.
+        progressed = False
         for f in found:
+            if f <= 1 or c.tail % f != 0:
+                continue
+            c.tail //= f
+            c.splits += 1
+            progressed = True
             if f < Y0:                      # tiny stragglers: fold into mid
                 c.mid *= f
                 continue
             if is_prp(f, 12):
                 note_prime_factor(c, f)
             # composite or out-of-zone factors just join the discarded cofactor
-        c.tail = cof
-        c.prp_checked = False
+        if progressed:
+            c.prp_checked = False
         if c.tail == 1 or c.s * c.tail <= L:
             c.dead = True
 
@@ -626,17 +652,48 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
                 if lev:
                     return lev
         # ---- ECM ladder over the pool ----
-        for ri, (b1, curves, cap) in enumerate(rounds):
+        for (b1, curves, cap, ekey) in rounds:
             if winners:
                 break
-            # breadth-first: before the deepest rounds, prefer widening the
-            # pool until the discriminant scan is well-explored (B >= 50*B0)
-            if ri >= 4 and B < min(Bmax, max(8 * B0, 4 * 10 ** 9)):
+            # breadth-first: before the deepest tiers, prefer widening the
+            # pool until the discriminant scan is well-explored
+            if b1 >= 10 ** 6 and B < min(Bmax, max(8 * B0, 4 * 10 ** 9)):
                 break
-            live = [c for c in pool if not c.dead and c.effort < b1 * curves]
-            live.sort(key=lambda c: c.tail.bit_length())
+            live = [c for c in pool if not c.dead and c.effort < ekey]
+            # Bayesian index policy: rank by log posterior win-rate per curve.
+            # Coverage enters the win probability linearly (the window admits q
+            # in (~sqrt(p)/s, sqrt(p))), hence ln(ln s); the tail's excess mass
+            # costs ~0.03/bit (Dickman slope); each failed curve at this tier
+            # multiplies the "findable factor remains here" posterior by
+            # (1-p) with p ~ 1/100 at a tier's marginal digit class.  Equal
+            # indices rotate (round-robin); a strong prior holds its slots
+            # until ~0.01*curves of failures equalize it with the field.
+            rtb = rt.bit_length()
+
+            def index(c, extra=0):
+                if c.last_b1 != b1:
+                    c.tcurves, c.last_b1 = 0, b1
+                return (math.log(max(math.log(max(c.s, 3)), 1.1))
+                        - 0.03 * max(0, c.tail.bit_length() - rtb)
+                        - 0.010 * (c.tcurves + extra))
+            live.sort(key=lambda c: -index(c))
             if cap:
                 live = live[:cap]
+            if len(live) < threads and live:
+                # conditional duplicates: pad idle slots with extra concurrent
+                # curve batches for the best candidates, each repeat valued as
+                # if its earlier in-flight batches fail (index - 0.01*curves)
+                ranked = sorted(live, key=lambda c: -index(c, extra=curves))
+                pads = []
+                r = 1
+                while len(live) + len(pads) < threads and r <= 3:
+                    for c in ranked:
+                        if len(live) + len(pads) >= threads:
+                            break
+                        if index(c, extra=r * curves) > index(ranked[-1]) - 0.5:
+                            pads.append(c)
+                    r += 1
+                live = live + pads
             if not live:
                 continue
             tr = time.time()
@@ -646,11 +703,13 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
             nsplit = 0
             changed = []
             for c, (found, cof) in zip(live, res):
-                c.effort = b1 * curves
-                if cof != c.tail:
+                c.effort = ekey
+                c.tcurves += curves
+                if found:
                     nsplit += 1
                     process_result(c, found, cof)
-                    changed.append(c)
+                    if c not in changed:
+                        changed.append(c)
             classify_tails(changed)
             dt = time.time() - tr
             stats["ecm_s"] = stats.get("ecm_s", 0.0) + dt * threads
@@ -666,7 +725,15 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
                 return lev
         pool = [c for c in pool if not c.dead]
         if B >= Bmax:
-            raise RuntimeError("level %d bits: exhausted dscan budget B=%d" % (nb, B))
+            if not maxfb:
+                # engage the bounded factor base and keep going: Tonelli/memory
+                # stay flat while the discriminant supply extends 10x
+                maxfb = 10 ** 8
+                Bmax = Bmax * 10
+                log("  level %d bits: engaging maxfb=%d, extending Bmax to %g"
+                    % (nb, maxfb, Bmax))
+            else:
+                raise RuntimeError("level %d bits: exhausted dscan budget B=%d" % (nb, B))
         Bmin, B = B, min(B * 6, Bmax)
         log("  level %d bits: widening to B=%g (%d live)" % (nb, B, len(pool)))
 
