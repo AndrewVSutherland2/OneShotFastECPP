@@ -77,6 +77,7 @@ def ensure_pcache(n4, threads):
     path = os.path.join(PCACHE, "oneshot_P_%d.bin" % n4)
     if os.path.exists(path):
         return path
+    os.makedirs(PCACHE, exist_ok=True)
     log("building prime-product cache for y=%d (one-time, minutes)..." % n4)
     r = subprocess.run([SMOOTHTEST, "pbuild", "y=%d" % n4, "threads=%d" % threads,
                         "save=%s" % path], capture_output=True, text=True)
