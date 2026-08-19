@@ -240,11 +240,13 @@ def ensure_pcache(threads):
         return
     os.makedirs(os.path.dirname(PCACHE), exist_ok=True)
     log("building primorial cache %s (one-time, y=%d)" % (PCACHE, Y0))
+    tmp = PCACHE + ".tmp"
     r = subprocess.run([os.path.join(ECPP_DIR, "smoothtest"), "pbuild", "y=%d" % Y0,
-                        "save=" + PCACHE, "threads=%d" % threads],
+                        "save=" + tmp, "threads=%d" % threads],
                        capture_output=True, text=True, env=ECM_ENV)
-    if r.returncode != 0 or not os.path.exists(PCACHE):
+    if r.returncode != 0 or not os.path.exists(tmp):
         raise RuntimeError("smoothtest pbuild failed: %s" % r.stderr[:500])
+    os.replace(tmp, PCACHE)               # atomic: no partial cache on interrupt
 
 
 def smooth_strip(Ns, threads):
@@ -775,8 +777,8 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
 # ------------------------------------------------------------ chain assembly
 def gp_tail_chain(q, n2):
     """Finish the chain below CM_MIN_BITS with short.gp's SEA search."""
-    sgp = os.path.join(SPP_DIR, "short.gp")
-    if not os.path.exists(sgp):
+    sgp = os.path.join(SPP_DIR, "short.gp") if SPP_DIR else ""
+    if not sgp or not os.path.exists(sgp):
         sgp = os.path.join(ECPP_DIR, "short.gp")
     script = open(sgp).read() + (
         "\nSC_tlim=60;\nSC_branchcurves=200;\n"
