@@ -1085,9 +1085,11 @@ asymptotic one.
 factored form removes even the primorial: the verifier checks each listed prime
 $q_j \le n^2$ by trial division to $\sqrt{q_j} \le n$, and the $n^2$-roughness of $p_{i+1}$ need
 never be checked at all --- a composite $p_{i+1}$ fails at the next level, by the same induction that
-already carries the soundness proof.  Verification is then worst-case $O(n^2\log n)$ with $O(n)$
-memory and \emph{no} precomputation of any kind, at the price of certificates that are no longer
-unique for a given $(p_i, A_i, x_i, o_i)$.
+already carries the soundness proof.  Combined with the cap --- factoring alone does not tame the
+exactness tree, whose $\Theta(n^2(\log n)^2)$ worst case (a) is a property of the group-theoretic
+checks, not of how the factors were learned --- verification is then worst-case $O(n^2\log n)$ with
+$O(n)$ memory and \emph{no} precomputation of any kind, at the price of certificates that are no
+longer unique for a given $(p_i, A_i, x_i, o_i)$.
 
 \emph{The uncapped format, all-inclusive.}  Conversely, if one keeps the current definition
 unchanged, the worst case is $O(n^2(\log n)^2)$ \emph{with the per-$n$ precomputation included}:
@@ -1098,14 +1100,15 @@ $\Theta(n)$ bits with $\Theta(n/\log n)$ primes) is $\Theta(n^2(\log n)^2)$ exac
 be, since the $k = 0$ stratum is the restricted one-shot.  The one proviso is organizational: the
 trial division must be batched \emph{across the whole chain} (build the tree once, reduce it once
 against $\prod_i o_i$, share the descent); repeating the $n^2$-scale pass level by level costs an
-extra logarithmic factor.  (The reference verifier currently does repeat the pass per level, and
-additionally builds its batch products by sequential multiplication, which is quadratic in the batch
+extra logarithmic factor.  (The original reference verifier repeated the pass per level, and
+additionally built its batch products by sequential multiplication, which is quadratic in the batch
 size --- $\Tt(n^3)$ asymptotically, though with so small a constant that it is invisible below
-$n \sim 10^6$; both are local changes to the implementation, not to the format.  Patched verifiers
-realizing the batched organization, with unchanged accept/reject behavior, accompany
-\cite{OSF} in \texttt{verifier-batching-pr/}.)  The three regimes, then: the current definition verifies in
+$n \sim 10^6$; both were implementation details, not format features, and the batched organization,
+with unchanged accept/reject behavior, was merged into the reference verifier of \cite{Short} in
+August 2026.  The analogous \texttt{voneshot.py} patch accompanies \cite{OSF} in
+\texttt{verifier-batching-pr/}.)  The three regimes, then: the current definition verifies in
 $O(n^2(\log n)^2)$ fully self-contained; capped fillers give $O(n^2\log n)$ plus a once-per-$n$
-$O(n^2(\log n)^2)$ table; factored fillers give $O(n^2\log n)$ outright.
+$O(n^2(\log n)^2)$ table; capped \emph{and} factored fillers give $O(n^2\log n)$ outright.
 \end{remark}
 
 One formula in fact covers the elliptic work of the whole family of
@@ -1217,22 +1220,19 @@ $n/2^i$-bit modulus costs $\exp\bigl(c\,2^{-i/3}X(1+o(1))\bigr)$, a geometricall
 so the chain total is dominated by its top level.
 \end{proof}
 
-\begin{remark}[conventions, and the previously quoted constants $1.31$ and $1.39$]
+\begin{remark}[how much the constant means]
 \label{rem:constants}
-Earlier revisions of this write-up, following the prototype analysis in \osf{} (report
-\emph{descent-chain}), quoted $\Lp{1/3}{(9\sigma/2)^{1/3} \approx 1.31}$ for the SEA supply and
-$\Lp{1/3}{(2/3)(18\sigma)^{1/3} \approx 1.39}$ for CM.  Those constants come from two coarser
-choices.  Approximating $\ln\ln y$ by $\ln\ln p$ (rather than $\tfrac23\ln\ln p$) inflates the
-peeling coefficient by $(3/2)^{1/2}$ and the optimized constant by $(3/2)^{1/3} \approx 1.14$,
-turning $(3\sigma)^{1/3}$ into $(9\sigma/2)^{1/3}$; and, for CM, imposing the balance
-``scan $=$ candidates${}\times{}$peeling'' --- which the minimax in the proof shows to be non-binding
---- yields $(16\sigma/3)^{1/3} = (2/3)(18\sigma)^{1/3}$.  The corrected accounting makes the two
-supplies share the leading constant; the real difference between them lives in the polynomial
-factors (a stock SEA count per candidate against a polylogarithmic amortized scan), which matter at
-feasible sizes but are invisible on the $L$-scale.  And since all these expressions converge only at
-the $\ln\ln\ln p/\ln\ln p$ rate, no such constant is quantitatively meaningful at feasible sizes
-anyway: the robust conclusions are the exponent $1/3$, the $(1-b)^{1/3}$ shape of the
-$b$-dependence, and ``cheaper than factoring $p$.''
+Constants at the $L(1/3)$ scale are sensitive to bookkeeping: the derivation must track
+$\ln\ln y = \tfrac23\ln\ln p$ --- not $\ln\ln p$, which silently inflates the optimized constant by
+$(3/2)^{1/3}$ --- and the minimax over $\gamma$ must be left free (imposing a scan-equals-peeling
+balance on the CM side yields a larger, spurious constant, since that trade never binds).  And the
+$o(1)$ terms converge only at the $\ln\ln\ln p/\ln\ln p$ rate, so no such constant is quantitatively
+meaningful at feasible sizes anyway.  The robust conclusions are the exponent $1/3$, the
+$(1-b)^{1/3}$ shape of the $b$-dependence, ``cheaper than factoring $p$'' (whose NFS constant
+$(64/9)^{1/3} \approx 1.92$ carries the same caveats), and the fact that the two supplies share the
+leading constant --- their real difference lives in the polynomial factors (a stock SEA point count
+per candidate against a polylogarithmically amortized scan), which matter enormously at feasible
+sizes but are invisible on the $L$-scale.
 \end{remark}
 
 \subsection{Results to date}\label{sec:shortresults}
@@ -1278,8 +1278,7 @@ prime satisfies $q \le p^b$ (and the point order is just $c\cdot q$ with no mini
 analyzed and prototyped in \osf{} (report \emph{descent-chain}) for $b \in (\tfrac12, 1)$: certificate
 size $O(n)/(1-b)$; verification $O(n^2\log n)/(1-b^2)$ bit operations --- Pomerance's order, the
 geometric shrink killing the one-shot's extra log factor; finding
-$\Lp{1/3}{(3(1-b))^{1/3}}$ (Proposition~\ref{prop:shortfind}; the prototype report's original
-constants used the coarser convention of Remark~\ref{rem:constants}), which tends to $0$ as
+$\Lp{1/3}{(3(1-b))^{1/3}}$ (Proposition~\ref{prop:shortfind}), which tends to $0$ as
 $b \to 1$, at the price of $\Theta(n)$ levels and quadratic certificates.  The interpolation toward
 classical ECPP is qualitative only: the estimate's $o(1)$ terms are not uniform in $b$, so letting
 $b = b(n) \to 1$ does not \emph{recover} the polynomial-time bound --- at polylogarithmic cofactor
