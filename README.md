@@ -70,10 +70,45 @@ See **[`design.md`](design.md)** for the full technical writeup and performance.
 | program | purpose |
 |---|---|
 | **`oneshot`** | prime → one-shot ECPP certificate (**the main tool**) |
+| **`short_prove.py`** | prime → *short ECPP* certificate chain (the record prover; see below) |
 | `cm_method` | `D`, `p` → the `j`-invariant of a curve `E/F_p` with CM by `D`, trace ±t (picks the best class invariant, converts back to `j`) |
 | `dscan` | CM-discriminant search (Cornacchia + factor base), parallel |
 | `smoothtest` | batched n⁴-smoothness testing (Bernstein remainder tree) |
 | `roottest` | validate the big-`F_p` root finder against PARI |
+
+
+## Short ECPP records: `short_prove.py`
+
+`ecpp/short_prove.py` is a prover for **short ECPP certificates** in the
+[ShortPrimalityProofs](https://github.com/AndrewVSutherland/ShortPrimalityProofs) format:
+a descending chain of levels p = p₀ > p₁ > … with p_{i+1} < √p_i, each level exhibiting a
+Montgomery curve point of exact order o = m·q where m is n²-smooth and q = p_{i+1} — giving
+O(n)-bit certificates verifiable in quasi-quadratic time.  Unlike a one-shot certificate the
+discarded cofactor is never factored, so each level only needs its curve order to be
+"√-semismooth": one prime just below √p, everything else ECM-findable.
+
+Per level it runs this repository's toolchain end to end: `dscan` (Cornacchia discriminant
+scan; the `maxfb=` option bounds the factor base so 10⁵-candidate pools stay affordable at
+1000+ bits), `smoothtest` (batched Bernstein remainder trees against a cached primorial),
+staged `gmp-ecm` peeling under a Bayesian index scheduler (coverage ~ln s, per-curve failure
+discounts, round-robin sub-sweeps, an economic widen-vs-deepen trigger), then `classpoly`/
+`cm_method` for the winner's curve (2-volcano floor descent when p ≡ 3 mod 4 requires it) and
+`short.gp` for the levels below 135 bits.  Every chain is verified by `vsmallECPP.py` plus an
+independent PARI `ellmul` cross-check before it is written.
+
+```sh
+. ./setenv.sh
+python3 ecpp/short_prove.py c=150 threads=32          # nextprime(10^150)
+python3 ecpp/short_prove.py p=<decimal> tag=myprime   # any (probable) prime
+# knobs: B0=/Bmax= (discriminant-scan schedule), maxfb= (factor-base cap),
+#        resume=1 (replay the winner journal after a crash/preemption), out=<file>
+```
+
+Needs a `gmp-ecm` binary (`CHAIN_ECM` env or `ecm` on PATH).  With it, this prover produced
+the ShortPrimalityProofs table entries for nextprime(10^c), c = 210, …, 310 — the largest a
+1030-bit prime exceeding Bernstein's 1025-bit AKS example — in one day on spot instances
+(≈3,500 CPU core-hours; see `reports/short-ecpp-records/` for the full campaign report and
+`certs/short/` for the certificates).
 
 ## Performance: nextprime(10ⁿ)
 
