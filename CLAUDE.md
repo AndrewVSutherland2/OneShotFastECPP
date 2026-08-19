@@ -104,6 +104,19 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   No SEA-side accelerations implemented (stage-1 gate/batch tail need ellsea internals).
   Report: `reports/sea-crossover/`; certs in `certs/sea/`; raw cands in `work/race-archive/`.
 
+- **Short ECPP records (2026-08-18)**: `ecpp/short_prove.py` — CM prover for the
+  ShortPrimalityProofs *short ECPP* format; produced the table entries for nextprime(10^c),
+  c = 210..310 (largest: 1030 bits, beating Bernstein's 1025-bit AKS example) in one day on
+  spot instances (~3,500 core-h).  Per level: dscan (new `maxfb=` bounds the factor base —
+  essential for 1e5-candidate pools at 1000+ bits) → `smoothtest parts` batch strip (2^32
+  primorial, built on demand) → staged gmp-ecm under a Bayesian index scheduler (coverage
+  ~ln s, failure discounts, round-robin sub-sweeps, economic widen trigger) → classpoly/
+  cm_method winner build (2-volcano floor when p ≡ 3 mod 4 needs it) → short.gp tail below
+  135 bits; winner journal + `resume=1` survive preemptions; dual verification before write.
+  Campaign report: `reports/short-ecpp-records/`.  Certs: `certs/short/`.  Gotcha fixed en
+  route: subprocesses need classpoly on PATH (ECM_ENV handles it).  SEA/CM crossover for
+  this criterion extrapolates to ~2000 bits (see report).
+
 ## Build & test
 ```sh
 make -j                      # ff_poly -> classpoly (incl. zp_poly) -> ecpp (all in-tree, ~15 s)
