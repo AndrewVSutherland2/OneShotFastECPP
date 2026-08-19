@@ -349,6 +349,9 @@ def main():
     cert = {"format": "ecpp-descent-chain-v1", "p": str(p0), "steps": steps}
     vchain.verify(cert, verbose=False)  # never emit an unverified certificate
     out = args.get("out", "chain_%d.json" % p0.bit_length())
+    outdir = os.path.dirname(out)
+    if outdir:
+        os.makedirs(outdir, exist_ok=True)
     with open(out, "w") as f:
         json.dump(cert, f, indent=1)
     log("chain of %d steps for %d-bit p in %.1fs (%d candidate orders, %d ecm calls)"

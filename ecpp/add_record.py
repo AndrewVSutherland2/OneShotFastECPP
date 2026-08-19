@@ -22,6 +22,10 @@ if not HERE:
         if os.path.exists(os.path.join(c, "vsmallECPP.py")):
             HERE = c
             break
+if not HERE or not os.path.exists(os.path.join(HERE, "vsmallECPP.py")):
+    sys.exit("add_record.py: cannot find the ShortPrimalityProofs repository "
+             "(clone it next to this repo or set SPP_DIR) -- refusing to guess "
+             "where certs.csv lives")
 sys.path.insert(0, HERE)
 from vsmallECPP import verify
 

@@ -126,7 +126,7 @@ def run_gate(p, pfile, threads, traces):
                        capture_output=True, text=True)
     if r.returncode != 0:
         log("gate FAILED (rc=%d):\n%s" % (r.returncode, r.stderr[-2000:]))
-        return []
+        return None                       # invocation failure: caller retries the batch
     wins = []
     for line in r.stdout.splitlines():
         mm = WIN_RE.match(line)
@@ -235,11 +235,16 @@ def main():
     def gate_and_assemble():
         nonlocal certs, win_curve_count
         new = [t for t in {abs(t) for t in pending.values()} if t not in gated]
-        pending.clear()
         if not new:
+            pending.clear()
+            return False
+        batch = dict(pending)
+        pending.clear()
+        wins = run_gate(p, pfile, workers, sorted(new))
+        if wins is None:                  # gate invocation failed: keep the
+            pending.update(batch)         # traces so a later pass retries them
             return False
         gated.update(new)
-        wins = run_gate(p, pfile, workers, sorted(new))
         got = False
         for t_abs, N, m, qs in wins:
             key = (N, m)
