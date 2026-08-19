@@ -148,7 +148,7 @@ restricted one-shot (\S\ref{sec:restricted}) & ${\approx}\,2.5n$ & $O(n^2(\log n
   $p^{1/4+o(1)}$ SEA;\ \ $p^{1/2+o(1)}$ CM & all $p>3$\\
 one-shot, $n^4$-smooth \cite{OneShot} & ${\approx}\,2.5n$--$3n$ & $O(n^2(\log n)^2)$ &
   $p^{1/8+o(1)}$ SEA;\ \ $p^{1/4+o(1)}$ CM & all $p>3$\\
-short ECPP \cite{Short} & $O(n)$, ${\lesssim}\,5n$ & $O(n^2\log n)^{\dagger}$ &
+short ECPP \cite{Short} & $O(n)$, ${\lesssim}\,5n$ & $O(n^2(\log n)^2)$; $O(n^2\log n)^{\dagger}$ &
   $\Lp{1/3}{(3/2)^{1/3}{\approx}1.14}$, SEA \& CM & all $p\ge 5$\\
 ECPP \cite{GK86,AM93} & $\Theta(n^2/\log n)$ & $O(n^3)$ &
   $(\log p)^{6+o(1)}$ SEA;\ \ $(\log p)^{4+\eps}$ CM & all $p$ (heur.)\rlap{${}^{\ddagger}$}\\
@@ -157,17 +157,19 @@ ECPP \cite{GK86,AM93} & $\Theta(n^2/\log n)$ & $O(n^3)$ &
 \medskip
 \caption{The certificate families.  The Pomerance-triple verification is exactly
 $(\tfrac52+o(1))\,n$ multiplications $\bmod\ p$.
-${}^{\dagger}$For certificates whose fillers have polynomially many bits or few distinct prime
-factors --- every published certificate, and every prime has one (prime-power fillers,
-\S\ref{sec:shortverif}); the format's worst case, already attained
-by its $k=0$ stratum ($=$ the restricted one-shot), is $O(n^2(\log n)^2)$, and
-Remark~\ref{rem:tightshort} tightens the format to guarantee $O(n^2\log n)$ worst-case.
+${}^{\dagger}$The $O(n^2\log n)$ bound holds for certificates whose fillers have polynomially many
+bits or few distinct prime factors --- every published certificate, and every prime has one
+(prime-power fillers, \S\ref{sec:shortverif}); the unconditional worst case, attained by the $k=0$
+stratum ($=$ the restricted one-shot), matches the one-shot row, and Remark~\ref{rem:tightshort}
+tightens the format to guarantee $O(n^2\log n)$ outright.
 ${}^{\ddagger}$Heuristic for all $p$; provable for almost all $p$.  Primality is in ZPP via
 \cite{AH92}, but with certificates built on genus-2 Jacobians, not certificates of this format.  The AKS--Bernstein row is discussed in
 Remark~\ref{rem:aks}; the deterministic finding entry is the Lenstra--Pomerance decision bound, whose
 exponent $c_0$ is effectively computable but has never been made explicit.  The Pratt entry is the cost
 of factoring $p-1$ (and recursively below, a geometrically decreasing cost) by the number field
-sieve.}
+sieve.  The ECPP row's size and verification describe the customary smooth-cofactor descent
+($\Theta(\log n)$ bits shed per step); the strict $m = 2q$ chain of \cite{GK86} measures $\Theta(n^2)$
+and $O(n^3\log n)$ (\S\ref{sec:ecppverif}).}
 \label{tab:summary}
 \end{table}
 
@@ -180,25 +182,40 @@ effectively computable in the sense that their proofs ``implicitly contain an al
 $c_0$,'' which no one has carried out; so the sharpest citable deterministic bound is exactly
 $(\log p)^6(2+\log\log p)^{c_0}$, and the $c$ in a formulation $O(n^6\log^{c+o(1)}n)$ is not known.
 The \emph{certificate} form of the family descends from Berrizbeitia \cite{Berr05} through Cheng and
-Mih\u{a}ilescu--Avanzi to Bernstein \cite{Ber07} (see \cite{Ber07} for the history), and is spelled
-out in Appendix~\ref{app:aks}: every prime has a certificate with witness set $S = \{1\}$
-(Theorem~\ref{thm:akscert}), of total size $(\log p)^{1+o(1)}$ bits --- i.e.\ $n^{1+o(1)}$,
-essentially the same order as the elliptic certificates --- findable in \emph{expected time
-$(\log p)^{2+o(1)}$} (the only randomness is sampling an irreducible $f$ and a witness $r$, both
-dense) and verifiable in $(\log p)^{4+o(1)}$ bit operations, the cost of one $p^d$-th powering in a
-$\Theta((\log p)^{3+o(1)})$-bit ring.  As a concrete instance,
+Mih\u{a}ilescu--Avanzi to Bernstein \cite{Ber07} (see \cite{Ber07} for the history and the precise
+definition): a certificate is a tuple $(d, e, c, c_-, f, r, S)$ --- $f$ monic of degree $d$ over
+$\Z/p\Z$, $e$ a divisor of $p^d - 1$, an element $r$ and a finite witness set $S$ in
+$R = (\Z/p\Z)[y]/(f)$ --- whose validity, checked by explicit congruences and unit tests in $R$,
+forces $p$ to be a prime power by an AKS-style counting argument (a $(\log p)^{1+o(1)}$
+perfect-power test \cite{Ber98} finishes the job).  Every prime has one with $S = \{1\}$,
+$d = (\log p)^{o(1)}$, and $e = (\log p)^{2+o(1)}$ \cite[Thms.~5.1--5.3]{Ber07}, of total size
+$(\log p)^{1+o(1)}$ bits --- i.e.\ $n^{1+o(1)}$, essentially the same order as the elliptic
+certificates --- findable in \emph{expected time $(\log p)^{2+o(1)}$} (the only randomness is
+sampling an irreducible $f$ and a witness $r$, both dense) and verifiable deterministically in
+$(\log p)^{4+o(1)}$ bit operations: the dominant check is the congruence
+$(x-s)^{p^d} = r^{(p^d-1)/e}\,x - s$ in $R[x]/(x^e - r)$ for each $s \in S$, one $p^d$-th powering
+in a ring of $(\log p)^{3+o(1)}$ bits.  As a concrete instance,
 $(1,\,57449,\,28724,\,16826,\,y,\,2,\,\{1\})$ is a certificate for $2^{1024}+643$.  Deterministically,
 trying candidates for $f$ and $r$ in a fixed order heuristically finds a certificate in the same
 $(\log p)^{2+o(1)}$ time (only the guarantee is lost); the proven deterministic route remains the
 \cite{LP19} \emph{decision} algorithm --- it decides primality without producing a certificate ---
-whence the two finding entries in the table.  The find/verify asymmetry is inverted in this family:
-finding is far cheaper than verifying, so an end-to-end prover --- find, then check --- pays the
-verification bound, where every elliptic format below runs the other way by orders of magnitude.  And
-the verification is stubbornly quasi-\emph{quartic}: the soundness counting argument forces a
-$(\log p)^{3+o(1)}$-bit working ring, and no cheaper way to check the key congruence is known
-(Appendix~\ref{app:aks}) --- this family does
-\emph{not} subsume the quasi-quadratic verification of the elliptic formats --- see the closing open
-problem of \S\ref{sec:synthesis}.
+whence the two finding entries in the table.  The find/verify asymmetry is inverted in this family
+--- finding is far cheaper than verifying --- and the inversion has a stark consequence: a verifier
+willing to use Las Vegas randomness gains \emph{nothing} from the certificate, since given the empty
+string it can regenerate certificate data itself in expected $(\log p)^{2+o(1)}$ time and run the
+same $(\log p)^{4+o(1)}$ check (composite inputs are dispatched surely, and quickly, by
+strong-pseudoprime witnesses \cite{Mil76,Rab80}).  The certificate is information its receiver could
+just as cheaply have produced --- its size is beside the point --- and what it buys is
+\emph{determinism} alone: a supplied tuple is checked with no randomness in $(\log p)^{4+o(1)}$,
+against the $(\log p)^{6}(2+\log\log p)^{c_0}$ certificate-free deterministic decision.  The
+verification itself is stubbornly quasi-\emph{quartic}: the soundness counting argument forces the
+$(\log p)^{3+o(1)}$-bit ring (its binomial condition needs $e\#S \gtrsim \sqrt{e}\,d\log p$, so
+$e = \widetilde\Omega(\log^2 p)$ for bounded $\#S$), no way to check the powering short of computing
+it is known, and larger $\#S$ trades a polylogarithmically smaller $e$ against linearly more
+congruences, and loses --- a floor for every known verifier, though not a proven lower bound.  This
+family therefore does \emph{not} subsume the quasi-quadratic verification of the elliptic formats,
+whose certificates transfer work the verifier could never afford; see the closing open problem of
+\S\ref{sec:synthesis}.
 \end{remark}
 
 Two engines supply candidate curve orders throughout, and they trade off differently in every section:
@@ -1130,8 +1147,8 @@ descends faster than square root (observed chains like $665 \to 333 \to 159 \to 
 
 \begin{proposition}[heuristic finding cost]\label{prop:shortfind}
 Fix $b \in [\tfrac12, 1)$ and put $\sigma = 1-b$.  Under the heuristics (H1)--(H3) below, the
-expected cost of finding one level of a ratio-$b$ chain at modulus $p$ --- in particular a short ECPP
-level, $b = \tfrac12$ --- is
+budgeted-ECM search above (channels (1)--(3)) finds one level of a ratio-$b$ chain at modulus $p$ ---
+in particular a short ECPP level, $b = \tfrac12$ --- at expected cost
 \[
   \Lp{1/3}{(3\sigma)^{1/3}}
   \;=\; \Lp{1/3}{(3/2)^{1/3} \approx 1.14}\quad\text{at } \sigma = \tfrac12,
@@ -1157,6 +1174,18 @@ hence absorbed by the $o(1)$ (\S\ref{sec:smooth}).
 \emph{(H3)} ECM peels every prime factor ${}\le y$ of a candidate in expected time
 $L_y(1/2,\sqrt2)\cdot\mathrm{poly}(n)$ \cite{Len87}; a candidate that fails to peel within the budget
 is discarded (the early abort of channel (3)), which affects only the search, never soundness.
+
+These heuristics model exactly the budgeted prover, and (H2) is its \emph{discoverability} condition,
+not an added restriction: the prover can exhibit $q$ only if everything else in $N$ peels --- a second
+prime factor above $y$ would sit with $q$ in the unfactored rough part and hide it --- while the
+discarded cofactor $N/(mq)$ is otherwise arbitrary within $y$-smoothness (the filler $m$ is a
+\emph{divisor} of the smooth part, not all of it).  The one channel outside the model --- $q \le y$,
+exposed by the peeling itself, with the window completed by a large filler --- needs an $n^2$-smooth
+part exceeding $\sqrt p/y = p^{1/2 - o(1)}$, an event of probability $p^{-1/4+o(1)}$ (the
+restricted-one-shot density, \S\ref{sec:restrictedfind}), far below the main channel's
+$\rho(u) = 1/\Lp{1/3}{\cdot}$ and hence negligible.  Finally, the clean threshold --- every prime
+${\le}\,y$ peels, nothing above does --- idealizes the reference finder's \texttt{factorint}-under-%
+\texttt{alarm} budget; the soft cutoff moves constants, not the exponent.
 
 Write $P_1 = \ln p$, $P_2 = \ln\ln p$, and $X = P_1^{1/3}P_2^{2/3}$, so that
 $\Lp{1/3}{c} = \exp((c+o(1))X)$, and take $\ln y = \gamma P_1^{2/3}P_2^{1/3}$ --- the scale is forced
@@ -1312,6 +1341,11 @@ two scalar multiplications of every step: $\sum_j O(b_j)\,M(b_j)$ over $\Theta(n
 linearly decaying size is $O(n^3\log n/\theta) = O(n^3)$ bit operations for the customary cofactor
 lengths --- the $M$-factor cancels against the step count --- quasi-cubic, the benchmark against which
 the $O(n^2\log n)$-class formats of \S\S\ref{sec:pomerance}--\ref{sec:short} are the improvement.
+These are typical-output figures for the customary smooth-cofactor regime, not worst cases over the
+format: the strict Goldwasser--Kilian descent $m = 2q$ sheds only one bit per step ($\theta = 1$),
+giving $\Theta(n^2)$ bits and $O(n^3\log n)$ verification, and the format equally admits (rare,
+never searched for) steeper chains that would verify faster.  Table~\ref{tab:summary} quotes the
+customary regime.
 (Verification is embarrassingly parallel across steps, a fact used in practice for the record
 certificates below.)
 
@@ -1391,125 +1425,15 @@ $O(\log\log p)$ multiplications for special primes; and whether $(5/2)\log_2 p$ 
 $p$ --- he declined to conjecture it --- remains untouched.  The formats here show the \emph{finding}
 cost of the known constructions rising steeply as verification approaches his constant; whether that
 trade-off is intrinsic is open.
-\item \emph{The three-way trade-off.}  Exhibit a certificate family achieving simultaneously:
-finding in (even randomized, even heuristic) polynomial time; size $n^{1+o(1)}$; and verification in
-$O(n^{2+o(1)})$ bit operations.  Short ECPP achieves the last two with $\Lp{1/3}{{\approx}1.14}$
-finding; the AKS--Bernstein certificate (Appendix~\ref{app:aks}) achieves the first two --- finding in
-expected \emph{quadratic} time --- with $(\log p)^{4+o(1)}$ verification, quartic for every known way
-of checking its central congruence (Appendix~\ref{app:aks}).  No known family achieves all three.
+\item \emph{The find/verify trade-off.}  Exhibit a certificate family achieving both finding in
+(even randomized, even heuristic) polynomial time and verification in $O(n^{2+o(1)})$ bit operations.
+(Certificate size needs no third demand: a verifier must read what it uses, so effective size never
+exceeds verification time --- and the AKS--Bernstein family shows a small certificate can even be
+worthless, Remark~\ref{rem:aks}.)  Short ECPP achieves the verification side with
+$\Lp{1/3}{{\approx}1.14}$ finding; the AKS--Bernstein certificate achieves the finding side ---
+expected \emph{quadratic} time --- but verifies quartically, for every known way of checking its
+central congruence (Remark~\ref{rem:aks}).  No known family achieves both.
 \end{enumerate}
-
-\appendix
-
-\section{The AKS--Bernstein certificate}\label{app:aks}
-
-This appendix spells out, from \cite{Ber07}, the certificate summarized in Remark~\ref{rem:aks}: the
-definition, the existence theorem with witness set $S = \{1\}$, the verification algorithm with its
-cost accounting, and the comparison with the elliptic formats.  Throughout, $p > 1$ is the integer to
-be certified and $n = \lceil\log_2 p\rceil$.
-
-\subsection{The certificate}
-
-\begin{definition}[{\cite[Def.~3.1]{Ber07}}]\label{def:akscert}
-Let $d, e$ be positive integers, $c, c_-$ integers, $f$ a monic polynomial in $(\Z/p\Z)[y]$ of degree
-$d$, $R = (\Z/p\Z)[y]/f$, $r \in R$, and $S \subseteq R$ a finite set.  Then
-$(d, e, c, c_-, f, r, S)$ is a \emph{certificate} for $p$ if:
-\begin{enumerate}
-\item $e$ divides $p^d - 1$, and $e > c \ge c_- \ge 0$;
-\item $r^{p^d-1} = 1$ in $R$, and $r^{(p^d-1)/q} - 1$ is a unit in $R$ for each prime $q \mid e$;
-\item every $s \in S$ is a unit in $R$; $s^e - (s')^e$ is a unit for all distinct $s, s' \in S$; and
-$s^e - r$ is a unit for all $s \in S$;
-\item $\displaystyle\binom{e\#S}{c_-}\binom{c}{c_-}\binom{e\#S - c_- + e-1-c}{e-1-c} \;\ge\;
-p^{d\sqrt{e/3}}$; and
-\item $(x-s)^{p^d} = r^{(p^d-1)/e}\,x - s$ in the ring $R[x]/(x^e - r)$, for every $s \in S$.
-\end{enumerate}
-If $p$ has a certificate then $p$ is a power of a prime \cite[Thm.~3.2]{Ber07}.
-\end{definition}
-
-Nothing is assumed about $f$ beyond monicity --- in particular the verifier never tests
-irreducibility; soundness maps $R$ onto a field over a prime divisor of $p$ regardless.  The proof of
-soundness is an AKS-type counting argument: condition (2) makes $r^{(p^d-1)/e}$ an exact $e$-th root
-of unity $\zeta$ locally, condition (5) lets Frobenius-like maps generate at least
-$p^{d\sqrt{e/3}}$ distinct products of the $\zeta^i x - s$ (this is where condition (4) enters), and a
-Minkowski-lattice collision among the maps $u \mapsto u^{p^i P^j}$ then forces $p$ to be a prime
-power.  A $(\log p)^{1+o(1)}$ perfect-power test \cite{Ber98} upgrades ``prime power'' to
-``prime.''
-
-\subsection{Existence: \texorpdfstring{$S = \{1\}$}{S = \{1\}} always suffices}
-
-\begin{theorem}[{\cite[Thms.~5.1--5.3]{Ber07}}]\label{thm:akscert}
-Let $p$ be prime.
-\begin{enumerate}
-\item For every $d \ge 1$, every divisor $e \ge 6$ of $p^d-1$ with $e \ge d^2\lceil\log_2 p\rceil^2$,
-every monic \emph{irreducible} $f$ of degree $d$, and every $r \in R$ such that $r^{(p^d-1)/e}$ has
-order $e$: the tuple $(d, e, 0, 0, f, r, \{1\})$ is a certificate for $p$.
-\item Such a pair $(d, e)$ exists for every $p \ge 2$, and the least admissible $d$ satisfies
-$d \le \exp(O(\log\log\log p \cdot \log\log\log\log p)) = (\log p)^{o(1)}$, so that
-$e = (\log p)^{2+o(1)}$; this rests on lower bounds for the smooth part of $p^d - 1$ of
-Odlyzko--Pomerance type.
-\end{enumerate}
-Consequently every prime has a certificate with $\#S = 1$ and $c = c_- = 0$, of total size
-$(\log p)^{1+o(1)}$ bits: the small integers $d, e$, and the elements $f, r$ of
-$O(d\log p)$ bits each.
-\end{theorem}
-
-Irreducibility of $f$ and the order condition on $r$ enter only here, to \emph{guarantee} existence
-($R$ is then a field, and any generator of $R^*$ works for $r$); an $f$ that happens to be reducible
-can still appear in a valid certificate.  The finder of \cite[\S4]{Ber07} samples both: an irreducible
-$f$ in expected $d$ trials, and a valid $r$ in expected $\prod_{q \mid e} q/(q-1) = (\log p)^{o(1)}$
-trials, each trial one exponentiation of cost $(\log p)^{2+o(1)}$; locating $(d, e)$ costs
-$(\log p)^{2+o(1)}$ by batched remainder trees.  Total expected finding time:
-$(\log p)^{2+o(1)}$.  Larger witness sets $S$ permit smaller $e$ --- the gain in condition (4) is only
-logarithmic in $\#S$, however, while the cost of condition (5) grows linearly in $\#S$, so bounded
-$\#S$ is asymptotically optimal and the freedom is used for constant-factor tuning
-\cite[\S7]{Ber07}.
-
-\subsection{The verification algorithm}\label{sec:aksverif}
-
-Given $p$ and a claimed certificate $(d, e, c, c_-, f, r, S)$ with $d, \#S \le (\log p)^{o(1)}$ and
-$e \le (\log p)^{2+o(1)}$ (``reasonably small'' in \cite[\S6]{Ber07}; the verifier rejects larger
-parameters):
-\begin{enumerate}
-\item Check that $p$ is not a perfect power \cite{Ber98}.  \hfill $(\log p)^{1+o(1)}$
-\item Compute $p^d - 1$; check $e \mid p^d - 1$ and $e > c \ge c_- \ge 0$.  \hfill
-$(\log p)^{1+o(1)}$
-\item Check condition (4): the three binomial coefficients are integers of $(\log p)^{2+o(1)}$ bits,
-computable by balanced products; compare against $p^{d\sqrt{e/3}}$ via $(\log p)^{2+o(1)}$-bit
-arithmetic.  \hfill $(\log p)^{2+o(1)}$
-\item Check $r^{p^d-1} = 1$ in $R$: $d\log_2 p$ squarings in $R$, each $(\log p)^{1+o(1)}$ bit
-operations.  \hfill $(\log p)^{2+o(1)}$
-\item Factor $e$ by trial division; for each of its $(\log p)^{o(1)}$ primes $q$, check that
-$r^{(p^d-1)/q} - 1$ is a unit in $R$ (a unit test in $R$ is a polynomial gcd with $f$ plus integer
-gcds with $p$, $(\log p)^{1+o(1)}$).  \hfill $(\log p)^{2+o(1)}$
-\item Check the unit conditions on $S$: each $s$, each $s^e - r$, each $s^e - (s')^e$.  \hfill
-$(\log p)^{1+o(1)}$ per test
-\item \emph{The big exponentiation.}  For each $s \in S$, compute $(x-s)^{p^d}$ in
-$R[x]/(x^e - r)$ by square-and-multiply and compare with $r^{(p^d-1)/e}x - s$.  A ring element
-occupies $e \cdot d \cdot \log_2 p = (\log p)^{3+o(1)}$ bits, one ring multiplication costs
-$(\log p)^{3+o(1)}$ (Kronecker substitution), and there are $d\log_2 p = (\log p)^{1+o(1)}$
-squarings: \hfill $(\log p)^{4+o(1)}$
-\end{enumerate}
-Accept iff all checks pass; then $p$ is a prime power by Definition~\ref{def:akscert}, hence prime by
-step 1.  Every step is deterministic and unconditional.  The total is $(\log p)^{4+o(1)}$ bit
-operations, entirely dominated by step 7.
-
-\subsection{Why quartic, and the comparison with the elliptic formats}\label{sec:aksquartic}
-
-The quartic cost of step 7 is not an accident of implementation: condition (4) --- the engine of the
-soundness proof --- forces $e\#S \gtrsim \sqrt{e}\,d\log p$ up to logarithmic factors, i.e.\
-$e = \widetilde\Omega((\log p)^2)$ for bounded $\#S$, so that the congruence ring has
-$\widetilde\Omega((\log p)^3)$ bits, and the exponent $p^d$ has $\Theta(d \log p)$ bits.  Any verifier
-that checks condition (5) by \emph{computing} the power in that ring therefore spends
-$(\log p)^{4+o(1)}$, and larger $\#S$ does not help (it trades a polylogarithmically smaller $e$
-against linearly more congruences, and loses).  This is a floor for the known approach, not a proven
-lower bound: nothing rules out a verifier that checks (5) without computing it --- none is known.  The
-upshot
-for this survey's central trade-off: the AKS--Bernstein certificate achieves \emph{polynomial ---
-indeed expected quadratic --- finding} and \emph{linear size}, but quartic verification; the short
-ECPP of \S\ref{sec:short} achieves \emph{linear size} and \emph{quasi-quadratic verification}, but
-$\Lp{1/3}{\cdot}$ finding.  Neither dominates the other, and no known certificate family combines
-polynomial finding, linear size, and quasi-quadratic verification --- the closing open problem of
-\S\ref{sec:synthesis}.
 
 \begin{thebibliography}{FKMW04}
 
@@ -1521,9 +1445,6 @@ Finite Fields}, Lecture Notes in Math.\ 1512, Springer, 1992, \href{https://doi.
 
 \bibitem[AM93]{AM93} A.~O.~L. Atkin, F.~Morain, Elliptic curves and primality proving, \emph{Math.\
 Comp.}\ 61 (1993), 29--68, \href{https://doi.org/10.1090/S0025-5718-1993-1199989-X}{doi:10.1090/S0025-5718-1993-1199989-X}.
-
-\bibitem[Bac90]{Bach90} E.~Bach, Explicit bounds for primality testing and related problems,
-\emph{Math.\ Comp.}\ 55 (1990), 355--380, \href{https://doi.org/10.1090/S0025-5718-1990-1023756-8}{doi:10.1090/S0025-5718-1990-1023756-8}.
 
 \bibitem[Ber04]{Bern04} D.~J. Bernstein, How to find smooth parts of integers, preprint, 2004,
 \url{https://cr.yp.to/papers.html#smoothparts}.
@@ -1539,9 +1460,6 @@ numbers, \emph{Math.\ Comp.}\ 74 (2005), 2043--2059, \href{https://doi.org/10.10
 
 \bibitem[BLS75]{BLS75} J.~Brillhart, D.~H. Lehmer, J.~L. Selfridge, New primality criteria and
 factorizations of $2^m\pm 1$, \emph{Math.\ Comp.}\ 29 (1975), 620--647, \href{https://doi.org/10.1090/S0025-5718-1975-0384673-1}{doi:10.1090/S0025-5718-1975-0384673-1}.
-
-\bibitem[BLS12]{BLS12} R.~Br\"oker, K.~Lauter, A.~V. Sutherland, Modular polynomials via isogeny
-volcanoes, \emph{Math.\ Comp.}\ 81 (2012), 1201--1231, \href{https://doi.org/10.1090/S0025-5718-2011-02508-1}{doi:10.1090/S0025-5718-2011-02508-1}.
 
 \bibitem[CEP83]{CEP83} E.~R. Canfield, P.~Erd\H{o}s, C.~Pomerance, On a problem of Oppenheim concerning
 ``factorisatio numerorum,'' \emph{J.~Number Theory} 17 (1983), 1--28, \href{https://doi.org/10.1016/0022-314X(83)90002-1}{doi:10.1016/0022-314X(83)90002-1}.

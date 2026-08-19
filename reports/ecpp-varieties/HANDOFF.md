@@ -31,14 +31,28 @@ Drew as three lists; **list 1 (16 agreed items) is applied and committed**:
   3cd7be6, OneShot 188f53e, Short 0408b2b, accessed 2026-08-19); OSF cited by
   branch; \texorpdfstring in 6 math titles (0 bookmark warnings); date → Aug 19.
 
-**Pending Drew's verdicts (list 2, A–E)**: A = swap Table-1 short-verification
-cell to worst-case O(n²(log n)²)?; B = Prop 6.4 response — my analysis: Sol
-MISREAD the model (S = N/q fully y-smooth IS the exposure condition for a
-budget-y ECM prover; arbitrary y-smooth discarded cofactors allowed; the q ≤ y
-channel is p^(-1/8)-subdominant) — plan is rebut-and-clarify, needs sanction;
-C = classical-ECPP minimal clarification vs full strict-2q/smooth-cofactor
-split; D = Sol's 8–10 pages of cuts (mostly conflict with the doc's purpose);
-E = partial-order diagram or prose only.  List 3 = rebuttals, no action.
+**Round 2 (Drew's verdicts applied)**: A ✓ Table-1 short cell now reads
+"O(n²(log n)²); O(n² log n)†" (worst case first, dagger reworded).  B ✓
+rebut-and-clarify sanctioned and done: Prop 6.4's statement now names "the
+budgeted-ECM search above (channels (1)–(3))", and a paragraph after (H1)–(H3)
+proves the exposure equivalence (S = N/q y-smooth ⟺ q exposable; discarded
+cofactor arbitrary within y-smoothness; the q ≤ y large-filler channel needs an
+n²-smooth part > √p/y, probability p^(-1/4+o(1)) — NB round-1 note said
+p^(-1/8), wrong — negligible vs 1/L(1/3); alarm-budget = soft threshold,
+constants only).  C ✓ minimal split: §7.2 typical-output-vs-worst-case
+sentences (strict 2q: Θ(n²) size, O(n³ log n) verification) + Table-1 caption
+clause; no separate rows (Drew).  **F ✓ AKS Appendix A REMOVED entirely
+(Drew's call)** — his rationale, now IN Remark 1.1: finding is cheaper than
+verifying, so a Las Vegas verifier regenerates certificate data from the empty
+string in the same total time (MR witnesses dispatch composites, Mil76/Rab80
+now cited); the certificate buys determinism only, size is beside the point.
+Remark 1.1 is the sole self-contained AKS treatment (tuple shape, S={1} with
+d,e params, concrete 2^1024+643 instance, quartic-floor argument absorbed from
+A.4, Ber98 kept for the perfect-power test).  §8 item 8 reframed three-way →
+find/verify two-way (size ≤ verification time always; small certs can be
+worthless).  Uncited-since-ever bibitems Bach90 + BLS12 removed.  **D and E ON
+HOLD (Drew is thinking)**: D = Sol's 8–10 pages of cuts; E = partial-order
+diagram vs prose (prose is in).  List 3 = rebuttals, no action.
 
 ## The deliverable
 
@@ -68,7 +82,7 @@ The old HTML version is retired (index.html here is a redirect stub); **the
 - n = ceil(log2 p); L(p) = q+1+floor(2 sqrt q), q = floor(sqrt p).
 - Summary Table 1 lists finding costs SEA-first; no descent-chain row; Pratt
   finding = L_p(1/3,(64/9)^{1/3}) via NFS; AKS = the AKS–Bernstein certificate
-  row (Remark 1.1 + Appendix A); ECPP row: (log p)^{6+o(1)} SEA (Drew agreed
+  row (Remark 1.1 ONLY — Appendix A removed 2026-08-19 per Drew, Round 2 above); ECPP row: (log p)^{6+o(1)} SEA (Drew agreed
   with the strict-downrun accounting), (log p)^{4+eps} CM.
 
 ## Review-hardened corrections already made (do NOT regress these)
@@ -78,9 +92,9 @@ The old HTML version is retired (index.html here is a redirect stub); **the
   Remark 1.1).  AKS–Bernstein certificate: S = {1} always suffices (Ber07
   Thms 5.1–5.3), size (log p)^{1+o(1)}, verification (log p)^{4+o(1)} (a
   structural quartic floor: e = Omega~((log p)^2) forced by the counting
-  argument), randomized finding (log p)^{2+o(1)}.  Appendix A has the
-  definition, existence, 7-step verifier, and the does-NOT-solve-the-
-  (poly find, linear size, quadratic verify)-problem discussion.
+  argument), randomized finding (log p)^{2+o(1)}.  [Appendix A, which held the
+  definition/existence/7-step verifier/trade-off discussion, was REMOVED
+  2026-08-19 per Drew — the essentials live in Remark 1.1; see Round 2 above.]
 - Short-ECPP verification: Prop 6.2 (peel the big prime first; cost
   parametrized by filler size/prime count), Remark 6.3 (tightened specs:
   factored fillers OR cap m_i <= n^c; empirical compliance of the 20 published
