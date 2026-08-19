@@ -191,7 +191,9 @@ def main():
     n = p.bit_length()
     n4 = (n * n) ** 2
     out = args.get("out", os.path.join(ROOT, "certs", "sea", "oneshot_sea_%d.txt" % n))
-    os.makedirs(os.path.dirname(out), exist_ok=True)
+    outdir = os.path.dirname(out)
+    if outdir:
+        os.makedirs(outdir, exist_ok=True)
     cands_path = out + ".cands"
 
     log("p = %d (%d bits), n^4 = %d, workers=%d cap=%s" % (p, n, n4, workers, cap or "off"))

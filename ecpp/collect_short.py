@@ -67,7 +67,9 @@ def main():
         if not (ok and okp):
             sys.exit("VERIFICATION FAILED at c=%d" % c)
         rows.append((c, m.group(2), m.group(3), seq))
-    os.makedirs(os.path.dirname(out), exist_ok=True)
+    outdir = os.path.dirname(out)
+    if outdir:
+        os.makedirs(outdir, exist_ok=True)
     with open(out, "w") as f:
         f.write("# short ECPP certificates for nextprime(10^c), c = 10, 20, ..., 100\n")
         f.write("# produced by ecpp/short.gp (toy SEA prover); verified by ecpp/vsmallECPP.py\n")

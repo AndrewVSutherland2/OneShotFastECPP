@@ -37,11 +37,20 @@ is needed; [o]P = O must be reached as a genuine (X:0) with gcd(X, p) = 1
 order modulo a factor of p); each (o/q)P != O leaf requires gcd(Z, p) = 1, i.e.
 nonvanishing modulo every prime divisor of p.
 
-Cost: one sieve to n^2 (O(n^2) bits); per level, batched remainder trees find
-the small prime divisors of o_i in O~(n * log o_i) and the ladder work is
-O(log o_i) group operations per tree level with O(log log o_i) levels in
-arithmetic mod p_i.  Level sizes decay geometrically (p_{i+1} < sqrt(p_i)), so
-the total is O(n^2 (log n)^2) bit operations and O(n^2) bits of memory.
+Cost (FFT integer multiplication assumed): one sieve to n^2 (O(n^2 loglog n) bit
+operations); ONE batched trial-division pass for the whole chain -- a prime can
+divide some o_i only if it divides D = prod_i o_i, an O(n)-bit integer, so a
+single sweep of remainder trees against D, with all products of primes built by
+balanced pairing, finds every level's small prime divisors in O(n^2 (log n)^2)
+bit operations including all product building; the elliptic work is O(log o_i)
+group operations per tree level with O(log log o_i) levels in arithmetic mod
+p_i, and level sizes decay geometrically (p_{i+1} < sqrt(p_i)).  Total:
+O(n^2 (log n)^2) bit operations and O(n^2) bits of memory, with no precomputed
+tables.  (Two changes versus the previous revision, neither affecting the
+accept/reject behavior: products of primes are built by balanced pairing rather
+than sequential accumulation, whose cost is quadratic in the product size; and
+the trial division is batched across the whole chain rather than repeated per
+level, which cost an extra factor of log n.)
 
 usage: python3 vsmallECPP.py p0 A0 x0 o0 [A1 x1 o1 ...]
        python3 vsmallECPP.py --test
@@ -95,7 +104,8 @@ def ladder(k, XP, ZP, A, p):
 
 
 # --------------------------------------------------------------------------
-# Trial division to n^2 via sieve + batched remainder trees (from voneshot.py).
+# Trial division to n^2 via sieve + batched remainder trees, in one pass for
+# the whole chain.
 # --------------------------------------------------------------------------
 def sieve_primes(limit):
     if limit < 2:
@@ -106,6 +116,26 @@ def sieve_primes(limit):
         if is_p[i]:
             is_p[i * i::i] = bytearray(len(is_p[i * i::i]))
     return [i for i in range(2, limit + 1) if is_p[i]]
+
+
+def balanced_product(xs):
+    """prod(xs) by power-of-two pairing: O(M(S) log k) bit operations for k
+    factors of total size S, versus Theta(S^2/k) for sequential accumulation
+    (each step re-scans the growing partial product)."""
+    if not xs:
+        return 1
+    if len(xs) <= 8:                    # bounded count: sequential is O(M(S))
+        r = xs[0]
+        for x in xs[1:]:
+            r *= x
+        return r
+    xs = list(xs)
+    while len(xs) > 1:
+        nxt = [xs[i] * xs[i + 1] for i in range(0, len(xs) - 1, 2)]
+        if len(xs) & 1:
+            nxt.append(xs[-1])
+        xs = nxt
+    return xs[0]
 
 
 def remainder_tree(x, mods):
@@ -126,25 +156,31 @@ def remainder_tree(x, mods):
     return rems[:k]
 
 
-def prime_divisors(m, primes, batch_bits):
-    out = []
+def batch_prime_divisors(os, primes):
+    """For each o in os, the ascending list of its distinct prime divisors that
+    lie in `primes` -- computed in ONE pass over the prime list.  A prime can
+    divide some o only if it divides D = prod(os), so the pass runs remainder
+    trees against D (an O(n)-bit integer for a valid chain), with the primes
+    grouped so each batch product is comparable to D in size; the few primes
+    dividing D (at most log2 D of them) are then distributed to the o's by
+    direct division.  One batch is resident at a time, so memory stays
+    O(sieve) = O(n^2) bits."""
+    D = balanced_product(os)
+    batch_bits = max(64, D.bit_length())
+    hits = []                                  # ascending primes dividing D
     batch = []
     bits = 0
     for q in primes:
         batch.append(q)
         bits += q.bit_length()
         if bits >= batch_bits:
-            Q = 1
-            for t in batch:
-                Q *= t
-            out += [q for q, r in zip(batch, remainder_tree(m % Q, batch)) if r == 0]
+            Q = balanced_product(batch)
+            hits += [t for t, r in zip(batch, remainder_tree(D % Q, batch)) if r == 0]
             batch, bits = [], 0
     if batch:
-        Q = 1
-        for t in batch:
-            Q *= t
-        out += [q for q, r in zip(batch, remainder_tree(m % Q, batch)) if r == 0]
-    return out
+        Q = balanced_product(batch)
+        hits += [t for t, r in zip(batch, remainder_tree(D % Q, batch)) if r == 0]
+    return [[q for q in hits if o % q == 0] for o in os]
 
 
 # --------------------------------------------------------------------------
@@ -159,12 +195,8 @@ def check_orders(XQ, ZQ, primes, A, p):
         return gcd(ZQ % p, p) == 1
     mid = t // 2
     Lh, Rh = primes[:mid], primes[mid:]
-    hL = 1
-    for q in Lh:
-        hL *= q
-    hR = 1
-    for q in Rh:
-        hR *= q
+    hL = balanced_product(Lh)
+    hR = balanced_product(Rh)
     XL, ZL = ladder(hL, XQ, ZQ, A, p)
     XR, ZR = ladder(hR, XQ, ZQ, A, p)
     return check_orders(XL, ZL, Rh, A, p) and check_orders(XR, ZR, Lh, A, p)
@@ -180,11 +212,25 @@ def verify(seq):
     if any(not isinstance(v, int) or v < 0 for v in seq):
         return False
     p = seq[0]
-    if p < 5 or p % 2 == 0:       # the definition takes p_0 >= 5 (2 and 3 have none)
+    if p < 5 or p % 2 == 0:
         return False
     n = p.bit_length()            # = ceil(log2 p0): p0 is odd, never a power of 2
+
+    # collect the level orders and pre-screen their sizes so that the batched
+    # trial division below runs on a certificate-independent budget.  Both
+    # bounds are implied by validity, so rejecting on them is sound: a valid
+    # chain has at most 1 + log2(n) levels (the moduli at least halve in bit
+    # length and stay above n^2 until the last), and every level order is below
+    # the Hasse bound of its modulus, hence below p0^2.
+    os = [seq[i + 2] for i in range(1, len(seq), 3)]
+    if len(os) > n:
+        return False
+    if any(o < 2 or o.bit_length() > 2 * n + 2 for o in os):
+        return False
     primes = sieve_primes(n * n)
-    for i in range(1, len(seq), 3):
+    small_lists = batch_prime_divisors(os, primes)   # one pass for the whole chain
+
+    for lev, i in enumerate(range(1, len(seq), 3)):
         A, x, o = seq[i], seq[i + 1], seq[i + 2]
         if p < 3 or p % 2 == 0:   # a mid-chain modulus collapsed to 1 (or worse)
             return False
@@ -197,7 +243,7 @@ def verify(seq):
 
         # split o into its n^2-smooth part m (with distinct primes `small`) and
         # its n^2-rough part p_next, the next modulus (1 at the end of the chain)
-        small = prime_divisors(o, primes, batch_bits=max(64, o.bit_length()))
+        small = small_lists[lev]
         rest = o
         for q in small:
             while rest % q == 0:
@@ -225,9 +271,7 @@ def verify(seq):
         # (o/q)P != O (mod every prime divisor of p) for each prime q | o;
         # p_next participates as a factor, its primality certified by level i+1
         divisors = small + ([p_next] if p_next > 1 else [])
-        R = 1
-        for q in divisors:
-            R *= q
+        R = balanced_product(divisors)
         XQ, ZQ = ladder(o // R, x, 1, A, p)
         if not check_orders(XQ, ZQ, divisors, A, p):
             return False
@@ -258,11 +302,8 @@ _INVALID = [
     "221 5 2 34",                  # composite p0 (221 = 13*17)
     "251 2 10 63",                 # singular curve (A = 2)
     "3 0 0 6",                     # p = 3 admits no short ECPP at all
-    # CRT/lcm pseudo-certificate: p0 = 2098153 * 2102167 is COMPOSITE, yet
-    # (x0, 1) has order exactly 8 * 525029 in E(Z/p0) -- order 8 modulo one
-    # factor, order 525029 modulo the other.  Every condition phrased over
-    # Z/p0 holds; it is rejected only because the order is required modulo
-    # EVERY prime divisor of p0 (the leaf gcds here expose both factors).
+    # CRT split attack: p0 = 2098153*2102167; (x0,1) has order exactly 8*525029
+    # in E(Z/p0) but order 8 mod one factor and 525029 mod the other
     "4410667997551 1365834658413 107710304518 4200232 199129 175565 880",
 ]
 
