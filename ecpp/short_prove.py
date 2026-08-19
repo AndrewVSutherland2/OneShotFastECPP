@@ -31,6 +31,7 @@ import json
 import math
 import os
 import random
+import shutil
 import subprocess
 import sys
 import time
@@ -51,10 +52,12 @@ from vsmallECPP import ladder, verify, sieve_primes, balanced_product, remainder
 ECM_BIN = os.environ.get("CHAIN_ECM", "")
 if not ECM_BIN:
     for cand_bin in ("/home/claude/.local/ecmpkg/usr/bin/ecm",
-                     os.path.expanduser("~/.local/ecmpkg/usr/bin/ecm"), "ecm"):
+                     os.path.expanduser("~/.local/ecmpkg/usr/bin/ecm")):
         if os.path.exists(cand_bin):
             ECM_BIN = cand_bin
             break
+    else:
+        ECM_BIN = shutil.which("ecm") or ""
 ECM_ENV = dict(os.environ)
 _ecm_lib = os.path.join(os.path.dirname(os.path.dirname(ECM_BIN)), "lib", "x86_64-linux-gnu") if ECM_BIN else ""
 ECM_ENV["LD_LIBRARY_PATH"] = _ecm_lib + ":" + ECM_ENV.get("LD_LIBRARY_PATH", "")
@@ -867,7 +870,9 @@ def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, res
     if out is None:
         out = os.path.join(ECPP_DIR, "..", "certs", "short",
                            (tag or ("p%dbits" % n)) + ".txt")
-    os.makedirs(os.path.dirname(out), exist_ok=True)
+    outdir = os.path.dirname(out)
+    if outdir:
+        os.makedirs(outdir, exist_ok=True)
     with open(out, "w") as f:
         f.write(" ".join(map(str, seq)) + "\n")
     with open(out + ".json", "w") as f:

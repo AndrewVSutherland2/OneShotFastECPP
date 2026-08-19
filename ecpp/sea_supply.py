@@ -46,7 +46,11 @@ SMOOTHTEST = os.path.join(HERE, "smoothtest")
 PCACHE = os.environ.get("ONESHOT_PCACHE_DIR", os.path.join(ROOT, "work", "pcache"))
 
 sys.path.insert(0, ROOT)
-import voneshot  # the challenge verifier: ladder + verify (acceptance oracle)
+try:
+    import voneshot  # the challenge verifier: ladder + verify (acceptance oracle)
+except ModuleNotFoundError:      # fresh checkout: use the bundled copy
+    sys.path.insert(0, os.path.join(ROOT, "verifier-batching-pr"))
+    import voneshot
 
 
 def log(msg):
