@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Short ECPP records: nextprime(10^c) for c = 210..310</title>
+<style>
+body {{ font: 16px/1.55 Georgia, serif; max-width: 60em; margin: 2em auto; padding: 0 1em; color: #1a1a1a; background: #fefefe; }}
+h1 {{ font-size: 1.6em; }} h2 {{ font-size: 1.25em; margin-top: 1.8em; border-bottom: 1px solid #ccc; }}
+table {{ border-collapse: collapse; margin: 1em 0; font-size: 0.92em; }}
+th, td {{ border: 1px solid #bbb; padding: 0.3em 0.6em; text-align: right; }}
+th {{ background: #f0ede4; }} td:first-child, th:first-child {{ text-align: left; }}
+code {{ background: #f4f2ea; padding: 0.1em 0.3em; font-size: 0.92em; }}
+.hl {{ background: #fdf6d8; padding: 0.8em 1em; border-left: 4px solid #c9a227; }}
+div.wide {{ overflow-x: auto; }}
+</style></head><body>
+
+<h1>Short ECPP records: nextprime(10<sup>c</sup>) for c = 210, &hellip;, 310</h1>
+
+<p class="hl"><b>Headline.</b> Every least prime above 10<sup>c</sup> for c = 210, 220, &hellip;, 310 now
+has a verified <i>short ECPP</i> certificate
+(<a href="https://github.com/AndrewVSutherland/ShortPrimalityProofs">ShortPrimalityProofs</a> format:
+O(n)-bit certificates, quasi-quadratic verification), extending the previous frontier of 10<sup>200</sup>.
+The 1030-bit prime 10<sup>310</sup>+733 exceeds the 1025-bit AKS example of Bernstein &mdash; to our
+knowledge the largest prime with an AKS-style proof &mdash; while its certificate is 5,854 bits
+(&asymp;732 bytes) and verifies in about a second.  All certificates were produced in a single day
+(2026-08-18) by a CM-method prover built on the
+<a href="https://github.com/AndrewVSutherland2/OneShotFastECPP">OneShotFastECPP</a> toolchain,
+each verified independently twice (<code>vsmallECPP.py</code> and a PARI <code>ellmul</code>
+cross-check of every level).</p>
+
+<h2>Results</h2>
+<div class="wide">
+<table><tr><th>p</th><th>bits</th><th>levels</th><th>cert bits</th><th>search wall (h)</th><th>&asymp;CPU core-h</th><th>candidate orders</th><th>top-level D</th><th>h(D)</th></tr>
+<tr><td>10<sup>210</sup>+1129</td><td>698</td><td>4</td><td>3,846</td><td>5.8</td><td>183</td><td>47,772</td><td>&minus;127,271,755</td><td>1,776</td></tr>
+<tr><td>10<sup>220</sup>+427</td><td>731</td><td>5</td><td>4,126</td><td>1.3</td><td>41</td><td>15,794</td><td>&minus;293,632,063</td><td>8,424</td></tr>
+<tr><td>10<sup>230</sup>+753</td><td>765</td><td>4</td><td>4,255</td><td>3.9</td><td>148</td><td>83,506</td><td>&minus;164,130,388</td><td>1,782</td></tr>
+<tr><td>10<sup>240</sup>+1723</td><td>798</td><td>5</td><td>4,481</td><td>1.6</td><td>291</td><td>56,114</td><td>&minus;1,844,131,747</td><td>8,285</td></tr>
+<tr><td>10<sup>250</sup>+1227</td><td>831</td><td>4</td><td>4,567</td><td>1.5</td><td>246</td><td>84,150</td><td>&minus;8,489,130,063</td><td>48,140</td></tr>
+<tr><td>10<sup>260</sup>+49</td><td>864</td><td>5</td><td>4,902</td><td>0.9</td><td>154</td><td>114,894</td><td>&minus;1,080,615,460</td><td>4,488</td></tr>
+<tr><td>10<sup>270</sup>+361</td><td>897</td><td>5</td><td>4,914</td><td>2.7</td><td>485</td><td>65,840</td><td>&minus;472,955,720</td><td>11,916</td></tr>
+<tr><td>10<sup>280</sup>+13</td><td>931</td><td>4</td><td>5,274</td><td>2.6</td><td>450</td><td>138,622</td><td>&minus;325,868,959</td><td>10,368</td></tr>
+<tr><td>10<sup>290</sup>+279</td><td>964</td><td>5</td><td>5,395</td><td>2.0</td><td>370</td><td>97,734</td><td>&minus;273,930,607</td><td>6,612</td></tr>
+<tr><td>10<sup>300</sup>+331</td><td>997</td><td>4</td><td>5,517</td><td>2.0</td><td>343</td><td>74,590</td><td>&minus;7,703,543,359</td><td>49,462</td></tr>
+<tr><td>10<sup>310</sup>+733</td><td>1030</td><td>5</td><td>5,854</td><td>5.0</td><td>812</td><td>148,960</td><td>&minus;83,632,771</td><td>2,907</td></tr>
+</table>
+</div>
+<p>CPU totals aggregate <i>every</i> attempt across restarts and spot preemptions (seven interruptions
+during the campaign), at the honest core-count of each phase; wall times likewise sum all attempts.
+Hardware: AWS <code>c8a/c7a.48xlarge</code> spot instances (192 Zen&nbsp;4/5 cores) plus a 16-core
+Ryzen AI Max 395 driver box.  Class polynomials of degree up to <b>49,462</b>
+(D = &minus;7,703,543,359 at the 997-bit level) were computed inline in under two minutes by
+parallel <code>classpoly</code>.</p>
+
+<h2>Method</h2>
+<p>A short ECPP level for a modulus p needs a curve order N = c&middot;m&middot;q where only
+m (n&sup2;-smooth, n fixed at the top of the chain) and the prime q &lt; &radic;p are exhibited
+&mdash; the cofactor c is <i>never factored</i>.  Per level:</p>
+<ol>
+<li><b>Candidate supply</b>: the <code>dscan</code> Cornacchia scan over fundamental discriminants
+(factor base of precomputed square roots; the new <code>maxfb</code> option bounds the factor base at
+10<sup>8</sup>, trading ~15% of usable density for a Tonelli pass that costs seconds instead of hours,
+which is what makes 10<sup>5</sup>-candidate pools affordable at 1030 bits).  Each solvable D yields
+two orders p+1&plusmn;t; supply cost &asymp;0.1&ndash;1 core-s per candidate.</li>
+<li><b>Batched smooth stripping</b> (Bernstein remainder trees against a cached primorial of all
+primes &le; 2<sup>32</sup>): splits N = s&middot;(middles)&middot;T at &asymp;0.5 core-s per candidate.
+The window rule L &lt; m&middot;q &lt; r(m)&middot;L makes the whole smooth part s act as coverage:
+a prime &#8467; | s alone covers the entire range q &isin; (L/&#8467;, L), so
+P(win) &prop; ln s &mdash; the key softening versus one-shot certificates.</li>
+<li><b>ECM peeling</b> of the rough tails (staged gmp-ecm, B1 = 2K &rarr; 3M): &gt;90% of all cost.
+Scheduling evolved during the campaign into a Bayesian index policy: rank by
+ln(ln s) &minus; 0.03&middot;(tail bits above &radic;p) &minus; 0.01&middot;(failed curves at the tier),
+round-robin sub-sweeps (every disc gets attempt k before any disc gets k+1), conditional duplicate
+slots when the pool narrows, and an economic widen trigger &mdash; extend the discriminant bound when
+the marginal admitted index drops below a fresh draw's median, since a fresh candidate costs
+30&ndash;300&times; less than a deep ECM visit.</li>
+<li><b>Winner construction</b>: H<sub>D</sub> by <code>classpoly</code> (best class invariant,
+parallel ECRT), Montgomery A from the u-cubic, 2-volcano floor descent when p &equiv; 3 (mod 4)
+requires a cyclic 2-Sylow, point of exact order m&middot;q by the x-only ladder; levels below 135
+bits finish via <code>short.gp</code> (SEA).</li>
+</ol>
+
+<h2>CM versus SEA supply</h2>
+<p>Measured at 1030 bits on the driver box: one PARI <code>ellap</code> point count =
+<b>3,749 s</b> (&asymp;31 core-min per candidate order), versus &asymp;0.1&ndash;1 core-s per
+candidate from the bounded-factor-base scan &mdash; a &gt;10<sup>3</sup>&times; supply-cost gap
+(698 bits: 413 s/curve, same conclusion).  Because the short-ECPP acceptance criterion is so much
+softer than the one-shot n<sup>4</sup>-smooth condition, candidate demand stays in the
+10<sup>4</sup>&ndash;10<sup>5</sup> range where the scan's quadratic-in-demand costs never bind;
+extrapolating both cost curves puts the SEA/CM crossover for short ECPP near <b>2000 bits</b>
+&mdash; effectively past the feasibility horizon of the shared ECM stage &mdash; versus
+&asymp;500 bits measured for one-shot certificates in the
+<a href="../sea-crossover/index.html">July race</a>.</p>
+
+<h2>Artifacts</h2>
+<ul>
+<li>Certificates + metadata: <code>certs/short/nextprime1e*.txt(.json)</code> in this repository;
+table + certs also in the <a href="https://github.com/AndrewVSutherland2/ShortPrimalityProofs/tree/new-records">ShortPrimalityProofs PR branch</a>.</li>
+<li>Prover: <code>ecpp/short_prove.py</code> (branch <code>short-ecpp-records</code>), with
+<code>dscan maxfb=</code>, the index scheduler, winner journals and preemption-safe resume.</li>
+<li>Verification: every certificate passes <code>vsmallECPP.py</code> and an independent
+PARI <code>ellmul</code> check of every level; both run on two different machines.</li>
+</ul>
+
+<p style="color:#666;font-size:0.85em">Campaign of 2026-08-18, Andrew V. Sutherland &amp; Claude
+(Fable 5).  Total &asymp;3,526 CPU core-hours across all targets, restarts and preemptions.</p>
+</body></html>
