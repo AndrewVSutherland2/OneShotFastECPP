@@ -233,11 +233,26 @@ def run_dscan(p, B, Bmin, threads, maxfb=0):
     return out
 
 
+def ensure_pcache(threads):
+    """Build the primorial cache on first use (fresh checkouts do not ship
+    the 775 MB file); smoothtest pbuild writes it once and load= reuses it."""
+    if os.path.exists(PCACHE):
+        return
+    os.makedirs(os.path.dirname(PCACHE), exist_ok=True)
+    log("building primorial cache %s (one-time, y=%d)" % (PCACHE, Y0))
+    r = subprocess.run([os.path.join(ECPP_DIR, "smoothtest"), "pbuild", "y=%d" % Y0,
+                        "save=" + PCACHE, "threads=%d" % threads],
+                       capture_output=True, text=True, env=ECM_ENV)
+    if r.returncode != 0 or not os.path.exists(PCACHE):
+        raise RuntimeError("smoothtest pbuild failed: %s" % r.stderr[:500])
+
+
 def smooth_strip(Ns, threads):
     """Batched y0-smooth-part extraction: N -> (S, T) with N = S*T, S the
     2^32-smooth part.  Uses the cached prime product via smoothtest parts."""
     if not Ns:
         return {}
+    ensure_pcache(threads)
     inp = "\n".join(str(N) for N in Ns) + "\n"
     r = subprocess.run([os.path.join(ECPP_DIR, "smoothtest"), "parts", "load=" + PCACHE,
                         "threads=%d" % threads],

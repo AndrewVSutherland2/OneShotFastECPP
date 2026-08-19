@@ -19,6 +19,7 @@ Modes:
       Emit tamper test vectors (each must be rejected by the verifier).
 """
 
+import os
 import subprocess
 import sys
 import random
@@ -135,6 +136,9 @@ def all_short_for_p(p, n2):
 
 
 def mode_p256(out_path):
+    outdir = os.path.dirname(out_path)
+    if outdir:
+        os.makedirs(outdir, exist_ok=True)
     primes = [p for p in range(3, 257) if all(p % d for d in range(2, isqrt(p) + 1))]
     lines = []
     summary = []
