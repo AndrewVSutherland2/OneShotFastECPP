@@ -4,6 +4,42 @@
 from GPT 5.6 Sol and wants to work through it.  That review discussion is the
 next unit of work.**  Everything below is the context a fresh session needs.
 
+## Sol-review progress (2026-08-19 session)
+
+Sol's review is committed here as `fable_ecpp_review.{tex,pdf}`.  Triage went to
+Drew as three lists; **list 1 (16 agreed items) is applied and committed**:
+
+- CM winner-classpoly cost fixed in §4.3.2 (Õ(|D|) = p^(1/4), only degree/root
+  at p^(1/8)); open problem 3 rewritten — output-sensitive enumeration alone no
+  longer closes the 1/8-vs-1/4 gap, a sub-Õ(|D|) commit is also needed.
+- 10^27 Pomerance estimate: 170 GPU-h (was "ten"); restricted-256: 5–10
+  core-years = days on 3000 cores (was "months"); both also in §8.
+- "Always arrangeable" now correctly via prime-power fillers (k_i = 1 trivial
+  exactness tree), not poly-size fillers (table dagger, Prop 6.2, intro item 4).
+- Remark 6.3 repairs: trial division Ω(n³/log n); Pollard–Strassen with search
+  radius B = n² → Õ(n)/level for EVERY fixed c (stronger than Sol's c ≤ 8 fix).
+- b→1 limit demoted to qualitative; AH92 = genus-2 Jacobians (not this format);
+  L(p) = upper bound (not attained max); "exactly two known ways" and other
+  absolutes hedged; codim-(n/2) → probability 2^(-n/2+o(n)).
+- Sizes: one-shot ≈2.5n–3n (Σlog q_i ≤ log m); short ≲5n — measured 3.2n–4.7n
+  over the 21 local chains (c=10..100 + 210..310).
+- Hierarchy paragraph → partial order (n⁴ one-shot vs short incomparable;
+  classical not a superset; existence scoped to Pomerance-containing formats).
+- AKS: table cell labeled "det. decision"; find/verify-inversion sentence added;
+  quartic "floor" softened to known-verifier floor (3 spots).
+- 40 bib entries got Crossref-VERIFIED DOIs; challenge repos pinned (DANGER3
+  3cd7be6, OneShot 188f53e, Short 0408b2b, accessed 2026-08-19); OSF cited by
+  branch; \texorpdfstring in 6 math titles (0 bookmark warnings); date → Aug 19.
+
+**Pending Drew's verdicts (list 2, A–E)**: A = swap Table-1 short-verification
+cell to worst-case O(n²(log n)²)?; B = Prop 6.4 response — my analysis: Sol
+MISREAD the model (S = N/q fully y-smooth IS the exposure condition for a
+budget-y ECM prover; arbitrary y-smooth discarded cofactors allowed; the q ≤ y
+channel is p^(-1/8)-subdominant) — plan is rebut-and-clarify, needs sanction;
+C = classical-ECPP minimal clarification vs full strict-2q/smooth-cofactor
+split; D = Sol's 8–10 pages of cuts (mostly conflict with the doc's purpose);
+E = partial-order diagram or prose only.  List 3 = rebuttals, no action.
+
 ## The deliverable
 
 `reports/ecpp-varieties/ecpp-varieties.tex` — a survey, written for Drew
