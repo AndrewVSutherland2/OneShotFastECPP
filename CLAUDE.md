@@ -3,6 +3,13 @@
 CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
 **Read `design.md` for the full technical picture, decisions, and roadmap.**
 
+> **CURRENT MAIN TASK (2026-08-19): the ecpp-varieties write-up.**  Drew has a
+> detailed review from GPT 5.6 Sol to work through.  Read
+> **`reports/ecpp-varieties/HANDOFF.md`** first — it has the full context:
+> the deliverable (`ecpp-varieties.tex`, sole maintained source; PDF committed
+> alongside), house conventions, the corrections already made (do not
+> regress), where every number is reproduced from, sources, and pending items.
+
 ## Status (2026-07-02) — COMPLETE, end to end
 - **`oneshot p=<prime>` → n⁴-smooth one-shot ECPP certificate**, verified by the challenge's
   `voneshot.py`. Cold runs (fresh pcache): 10⁶⁰+7 0.8 s, 10⁸⁰+129 5.5 s, 10⁹⁰+289 23.6 s,
