@@ -103,7 +103,7 @@ certificates in which each level's point order is ($n^2$-smooth)${}\times{}$(one
 $p_1 < \sqrt{p_0}$), and the next level certifies $p_1$.  Bit-lengths at least halve per level, so
 certificates stay linear in $\log p$ and verification is $O(n^2\log n)$ bit operations ---
 Pomerance-order (\S\ref{sec:shortverif}) --- while the free prime factor makes certificates
-\emph{findable} in heuristic subexponential time $\Lp{1/3}{{\approx}1.3}$.
+\emph{findable} in heuristic subexponential time $\Lp{1/3}{{\approx}1.14}$.
 \item \textbf{Classical ECPP} (Goldwasser--Kilian, Atkin--Morain): the chain descends by an
 $O(\log n)$-bit shrink per step with an essentially unconstrained cofactor.  Finding is heuristic
 polynomial time --- $(\log p)^{4+\eps}$ for fastECPP --- at the price of quadratic-size certificates and
@@ -139,7 +139,7 @@ restricted one-shot (\S\ref{sec:restricted}) & ${\approx}\,2.5n$ & $O(n^2(\log n
 one-shot, $n^4$-smooth \cite{OneShot} & ${\approx}\,2.5n$--$4n$ & $O(n^2(\log n)^2)$ &
   $p^{1/8+o(1)}$ SEA;\ \ $p^{1/4+o(1)}$ CM & all $p>3$\\
 short ECPP \cite{Short} & $O(n)$, ${\approx}\,5n$--$7n$ & $O(n^2\log n)^{\dagger}$ &
-  $\Lp{1/3}{c}$, $c \approx 1.31$ SEA; $1.39$ CM & all $p\ge 5$\\
+  $\Lp{1/3}{(3/2)^{1/3}{\approx}1.14}$, SEA \& CM & all $p\ge 5$\\
 ECPP \cite{GK86,AM93} & $\Theta(n^2/\log n)$ & $O(n^3)$ &
   $(\log p)^{6+o(1)}$ SEA;\ \ $(\log p)^{4+\eps}$ CM & all $p$ (heur.)\rlap{${}^{\ddagger}$}\\
 \bottomrule
@@ -1088,29 +1088,82 @@ partial-factorization strategies.  At small levels complete factorization is ava
 descends faster than square root (observed chains like $665 \to 333 \to 159 \to 47$ bits).
 
 \begin{proposition}[heuristic finding cost]\label{prop:shortfind}
-Model channel (3) with ECM as the budgeted factoring engine and reach $y$: a candidate order
-$N \approx p$ wins if $N = S\cdot q$ with $q$ prime ${}\le \sqrt p \approx N^{\sigma}$
-($\sigma = \tfrac12$) and the cofactor $S$ $y$-smooth; winners concentrate at cofactor size
-${\approx}\,p^{\sigma}$, so the per-candidate probability is $\rho(u)$,
-$u = \sigma\ln p/\ln y$, and each candidate costs an SEA count plus ECM peeling
-$L_y(1/2, \sqrt 2)$.  Optimizing $y$ (which lands at $y = \Lp{2/3}{\cdot}$) gives total heuristic cost
+Fix $b \in [\tfrac12, 1)$ and put $\sigma = 1-b$.  Under the heuristics (H1)--(H3) below, the
+expected cost of finding one level of a ratio-$b$ chain at modulus $p$ --- in particular a short ECPP
+level, $b = \tfrac12$ --- is
 \[
-  \Lp{1/3}{(9\sigma/2)^{1/3}} \;=\; \Lp{1/3}{(9/4)^{1/3} \approx 1.31}
-  \qquad\text{(SEA supply)},
+  \Lp{1/3}{(3\sigma)^{1/3}}
+  \;=\; \Lp{1/3}{(3/2)^{1/3} \approx 1.14}\quad\text{at } \sigma = \tfrac12,
 \]
-and with a CM-supplied candidate pool (scan cost ${\approx}\,\mathrm{candidates}^2$) the constant
-becomes
-\[
-  (2/3)(18\sigma)^{1/3} \approx 1.39 \qquad\text{(CM supply)}.
-\]
-Levels shrink geometrically, so the top level dominates and the whole chain costs the same ---
-subexponential, with a smaller constant than the $\Lp{1/3}{1.923}$ of factoring $p$ itself by NFS
-\cite{LL93}.
+attained with ECM budget $y = \Lp{2/3}{(\sigma^2/3)^{1/3}}$, and the same for both order supplies:
+SEA point counts contribute only polynomial factors, while the CM scan and winner class polynomial
+cost $\Lp{1/3}{(8\sigma/9)^{1/3}}$ --- exponent coefficient exactly two thirds of the total --- and
+hence never dominate.  The level exponents scale by $2^{-i/3}$ down the chain, so the top level
+dominates and the whole chain costs the same: subexponential, with a smaller constant than the
+$\Lp{1/3}{(64/9)^{1/3} \approx 1.92}$ of factoring $p$ itself by NFS \cite{LL93}.
 \end{proposition}
 
-The derivation and the $b$-parametrized generalization are in \osf{} (report \emph{descent-chain});
-the robust conclusions are the exponent $1/3$, the $(1-b)^{1/3}$ shape, and ``cheaper than
-factoring.''
+\begin{proof}[Heuristic derivation]
+The heuristics, all from \S\ref{sec:prelim}:
+\emph{(H1)} candidate orders behave as independent uniform Hasse-interval integers
+(\S\ref{sec:supply}; the local biases are $O(1)$ factors, invisible on the $L$-scale).
+\emph{(H2)} the event that a candidate $N \approx p$ splits as $N = Sq$ with $q$ prime in the
+acceptance window and $S = N/q$ $y$-smooth has probability $\rho(u)^{1+o(1)}$ with
+$u = \sigma\ln p/\ln y$: winners concentrate at maximal $q$, i.e.\ at cofactor size
+$S \approx p^{\sigma}$, since a smaller $q$ forces a larger smooth cofactor, which is doubly
+exponentially less likely, and the prime-density and window-width factors are polynomial in $\log p$,
+hence absorbed by the $o(1)$ (\S\ref{sec:smooth}).
+\emph{(H3)} ECM peels every prime factor ${}\le y$ of a candidate in expected time
+$L_y(1/2,\sqrt2)\cdot\mathrm{poly}(n)$ \cite{Len87}; a candidate that fails to peel within the budget
+is discarded (the early abort of channel (3)), which affects only the search, never soundness.
+
+Write $P_1 = \ln p$, $P_2 = \ln\ln p$, and $X = P_1^{1/3}P_2^{2/3}$, so that
+$\Lp{1/3}{c} = \exp((c+o(1))X)$, and take $\ln y = \gamma P_1^{2/3}P_2^{1/3}$ --- the scale is forced
+by the balance below.  Then $u = (\sigma/\gamma)P_1^{1/3}P_2^{-1/3}$ and
+$\ln u = \tfrac13 P_2(1+o(1))$, so the expected number of candidates is
+\[
+  1/\rho(u)^{1+o(1)} \;=\; \exp\bigl(u\ln u\,(1+o(1))\bigr)
+  \;=\; \exp\Bigl(\bigl(\tfrac{\sigma}{3\gamma}+o(1)\bigr)X\Bigr);
+\]
+and $\ln\ln y = \tfrac23 P_2(1+o(1))$ --- \emph{not} $P_2$; this is where conventions matter
+(Remark~\ref{rem:constants}) --- gives per-candidate peeling cost
+\[
+  L_y(1/2,\sqrt2) \;=\; \exp\bigl((\sqrt2+o(1))(\ln y\,\ln\ln y)^{1/2}\bigr)
+  \;=\; \exp\Bigl(\bigl(2(\gamma/3)^{1/2}+o(1)\bigr)X\Bigr).
+\]
+The total exponent coefficient $c(\gamma) = \sigma/(3\gamma) + 2(\gamma/3)^{1/2}$ is minimized at
+$\gamma^* = (\sigma^2/3)^{1/3}$, where the peeling term is exactly twice the candidate-count term and
+$c(\gamma^*) = 3\,\sigma^{1/3}3^{-2/3} = (3\sigma)^{1/3}$.
+
+Supplies.  With SEA, each candidate adds one point count, $\mathrm{poly}(n) = \exp(o(X))$.  With CM,
+$K$ candidates require discriminants up to $B = \widetilde\Theta(K^2)$ (\S\ref{sec:cmengine}), so the
+scan --- and the winner's class polynomial, $\Ot(B)$ --- costs
+$\exp\bigl((2\sigma/(3\gamma)+o(1))X\bigr)$; at $\gamma^*$ this coefficient is
+$2\sigma^{1/3}3^{-2/3} = (8\sigma/9)^{1/3}$, strictly below $c(\gamma^*)$.  Nor can any other
+$\gamma$ improve the CM total $\max\bigl(2\sigma/(3\gamma),\, c(\gamma)\bigr)$: $c(\gamma^*)$ is the
+global minimum of $c$, and the scan term sits below it there, so the minimum of the max is again
+$c(\gamma^*)$ --- the scan-versus-peeling trade never binds.  Finally, the level at the
+$n/2^i$-bit modulus costs $\exp\bigl(c\,2^{-i/3}X(1+o(1))\bigr)$, a geometrically shrinking exponent,
+so the chain total is dominated by its top level.
+\end{proof}
+
+\begin{remark}[conventions, and the previously quoted constants $1.31$ and $1.39$]
+\label{rem:constants}
+Earlier revisions of this write-up, following the prototype analysis in \osf{} (report
+\emph{descent-chain}), quoted $\Lp{1/3}{(9\sigma/2)^{1/3} \approx 1.31}$ for the SEA supply and
+$\Lp{1/3}{(2/3)(18\sigma)^{1/3} \approx 1.39}$ for CM.  Those constants come from two coarser
+choices.  Approximating $\ln\ln y$ by $\ln\ln p$ (rather than $\tfrac23\ln\ln p$) inflates the
+peeling coefficient by $(3/2)^{1/2}$ and the optimized constant by $(3/2)^{1/3} \approx 1.14$,
+turning $(3\sigma)^{1/3}$ into $(9\sigma/2)^{1/3}$; and, for CM, imposing the balance
+``scan $=$ candidates${}\times{}$peeling'' --- which the minimax in the proof shows to be non-binding
+--- yields $(16\sigma/3)^{1/3} = (2/3)(18\sigma)^{1/3}$.  The corrected accounting makes the two
+supplies share the leading constant; the real difference between them lives in the polynomial
+factors (a stock SEA count per candidate against a polylogarithmic amortized scan), which matter at
+feasible sizes but are invisible on the $L$-scale.  And since all these expressions converge only at
+the $\ln\ln\ln p/\ln\ln p$ rate, no such constant is quantitatively meaningful at feasible sizes
+anyway: the robust conclusions are the exponent $1/3$, the $(1-b)^{1/3}$ shape of the
+$b$-dependence, and ``cheaper than factoring $p$.''
+\end{remark}
 
 \subsection{Results to date}\label{sec:shortresults}
 
@@ -1155,7 +1208,9 @@ prime satisfies $q \le p^b$ (and the point order is just $c\cdot q$ with no mini
 analyzed and prototyped in \osf{} (report \emph{descent-chain}) for $b \in (\tfrac12, 1)$: certificate
 size $O(n)/(1-b)$; verification $O(n^2\log n)/(1-b^2)$ bit operations --- Pomerance's order, the
 geometric shrink killing the one-shot's extra log factor; finding
-$\Lp{1/3}{(2/3)(18(1-b))^{1/3}}$, which tends to $0$ as $b \to 1$ --- recovering polynomial-time
+$\Lp{1/3}{(3(1-b))^{1/3}}$ (Proposition~\ref{prop:shortfind}; the prototype report's original
+constants used the coarser convention of Remark~\ref{rem:constants}), which tends to $0$ as
+$b \to 1$ --- recovering polynomial-time
 classical ECPP in the limit, at the price of $\Theta(n)$ levels and quadratic certificates.  Short ECPP
 is the $b = \tfrac12$ endpoint with minimized orders.  Measured with $b = 0.85$ on a 16-core desktop:
 $2^{255}-19$ proved in 3.7 s (vs ${\approx}$15 s one-shot), $10^{100}+267$ in 3.7 s (vs 7.9 min
@@ -1288,7 +1343,7 @@ cost of the known constructions rising steeply as verification approaches his co
 trade-off is intrinsic is open.
 \item \emph{The three-way trade-off.}  Exhibit a certificate family achieving simultaneously:
 finding in (even randomized, even heuristic) polynomial time; size $n^{1+o(1)}$; and verification in
-$O(n^{2+o(1)})$ bit operations.  Short ECPP achieves the last two with $\Lp{1/3}{{\approx}1.31}$
+$O(n^{2+o(1)})$ bit operations.  Short ECPP achieves the last two with $\Lp{1/3}{{\approx}1.14}$
 finding; the AKS--Bernstein certificate (Appendix~\ref{app:aks}) achieves the first two --- finding in
 expected \emph{quadratic} time --- with $(\log p)^{4+o(1)}$ verification, a quartic floor that is
 structural for its proof technique.  No known family achieves all three.
