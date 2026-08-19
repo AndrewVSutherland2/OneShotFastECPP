@@ -79,12 +79,14 @@ def ensure_pcache(n4, threads):
         return path
     os.makedirs(PCACHE, exist_ok=True)
     log("building prime-product cache for y=%d (one-time, minutes)..." % n4)
-    tmp = path + ".tmp"
+    tmp = "%s.tmp.%d" % (path, os.getpid())     # per-process: concurrent cold
     r = subprocess.run([SMOOTHTEST, "pbuild", "y=%d" % n4, "threads=%d" % threads,
                         "save=%s" % tmp], capture_output=True, text=True)
     if r.returncode != 0 or not os.path.exists(tmp):
+        if os.path.exists(tmp):
+            os.remove(tmp)
         sys.exit("pbuild failed:\n" + r.stderr)
-    os.replace(tmp, path)                 # atomic: no partial cache on interrupt
+    os.replace(tmp, path)     # atomic; racing builders publish identical content
     log("cache built: %s" % path)
     return path
 

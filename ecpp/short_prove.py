@@ -46,8 +46,37 @@ if not SPP_DIR:
         if os.path.exists(os.path.join(cand_dir, "vsmallECPP.py")):
             SPP_DIR = cand_dir
             break
-sys.path.insert(0, SPP_DIR if SPP_DIR and os.path.exists(os.path.join(SPP_DIR, "vsmallECPP.py")) else ECPP_DIR)
-from vsmallECPP import ladder, verify, sieve_primes, balanced_product, remainder_tree
+def _load_verifier():
+    """Prefer the ShortPrimalityProofs checkout's verifier, but only when it
+    exports every symbol we need (older copies predate the batched helpers);
+    otherwise use the known-compatible bundled module."""
+    import importlib.util
+    names = ("ladder", "verify", "sieve_primes", "balanced_product", "remainder_tree")
+    paths = []
+    if SPP_DIR:
+        paths.append(os.path.join(SPP_DIR, "vsmallECPP.py"))
+    paths.append(os.path.join(ECPP_DIR, "vsmallECPP.py"))
+    for path in paths:
+        if not os.path.exists(path):
+            continue
+        spec = importlib.util.spec_from_file_location("vsmallECPP", path)
+        mod = importlib.util.module_from_spec(spec)
+        try:
+            spec.loader.exec_module(mod)
+        except Exception:
+            continue
+        if all(hasattr(mod, n) for n in names):
+            sys.modules["vsmallECPP"] = mod
+            return mod
+    sys.exit("no compatible vsmallECPP.py found (need: ladder, verify, "
+             "sieve_primes, balanced_product, remainder_tree)")
+
+_verifier = _load_verifier()
+ladder = _verifier.ladder
+verify = _verifier.verify
+sieve_primes = _verifier.sieve_primes
+balanced_product = _verifier.balanced_product
+remainder_tree = _verifier.remainder_tree
 
 ECM_BIN = os.environ.get("CHAIN_ECM", "")
 if not ECM_BIN:
@@ -240,13 +269,15 @@ def ensure_pcache(threads):
         return
     os.makedirs(os.path.dirname(PCACHE), exist_ok=True)
     log("building primorial cache %s (one-time, y=%d)" % (PCACHE, Y0))
-    tmp = PCACHE + ".tmp"
+    tmp = "%s.tmp.%d" % (PCACHE, os.getpid())   # per-process: concurrent cold
     r = subprocess.run([os.path.join(ECPP_DIR, "smoothtest"), "pbuild", "y=%d" % Y0,
                         "save=" + tmp, "threads=%d" % threads],
                        capture_output=True, text=True, env=ECM_ENV)
     if r.returncode != 0 or not os.path.exists(tmp):
+        if os.path.exists(tmp):
+            os.remove(tmp)
         raise RuntimeError("smoothtest pbuild failed: %s" % r.stderr[:500])
-    os.replace(tmp, PCACHE)               # atomic: no partial cache on interrupt
+    os.replace(tmp, PCACHE)   # atomic; racing builders publish identical content
 
 
 def smooth_strip(Ns, threads):
@@ -778,8 +809,8 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
 def gp_tail_chain(q, n2):
     """Finish the chain below CM_MIN_BITS with short.gp's SEA search."""
     sgp = os.path.join(SPP_DIR, "short.gp") if SPP_DIR else ""
-    if not sgp or not os.path.exists(sgp):
-        sgp = os.path.join(ECPP_DIR, "short.gp")
+    if not sgp or not os.path.exists(sgp) or "scchain(" not in open(sgp).read():
+        sgp = os.path.join(ECPP_DIR, "short.gp")   # bundled copy defines scchain
     script = open(sgp).read() + (
         "\nSC_tlim=60;\nSC_branchcurves=200;\n"
         "tv=scchain(%d,%d,0);\n"
