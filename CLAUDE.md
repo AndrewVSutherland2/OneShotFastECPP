@@ -3,6 +3,13 @@
 CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
 **Read `design.md` for the full technical picture, decisions, and roadmap.**
 
+> **CURRENT MAIN TASK (2026-08-19): the ecpp-varieties write-up.**  Drew has a
+> detailed review from GPT 5.6 Sol to work through.  Read
+> **`reports/ecpp-varieties/HANDOFF.md`** first — it has the full context:
+> the deliverable (`ecpp-varieties.tex`, sole maintained source; PDF committed
+> alongside), house conventions, the corrections already made (do not
+> regress), where every number is reproduced from, sources, and pending items.
+
 ## Status (2026-07-02) — COMPLETE, end to end
 - **`oneshot p=<prime>` → n⁴-smooth one-shot ECPP certificate**, verified by the challenge's
   `voneshot.py`. Cold runs (fresh pcache): 10⁶⁰+7 0.8 s, 10⁸⁰+129 5.5 s, 10⁹⁰+289 23.6 s,
@@ -76,6 +83,39 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   base fits ~30% of physical RAM (~67 B/prime at 383 bits: 128 GB → 2e10, 1 TB → 8e10,
   1.5 TB → 1.6e11); `B=` still overrides. The y=n⁴ exhaust message now suggests the next B
   and the ~GB-per-1e9-of-B factor-base cost. (10^115+79 exhausted the old fixed 2e10 cap.)
+- **Descent-chain prototype (2026-07-22)**: `ecpp/chain_prove.py` + `ecpp/vchain.py` — Drew's
+  b-descent variant: chain of GK certificates, bits(q) ≤ b·bits(p) per step (b=0.85 default),
+  cofactor peeled by trial division + gmp-ecm rounds over the dscan pool; heuristically
+  L_p(1/3, (2/3)(18(1-b))^(1/3)) vs the one-shot's p^(1/4+o(1)), verification
+  O(n² log n)·1/(1-b²) (Pomerance-order, log log better than one-shot). vchain: stdlib-only,
+  gcd-guarded affine ladder (sound for composite p), MR-12-bases base case < 2^64. Certs in
+  `certs/chain/` (256-bit ~3 s vs one-shot ~15 s; 10^100+267 3.7 s vs 7.9 min; 1024-bit 128 s /
+  9 steps / verify 0.4 s — far beyond one-shot reach). All steps PARI-cross-checked; tamper
+  tests rejected. Analysis + results: `reports/descent-chain/index.html`. Needs a gmp-ecm
+  binary (`ecm=` arg or CHAIN_ECM env; built from release tarball, no autotools on dev box).
+- **SEA supply + crossover race (2026-07-29)**: `ecpp/sea_supply.py` — random Montgomery curves
+  + PARI ellap as the candidate-order supply (heuristically p^(1/8+o(1)): flat poly cost per
+  candidate, no quadratic scan, no winner classpoly), same `smoothtest gate` n⁴ window; winners
+  assembled to voneshot certs with verify() as acceptance oracle (needs `voneshot.py` at repo
+  root). Raced vs oneshot on a 192-core spot box, same prime each size: 256: CM 4.1 s / SEA
+  68 s; 384: 2306/615; 416: 1774/2805; 448: 7182 / stopped 20035 s no winner. Per-candidate:
+  SEA flat 7–14 core-s, CM avg 2.2–4.5 rising — expected-cost crossover extrapolates to
+  ~480–512 bits (walls flip on density luck from 384 up; observed fudge over ρ(u/2): 1–8×).
+  No SEA-side accelerations implemented (stage-1 gate/batch tail need ellsea internals).
+  Report: `reports/sea-crossover/`; certs in `certs/sea/`; raw cands in `work/race-archive/`.
+
+- **Short ECPP records (2026-08-18)**: `ecpp/short_prove.py` — CM prover for the
+  ShortPrimalityProofs *short ECPP* format; produced the table entries for nextprime(10^c),
+  c = 210..310 (largest: 1030 bits, beating Bernstein's 1025-bit AKS example) in one day on
+  spot instances (~3,500 core-h).  Per level: dscan (new `maxfb=` bounds the factor base —
+  essential for 1e5-candidate pools at 1000+ bits) → `smoothtest parts` batch strip (2^32
+  primorial, built on demand) → staged gmp-ecm under a Bayesian index scheduler (coverage
+  ~ln s, failure discounts, round-robin sub-sweeps, economic widen trigger) → classpoly/
+  cm_method winner build (2-volcano floor when p ≡ 3 mod 4 needs it) → short.gp tail below
+  135 bits; winner journal + `resume=1` survive preemptions; dual verification before write.
+  Campaign report: `reports/short-ecpp-records/`.  Certs: `certs/short/`.  Gotcha fixed en
+  route: subprocesses need classpoly on PATH (ECM_ENV handles it).  SEA/CM crossover for
+  this criterion extrapolates to ~2000 bits (see report).
 
 ## Build & test
 ```sh
