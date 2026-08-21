@@ -156,3 +156,5 @@ challenge repo, github.com/AndrewVSutherland/OneShotPrimalityProofs).
 - Every solver/scan result is self-checked (`4p == t²+|D|v²`), every winner independently verified
   (PARI cross-checks in tests; `voneshot.py` for certificates).
 - Detailed findings are also in the session memory files (recalled automatically).
+
+When addressing codex-review findings, follow the Round protocol in AGENTS.md -> Code Review Rules.

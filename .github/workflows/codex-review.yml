@@ -1,0 +1,131 @@
+# .github/workflows/codex-review.yml
+#
+# Codex PR review, self-hosted in Actions. Replaces the ChatGPT Codex
+# Connector with a design where:
+#   - the only secret is OPENAI_API_KEY (cannot touch GitHub)
+#   - the job that runs the model holds NO GitHub token
+#   - the job that posts holds pull-requests:write ONLY, and repo settings
+#     ("Allow Actions to create and approve pull requests" = off) make it
+#     structurally comment-only
+#   - trigger is pull_request (never pull_request_target): fork PRs get no
+#     secrets, so an untrusted diff cannot reach the API key
+#
+# Interpolation rule observed throughout: only trusted payload fields
+# (PR number, SHAs, repo name) appear in shell/prompt context. Never
+# interpolate PR titles/bodies/branch names into run: blocks.
+
+name: codex-review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+# Default-deny; each job declares exactly what it needs.
+permissions: {}
+
+concurrency:
+  group: codex-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    # Only review PRs opened by the Claude Code account. Everything else
+    # (including your own hand-made PRs, unless you add yourself) is skipped
+    # and burns neither minutes nor tokens.
+    if: github.event.pull_request.user.login == 'AndrewVSutherland2'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read          # checkout only; no write capability of any kind
+    outputs:
+      final_message: ${{ steps.codex.outputs.final-message }}
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+        # PIN before rollout (uniform rule -- no mutable refs):
+        #   gh api repos/actions/checkout/commits/v5 --jq .sha
+        with:
+          ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          fetch-depth: 0
+          persist-credentials: false   # model job keeps no git credential at all
+
+      - name: Make base and head SHAs available locally
+        run: |
+          git fetch --no-tags origin \
+            "${{ github.event.pull_request.base.sha }}" \
+            "${{ github.event.pull_request.head.sha }}"
+
+      - name: Run Codex review (no GitHub token in this job)
+        id: codex
+        uses: openai/codex-action@86365089eb2b84e0a8fb0717b304f8bdcb13b20e
+        # PIN before rollout: replace v1 above with the full commit SHA from
+        #   gh api repos/openai/codex-action/commits/v1 --jq .sha
+        # keeping "# v1" as a trailing comment for readability.
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          sandbox: read-only
+          model: gpt-5.6-sol        # continuity: the connector-era reviewer was Sol at
+                                    # medium (default) effort; leaving effort unset matches it.
+          # reasoning-effort: high  # escalation knob for heavy PRs; confirm the exact
+                                    # input name in the action README before using.
+          prompt: |
+            You are reviewing pull request #${{ github.event.pull_request.number }}
+            in ${{ github.repository }}.
+            Base SHA: ${{ github.event.pull_request.base.sha }}
+            Head SHA: ${{ github.event.pull_request.head.sha }}
+            Inspect the change with:
+              git diff ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
+            reading surrounding files as needed for context.
+
+            Report only actionable issues INTRODUCED BY THIS PR affecting
+            correctness (including mathematical correctness of algorithms,
+            invariants, and stated claims), security, performance, or
+            reproducibility. Cite file and line range for every finding and
+            propose the smallest plausible fix. Do not raise style, naming,
+            or formatting issues. Follow any "Code Review Rules" sections in
+            AGENTS.md files in this repository. Do not ask for mathematically
+            correct statements to be weakened or hedged; if you believe a
+            mathematical claim is wrong, demonstrate the error explicitly.
+            If nothing rises to this bar, reply exactly:
+            LGTM — no substantive findings.
+
+  post:
+    needs: review
+    if: needs.review.outputs.final_message != ''
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pull-requests: write    # comment/review only; PR creation+approval blocked by repo settings
+    steps:
+      - name: Post review comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BODY: ${{ needs.review.outputs.final_message }}
+          PR: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        # Model output is treated strictly as data: written to a file via
+        # printf %s, never interpolated into shell syntax.
+        run: |
+          printf '### Codex review\n\n%s\n' "$BODY" > body.md
+          gh pr comment "$PR" --repo "$REPO" --body-file body.md
+
+      # ------------------------------------------------------------------
+      # Named-identity upgrade (post as avs-codex-reviewer[bot] instead of
+      # github-actions[bot]):
+      #   1. Settings -> Developer settings -> GitHub Apps -> New GitHub App.
+      #      Repository permissions ONLY: Contents: Read,
+      #      Pull requests: Read and write, Metadata: Read.
+      #      No webhook. Install on selected repositories.
+      #   2. Store the App ID as variable CODEX_REVIEW_APP_ID and the
+      #      private key as secret CODEX_REVIEW_APP_KEY.
+      #   3. Insert before the posting step (check current major version):
+      #
+      # - uses: actions/create-github-app-token@v2
+      #   id: app
+      #   with:
+      #     app-id: ${{ vars.CODEX_REVIEW_APP_ID }}
+      #     private-key: ${{ secrets.CODEX_REVIEW_APP_KEY }}
+      #
+      #   ...and change GH_TOKEN above to: ${{ steps.app.outputs.token }}
+      #   The minted token is ephemeral and carries only the app's tiny
+      #   permission set on the repos where the app is installed.
+      # ------------------------------------------------------------------
