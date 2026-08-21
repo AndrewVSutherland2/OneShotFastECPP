@@ -77,6 +77,12 @@ case over certificates, with no precomputation of any kind.</p>
 polynomial factor.  74% of the 120 published levels satisfied both caps incidentally (a
 per-level acceptance factor of &asymp;1.35 for a finder that filters).</p>
 
+<p><b>Validation.</b> Every prime in [5, 4096] (562 primes) was swept with <code>short2.gp</code>:
+all have v2 certificates, as the 2-power existence argument guarantees.  The reference verifier
+is also faster than the (batched) original in practice: 5.6 vs 14.6 ms at 233 bits, 44 vs 141 ms
+at 665 bits, 174 vs 196 ms at 1030 bits (pure Python, this machine) &mdash; the primorial of B is
+a fraction of the n&sup2; sieve's work.</p>
+
 <h2>Migration of the published table</h2>
 <p>Of the 31 published chains (<code>certs.csv</code>, upstream commit <code>0408b2b</code>):
 <b>10 already comply</b> (c = 70, 150, 160, 180, 200, 250, 260, 270, 290, 310) and are kept
