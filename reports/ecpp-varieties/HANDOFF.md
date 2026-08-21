@@ -129,6 +129,36 @@ Y = ⌊4n²/log₂n⌋, rad(m_i) < 2^{⌈4n/log₂n⌉}, payload/floor/window un
 Next steps if Drew confirms: patch vsmallECPP.py to the new design, re-find
 the 7 broken chains locally, update paper §6/Remark 6.3 wholesale.
 
+**Spec thread, round 5 (2026-08-21) — DECISION + EXECUTION (Drew AFK 8h,
+directed "proceed and update the specification to match")**: Drew rejected
+the ln normalization ("funny to take natural log of a binary log") and chose
+**c = 1: B = ⌊n²/log₂n⌋, radical cap ⌊log₂ rad(m_i)⌋ < n/log₂n**, floor
+p' > n² explicit, payload unchanged.  Compliance at c=1: 10/31 chains pass
+(c = 70,150,160,180,200,250,260,270,290,310), 21 repair, incidental per-level
+74% (⟹ finder penalty ≈1.35×).  BUILT + VALIDATED (commit 7f01659):
+ecpp/vshort2.py (v2 reference verifier, primorial-gcd recovery; self-tests;
+differential = exactly the predicted 10/21 split on all 31 chains),
+ecpp/short2.gp (adapted finder, shortcert2from(p,ntop) for repairs),
+ecpp/repair_short2.py (prefix-preserving migration driver, dual-validates
+v2+v1 — note v2 ⊂ v1: old verifier accepts all v2 certs),
+short_prove.py v2=1 flag (CM prover with v2 filler filter + short2.gp tails;
+smoke-tested at 200 bits, 46 s, dual-verified).  Paper updated (Def 6.2
+def:short2, Prop prop:short2verif, Remark 6.3 compressed to resolved-design
+note, Table 1 short row = O(n²log n)† revision note, hierarchy adjusted
+(restricted ⊄ v2-short), §6.4 gains the RECORDS TABLE c=210..310 (the paper
+had been stale — records merged upstream 2026-08-18!) + migration paragraph
+[placeholders SMALLREPAIRS/BIGREPAIR to fill]).  reports/short2-spec/
+index.html = upstream adoption package (README clause text, checklist,
+[MIGRATION-RESULTS-TABLE] to fill).  REPAIRS RUNNING on the local box:
+driver-2 = 20 chains ex-698 (work/short2repair2/, sequential big-first);
+698 = short_prove v2 (work/short2repair/short_prove_698.log) after the SEA
+attempt was killed as redundant (also: ~21 vCPU of ANOTHER session's jobs
+(smallcensus, backtrack_rat_d) share the box — do not kill).  Final table →
+certs/short2/certs.csv (merge driver outputs; 698 chain from short_prove
+output nextprime1e210v2.txt replaces splice).  TODO when repairs land: fill
+paper+spec placeholders, recompile, verify all 31 with both verifiers,
+commit, SendUserFile PDF.
+
 ## The deliverable
 
 `reports/ecpp-varieties/ecpp-varieties.tex` — a survey, written for Drew

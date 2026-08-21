@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Short ECPP v2: the radical-capped revision</title>
+<style>
+ body{font:16px/1.55 Georgia,serif;max-width:56em;margin:2em auto;padding:0 1em;color:#1a1a1a;background:#fff}
+ h1{font-size:1.6em;border-bottom:2px solid #234;padding-bottom:.3em}
+ h2{font-size:1.25em;margin-top:1.6em;color:#234}
+ code,pre{font:13px/1.45 ui-monospace,Menlo,monospace;background:#f4f4f0}
+ pre{padding:.8em;overflow-x:auto;border-left:3px solid #9ab}
+ table{border-collapse:collapse;margin:1em 0;font-size:.92em}
+ td,th{border:1px solid #bbb;padding:.25em .6em;text-align:right}
+ th{background:#eef1f4}
+ td:first-child,th:first-child{text-align:left}
+ .def{background:#f7f9fb;border:1px solid #cdd6de;padding:.8em 1em;margin:1em 0}
+ .note{color:#555;font-size:.92em}
+ .fill{background:#fff3cd}
+</style>
+</head>
+<body>
+<h1>Short ECPP v2: the radical-capped revision</h1>
+<p class="note">2026-08-21 &middot; AVS + Claude (Fable 5) &middot; OneShotFastECPP, branch <code>short-ecpp</code>.
+Working note for the August 2026 revision of the
+<a href="https://github.com/AndrewVSutherland/ShortPrimalityProofs">ShortPrimalityProofs</a> format;
+design discussion in the session of 2026-08-19&ndash;21 (see <code>reports/ecpp-varieties/HANDOFF.md</code>)
+and the write-up <code>reports/ecpp-varieties/ecpp-varieties.pdf</code> (Definition 6.2, Proposition 6.4).</p>
+
+<h2>The revision</h2>
+<div class="def">
+<p>A certificate is, as before, the flat sequence
+<code>(p_0, A_0, x_0, o_0, A_1, x_1, o_1, ..., A_k, x_k, o_k)</code> with
+<code>n = ceil(log2 p_0)</code> fixed for the whole chain, each level working modulo
+<code>p_i</code> with <code>o_i = m_i &middot; p_{i+1}</code>.  The revision changes three
+clauses, with <b><code>B = floor(n&sup2;/log&#8322; n)</code></b>:</p>
+<ol>
+<li><b>Smoothness.</b> <code>m_i</code> is the <i>B</i>-smooth part of <code>o_i</code>
+(every prime of <code>m_i</code> is &le; <code>B</code>; no prime of <code>o_i</code> may lie in
+<code>(B, n&sup2;]</code>).</li>
+<li><b>Radical cap.</b> <code>floor(log&#8322; rad(m_i)) &lt; n/log&#8322; n</code>, where
+<code>rad(m)</code> is the product of the distinct primes of <code>m</code>.</li>
+<li><b>Explicit floor.</b> <code>p_{i+1} = 1</code> (terminal) or
+<code>n&sup2; &lt; p_{i+1}</code> and <code>p_{i+1}&sup2; &lt; p_i</code> (roughness now
+guarantees only <code>p_{i+1} &gt; B</code>, so the floor is stated).</li>
+</ol>
+<p>Window (<code>L_i &lt; o_i &lt; r_i L_i</code>, <code>r_i</code> the least prime of
+<code>m_i</code>), minimality, point-order semantics, and the payload are unchanged.
+<b>Every v2 certificate is valid under the original definition</b> (the new conditions only
+restrict), and existence for every prime <code>p_0 &ge; 5</code> is untouched: a 2-power filler has
+radical 2.</p>
+</div>
+
+<h2>Why: verification becomes O(n&sup2; log n), self-contained</h2>
+<p>The original format verifies in <code>O(n&sup2;(log n)&sup2;)</code> worst case (its k = 0
+stratum is the unrestricted-filler restricted one-shot), and reaching
+<code>O(n&sup2; log n)</code> on published certificates needs the product tree of the primes to
+n&sup2; &mdash; a per-<i>n</i> table costing <code>&Theta;(n&sup2;(log n)&sup2;)</code> to build.
+The two caps remove both obstacles at once:</p>
+<ul>
+<li>The primorial of <code>B</code> has <code>&Theta;(n&sup2;/log n)</code> bits, so it is built
+<i>per certificate</i> in <code>O(n&sup2; log n)</code> &mdash; no table.</li>
+<li><code>gcd(P_B mod o_i, o_i) = rad(m_i)</code> exactly, an integer of fewer than
+<code>n/log&#8322; n</code> bits whose prime factors are &le; <code>B</code>; the radicals of the
+whole chain are factored within the budget (batched against the primorial tree, or per-level
+Pollard&ndash;Strassen; the reference verifier simply trial-divides &mdash; coarsest
+asymptotically, simplest, and dominant only far beyond feasible sizes).</li>
+<li>The radical cap bounds the order-exactness tree by
+<code>(n/log&#8322; n)&middot;ceil(log&#8322; k) &lt; n</code> ladder bits per level, so the
+elliptic work is <code>O(&Sigma; b_i M(b_i)) = O(n&sup2; log n)</code>, about 5&times;
+Pomerance's constant.</li>
+</ul>
+<p><b>Proposition.</b> A v2 certificate for an <i>n</i>-bit <code>p_0</code> is verified in
+<code>O(n&sup2; log n)</code> bit operations and <code>O(n&sup2;)</code> bits of memory, worst
+case over certificates, with no precomputation of any kind.</p>
+<p class="note">The finding analysis is untouched: the caps constrain only window completion, a
+polynomial factor.  74% of the 120 published levels satisfied both caps incidentally (a
+per-level acceptance factor of &asymp;1.35 for a finder that filters).</p>
+
+<h2>Migration of the published table</h2>
+<p>Of the 31 published chains (<code>certs.csv</code>, upstream commit <code>0408b2b</code>):
+<b>10 already comply</b> (c = 70, 150, 160, 180, 200, 250, 260, 270, 290, 310) and are kept
+byte-identical; <b>21 were re-found from their first non-compliant level</b> (the compliant
+prefix survives; the level moduli above the repair point are unchanged).  Every repaired chain
+is verified under <i>both</i> the v2 and the original definitions.</p>
+<p class="fill">[MIGRATION-RESULTS-TABLE]</p>
+
+<h2>Tools (this repo, <code>ecpp/</code>)</h2>
+<table>
+<tr><th>file</th><th style="text-align:left">role</th></tr>
+<tr><td><code>vshort2.py</code></td><td style="text-align:left">v2 reference verifier (primorial-gcd recovery; self-tests; differential-tested on all 31 chains)</td></tr>
+<tr><td><code>short2.gp</code></td><td style="text-align:left">SEA finder adapted to the caps; <code>shortcert2from(p, ntop)</code> for mid-chain repairs</td></tr>
+<tr><td><code>repair_short2.py</code></td><td style="text-align:left">migration driver (prefix-preserving, first-winning-worker, dual validation)</td></tr>
+<tr><td><code>short_prove.py v2=1</code></td><td style="text-align:left">CM-supply record prover with the v2 filler filter and short2.gp tails</td></tr>
+</table>
+<p>Migrated table: <code>certs/short2/certs.csv</code> (pre-migration copy:
+<code>certs_v1.csv</code>).</p>
+
+<h2>Upstream adoption checklist (ShortPrimalityProofs)</h2>
+<ol>
+<li>README: replace the three format clauses as in <b>The revision</b> above (the rest of the
+definition text is unchanged).  State <code>B = floor(n&sup2;/log&#8322; n)</code> and the radical
+cap <code>floor(log&#8322; rad(m_i)) &lt; n/log&#8322; n</code>; keep the explicit
+<code>n&sup2; &lt; p_{i+1}</code> floor.</li>
+<li>Replace <code>vsmallECPP.py</code> by (a renamed) <code>vshort2.py</code>, or ship both during
+a transition &mdash; the old verifier accepts every v2 certificate but does not enforce the caps.</li>
+<li>Replace <code>certs.csv</code> by the migrated table.</li>
+<li>Replace <code>short.gp</code> by <code>short2.gp</code> (same toy style, same knobs).</li>
+<li>Regenerate the exhaustive small-p data (<code>short8all.txt</code>): the v2 enumeration below
+2<sup>8</sup> is smaller (the caps thin the admissible orders; e.g. for p = 251 the terminal
+orders are 24, 25, 27, 32, 36, 49).  Existence for every prime p &ge; 5 still holds (2-power
+fillers).</li>
+</ol>
+</body>
+</html>
