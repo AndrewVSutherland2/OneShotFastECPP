@@ -117,6 +117,17 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   route: subprocesses need classpoly on PATH (ECM_ENV handles it).  SEA/CM crossover for
   this criterion extrapolates to ~2000 bits (see report).
 
+- **Short ECPP v2 — the radical-capped revision (2026-08-21)**: format revised with Drew:
+  smoothness bound B = ⌊n²/log₂n⌋, radical cap ⌊log₂ rad(m_i)⌋ < n/log₂n, explicit p' > n²
+  floor; payload unchanged; every v2 cert is v1-valid.  Verification O(n² log n) worst case,
+  self-contained (primorial-gcd recovery — gcd(P_B mod o, o) = rad(m)), ~5× Pomerance.  Tools:
+  `ecpp/vshort2.py` (v2 verifier, faster than v1's in practice), `short2.gp`,
+  `repair_short2.py`, `short_prove.py v2=1`, `assemble_short2.py`.  Full 31-chain table
+  migrated + dual-verified: `certs/short2/certs.csv` (19 quick repairs, 650 s total; level-0
+  rebuilds 10^170 = 15.1k s, 10^210 = 47.4k s local).  Existence swept for all p ≤ 4096.
+  Adoption package: `reports/short2-spec/`; paper: Def 6.2 + Prop 6.4 in
+  `reports/ecpp-varieties/`.  Upstream ShortPrimalityProofs flip pending (Drew).
+
 ## Build & test
 ```sh
 make -j                      # ff_poly -> classpoly (incl. zp_poly) -> ecpp (all in-tree, ~15 s)

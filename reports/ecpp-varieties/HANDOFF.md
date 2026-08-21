@@ -153,11 +153,17 @@ index.html = upstream adoption package (README clause text, checklist,
 driver-2 = 20 chains ex-698 (work/short2repair2/, sequential big-first);
 698 = short_prove v2 (work/short2repair/short_prove_698.log) after the SEA
 attempt was killed as redundant (also: ~21 vCPU of ANOTHER session's jobs
-(smallcensus, backtrack_rat_d) share the box — do not kill).  Final table →
-certs/short2/certs.csv (merge driver outputs; 698 chain from short_prove
-output nextprime1e210v2.txt replaces splice).  TODO when repairs land: fill
-paper+spec placeholders, recompile, verify all 31 with both verifiers,
-commit, SendUserFile PDF.
+(smallcensus, backtrack_rat_d) share the box — do not kill).  **MIGRATION COMPLETE (2026-08-21 ~16:15)**: all 31 chains in
+certs/short2/certs.csv, every one verified under BOTH v2 and v1
+(assemble_short2.py).  19 repairs by short2.gp: 650 s aggregate (max 254 s);
+the two level-0 rebuilds by short_prove v2=1 on the shared box: 10^170 =
+15,106 s / 6 threads (22,654 lev-0 cands), 10^210 = 47,373 s / 10 threads
+(33,876 cands, ~130 ecm core-h, winner D=-501101320 h~22385 — its v1 find
+had been a 20 s luck fluke; ordinary-luck price paid this time).  Paper and
+spec placeholders filled, compiled clean.  REMAINING FOR DREW: flip upstream
+ShortPrimalityProofs (README clauses + verifier + certs.csv + short.gp +
+regenerate short8all; checklist in reports/short2-spec/index.html); the
+paper's [Short] bib pin then needs the new upstream commit.
 
 ## The deliverable
 

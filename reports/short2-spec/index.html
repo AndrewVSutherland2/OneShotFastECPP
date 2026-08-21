@@ -89,7 +89,31 @@ a fraction of the n&sup2; sieve's work.</p>
 byte-identical; <b>21 were re-found from their first non-compliant level</b> (the compliant
 prefix survives; the level moduli above the repair point are unchanged).  Every repaired chain
 is verified under <i>both</i> the v2 and the original definitions.</p>
-<p class="fill">[MIGRATION-RESULTS-TABLE]</p>
+<table>
+<tr><th>chain</th><th>repair level</th><th>modulus</th><th>engine</th><th>search time</th></tr>
+<tr><td>10^10</td><td>1</td><td>15 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^20</td><td>1</td><td>21 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^30</td><td>1</td><td>45 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^40</td><td>0</td><td>133 bits</td><td style='text-align:left'>SEA</td><td>4 s</td></tr>
+<tr><td>10^50</td><td>0</td><td>167 bits</td><td style='text-align:left'>SEA</td><td>10 s</td></tr>
+<tr><td>10^60</td><td>1</td><td>95 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^80</td><td>0</td><td>266 bits</td><td style='text-align:left'>SEA</td><td>92 s</td></tr>
+<tr><td>10^90</td><td>0</td><td>299 bits</td><td style='text-align:left'>SEA</td><td>90 s</td></tr>
+<tr><td>10^100</td><td>1</td><td>160 bits</td><td style='text-align:left'>SEA</td><td>4 s</td></tr>
+<tr><td>10^110</td><td>1</td><td>169 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^120</td><td>3</td><td>23 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^130</td><td>2</td><td>83 bits</td><td style='text-align:left'>SEA</td><td>4 s</td></tr>
+<tr><td>10^140</td><td>2</td><td>99 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^170</td><td>0</td><td>565 bits</td><td style='text-align:left'>CM</td><td>15,106 s</td></tr>
+<tr><td>10^190</td><td>1</td><td>288 bits</td><td style='text-align:left'>SEA</td><td>254 s</td></tr>
+<tr><td>10^210</td><td>0</td><td>698 bits</td><td style='text-align:left'>CM</td><td>47,473 s</td></tr>
+<tr><td>10^220</td><td>1</td><td>358 bits</td><td style='text-align:left'>SEA</td><td>164 s</td></tr>
+<tr><td>10^230</td><td>2</td><td>187 bits</td><td style='text-align:left'>SEA</td><td>4 s</td></tr>
+<tr><td>10^240</td><td>2</td><td>190 bits</td><td style='text-align:left'>SEA</td><td>6 s</td></tr>
+<tr><td>10^280</td><td>3</td><td>114 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^300</td><td>3</td><td>103 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+</table>
+<p class='note'>The nineteen SEA repairs (short2.gp, first-winning worker) took 650 s of search in aggregate; the two level-0 rebuilds ran on the CM prover (short_prove v2=1) on a shared 16-core desktop &mdash; 10<sup>210</sup> consumed 33,876 candidate orders and &asymp;130 ECM core-hours where its original v1 find had fallen in 20 s, the exponential-scale per-draw variance in action.  All 31 chains of the migrated table verify under both the v2 and the original definitions (assembled and checked by <code>ecpp/assemble_short2.py</code>).</p>
 
 <h2>Tools (this repo, <code>ecpp/</code>)</h2>
 <table>

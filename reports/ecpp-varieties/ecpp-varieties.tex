@@ -102,9 +102,9 @@ certificates for $10^{20},\dots,10^{50}+\eps$ produced for this write-up appear 
 \item \textbf{Short ECPP} (repository ShortPrimalityProofs \cite{Short}): a \emph{chain} of such
 certificates in which each level's point order is ($n^2$-smooth)${}\times{}$(one prime
 $p_1 < \sqrt{p_0}$), and the next level certifies $p_1$.  Bit-lengths at least halve per level, so
-certificates stay linear in $\log p$, and verification is $O(n^2\log n)$ bit operations for every
-published certificate --- Pomerance-order; the format's worst case is $O(n^2(\log n)^2)$
-(\S\ref{sec:shortverif}) --- while the free prime factor makes certificates
+certificates stay linear in $\log p$, and verification is $O(n^2\log n)$ bit operations ---
+Pomerance-order, and since the format's August 2026 radical-capped revision the unconditional worst
+case (\S\ref{sec:shortverif}) --- while the free prime factor makes certificates
 \emph{findable} in heuristic subexponential time $\Lp{1/3}{{\approx}1.14}$.
 \item \textbf{Classical ECPP} (Goldwasser--Kilian, Atkin--Morain): the chain descends by an
 $O(\log n)$-bit shrink per step with an essentially unconstrained cofactor.  Finding is heuristic
@@ -113,11 +113,13 @@ $O(n^3)$-bit-operation verification.
 \end{enumerate}
 
 The five formats are partially ordered by inclusion --- partially, not linearly.  A Pomerance triple
-\emph{is} a restricted one-shot certificate ($m = 2^k$ is certainly $n^2$-smooth), and a restricted
-one-shot is both a one-shot certificate with an empty prime list and a zero-level short ECPP.  There
-the chain forks into two \emph{incomparable} relaxations: the $n^4$ one-shot admits larger
-\emph{listed} primes (several may lie in $(n^2, n^4)$, which no short-ECPP level accommodates), while
-short ECPP admits \emph{recursion} (a non-terminal level carries a recursive prime that may far exceed
+\emph{is} a restricted one-shot certificate ($m = 2^k$ is certainly $n^2$-smooth) and equally a
+zero-level short ECPP; a restricted one-shot is a one-shot certificate with an empty prime list.
+Above the Pomerance triples the picture forks into \emph{incomparable} relaxations: the one-shot
+direction admits arbitrary smooth fillers and then larger \emph{listed} primes (several may lie in
+$(n^2, n^4)$, which no short-ECPP level accommodates --- and the short format's radical cap,
+Definition~\ref{def:short2}, conversely refuses the general restricted filler), while the short
+direction admits \emph{recursion} (a non-terminal level carries a recursive prime that may far exceed
 $n^4$, so its order need not be $n^4$-smooth).  Classical ECPP relaxes along both axes at once ---
 free descent rate, unconstrained cofactor --- but strictly contains neither: its steps certify a
 single \emph{prime} order above the threshold, where a short-ECPP level certifies a
@@ -148,7 +150,7 @@ restricted one-shot (\S\ref{sec:restricted}) & ${\approx}\,2.5n$ & $O(n^2(\log n
   $p^{1/4+o(1)}$ SEA;\ \ $p^{1/2+o(1)}$ CM & all $p>3$\\
 one-shot, $n^4$-smooth \cite{OneShot} & ${\approx}\,2.5n$--$3n$ & $O(n^2(\log n)^2)$ &
   $p^{1/8+o(1)}$ SEA;\ \ $p^{1/4+o(1)}$ CM & all $p>3$\\
-short ECPP \cite{Short} & $O(n)$, ${\lesssim}\,5n$ & $O(n^2(\log n)^2)$; $O(n^2\log n)^{\dagger}$ &
+short ECPP \cite{Short} & $O(n)$, ${\lesssim}\,5n$ & $O(n^2\log n)^{\dagger}$ &
   $\Lp{1/3}{(3/2)^{1/3}{\approx}1.14}$, SEA \& CM & all $p\ge 5$\\
 ECPP \cite{GK86,AM93} & $\Theta(n^2/\log n)$ & $O(n^3)$ &
   $(\log p)^{6+o(1)}$ SEA;\ \ $(\log p)^{4+\eps}$ CM & all $p$ (heur.)\rlap{${}^{\ddagger}$}\\
@@ -157,11 +159,11 @@ ECPP \cite{GK86,AM93} & $\Theta(n^2/\log n)$ & $O(n^3)$ &
 \medskip
 \caption{The certificate families.  The Pomerance-triple verification is exactly
 $(\tfrac52+o(1))\,n$ multiplications $\bmod\ p$.
-${}^{\dagger}$The $O(n^2\log n)$ bound holds for certificates whose fillers have polynomially many
-bits or few distinct prime factors --- every published certificate, and every prime has one
-(prime-power fillers, \S\ref{sec:shortverif}); the unconditional worst case, attained by the $k=0$
-stratum ($=$ the restricted one-shot), matches the one-shot row, and Remark~\ref{rem:tightshort}
-tightens the format to guarantee $O(n^2\log n)$ outright.
+${}^{\dagger}$Under the format's radical-capped revision of August 2026
+(Definition~\ref{def:short2}), for which $O(n^2\log n)$ is the unconditional worst case with no
+precomputation (Proposition~\ref{prop:short2verif}); the original format's worst case was
+$O(n^2(\log n)^2)$, attained by its $k=0$ stratum ($=$ the restricted one-shot,
+Remark~\ref{rem:tightshort}).
 ${}^{\ddagger}$Heuristic for all $p$; provable for almost all $p$.  Primality is in ZPP via
 \cite{AH92}, but with certificates built on genus-2 Jacobians, not certificates of this format.  The AKS--Bernstein row is discussed in
 Remark~\ref{rem:aks}; the deterministic finding entry is the Lenstra--Pomerance decision bound, whose
@@ -843,7 +845,8 @@ Special-form primes (smooth $p+1$) escape the wall entirely, as P-521 shows at 5
 \subsection{The problem, and where it sits in the hierarchy}
 
 Now forbid the listed primes: the certificate is $(p, A, x_0, m)$ with \emph{every} prime factor of $m$
-below $n^2$ --- the $k = 0$ stratum of \S\ref{sec:oneshot}, equivalently a zero-level short ECPP
+below $n^2$ --- the $k = 0$ stratum of \S\ref{sec:oneshot}, equivalently a zero-level short ECPP of
+the original format
 (\S\ref{sec:short}).  The verifier is unchanged (\texttt{voneshot.py} with an empty list): it factors
 $m$ completely by trial division below $n^2$ and needs no supplied data beyond $m$ itself.  Existence
 for every $p > 3$ again follows from Pomerance triples ($2$ is $n^2$-smooth); the certificate is
@@ -979,6 +982,24 @@ $m_0 = 2^{\kappa}$); the repository verifies it exhaustively below $2^8$ (201{,}
 prime $5 \le p \le 2^8$ admits one, while $p = 2, 3$ admit none, which is why the format takes
 $p_0 \ge 5$).
 
+\begin{definition}[radical-capped revision, August 2026]\label{def:short2}
+The \emph{revised format} modifies Definition~\ref{def:short} in three respects, with
+$B = \lfloor n^2/\log_2 n\rfloor$: each $m_i$ must be \emph{$B$-smooth} (so $m_i$ is the $B$-smooth
+part of the stored product $o_i = m_ip_{i+1}$, and no prime of $o_i$ may lie in $(B, n^2]$); each
+filler obeys the \emph{radical cap}
+\[
+  \lfloor \log_2 \operatorname{rad}(m_i)\rfloor \;<\; n/\log_2 n,
+  \qquad \operatorname{rad}(m) = \textstyle\prod_{q \mid m,\ q\ \mathrm{prime}}\, q;
+\]
+and the floor $n^2 < p_{i+1}$ is retained explicitly (roughness now guarantees only
+$p_{i+1} > B$).  The payload, window, minimality, and order conditions are unchanged, so \emph{every
+certificate of the revised format is valid under Definition~\ref{def:short}}; and existence for
+every prime $p_0 \ge 5$ is untouched, since a $2$-power filler has radical $2$.  Both caps exist for
+the verifier's sake (Proposition~\ref{prop:short2verif}): the smoothness bound shrinks the primorial
+until it is constructible within the verification budget, and the radical cap disarms the exactness
+tree.
+\end{definition}
+
 \subsection{Verification: Pomerance-order bit complexity}\label{sec:shortverif}
 
 The reference verifier \texttt{vsmallECPP.py} processes the levels in order, working modulo $p_i$ at
@@ -1009,9 +1030,9 @@ $O(\log m_i)$ ladder bits on each of the $\lceil\log_2 k_i\rceil$ levels of the 
 ladder bit costing $O(1)$ multiplications $\bmod\ p_i$; globally, one batched trial division of all the
 $o_i$ against the prime table at $M(n^2) = O(n^2\log n)$ \cite{Bern04} (the sieve itself is
 $O(n^2\log\log n)$).  Consequently, whenever the fillers satisfy
-$\log m_i\cdot\log k_i = O(b_i)$ --- in particular whenever $m_i \le n^{O(1)}$, which holds for every
-certificate in the challenge table (the largest filler there has 50 bits, and the largest exponent
-$\log m_i/\log n$ is $6.11$; see Remark~\ref{rem:tightshort}), and also whenever every filler is a
+$\log m_i\cdot\log k_i = O(b_i)$ --- in particular whenever $m_i \le n^{O(1)}$, which held for every
+certificate of the original challenge table (the largest filler there had 50 bits, and the largest
+exponent $\log m_i/\log n$ was $6.11$), and also whenever every filler is a
 prime power, whatever its size ($k_i = 1$ makes the exactness tree trivial) --- \emph{verification
 costs $O(n^2\log n)$ bit operations: the
 same order as verifying a Pomerance triple, exceeded only by a constant factor}.  The second clause is
@@ -1033,82 +1054,53 @@ $O((\log p_0)^{2+o(1)})$; the chain structure --- one big prime per level, geome
 moduli, small smooth fillers --- is precisely what deletes the one-shot's extra log factor, the same
 mechanism as in the fixed-ratio chains of \S\ref{sec:bdescent}.
 
-\begin{remark}[tightened specifications with worst-case $O(n^2\log n)$ verification]
-\label{rem:tightshort}
-The two potential sources of a second $\log$ factor in Proposition~\ref{prop:shortverif} are distinct
-in kind.  (a)~\emph{The exactness tree}: its depth $\log k_i$ multiplies the filler bits, and the
-definition permits a filler of $\Theta(b_i)$ bits with $\Theta(b_i/\log b_i)$ distinct primes, for
-which the top level costs $\Theta(n^2(\log n)^2)$ --- a worst case over certificates, vacuous for the
-ones the finder produces.  (b)~\emph{The trial division}: the per-certificate cost is
-$M(n^2) = \Theta(n^2\log n)$ --- Pomerance-order --- but only given the precomputed product tree of
-the primes below $n^2$, whose construction costs $\Theta(n^2(\log n)^2)$; a self-contained accounting
-carries the extra log here instead.
+The August 2026 revision (Definition~\ref{def:short2}) removes the worst case and the
+precomputation caveat at once, with no change to the certificate payload:
 
-\emph{Capping the fillers.}  Requiring only $m_i \le n^c$ for a fixed $c$, with the certificate
-payload unchanged, removes both sources --- though one must be careful where the trial division
-happens.  Direct per-prime trial division of $o_i$ costs $\Omega(n_i^3/\log n_i)$ at a level of $n_i$
-bits --- each of the $\pi(n_i^2) \approx n_i^2/(2\ln n_i)$ candidate primes must scan the $(n_i/2)$-bit
-$o_i$, $\Omega(n_i)$ apiece --- a full factor $n_i/(\log n_i)^2$ above the target.  Instead the verifier splits the recovery in two stages.  First, extract
-the smooth parts of \emph{all} levels in one batched pass: reduce the primorial
-$P = \prod_{q \le n^2} q$ modulo $\prod_i o_i$ at cost $M(1.44\,n^2) = O(n^2\log n)$, remainder-tree
-down to the individual $o_i$ ($\Ot(n)$), and apply the repeated-squaring gcd trick at each level
-($\Ot(n_i)$).  Second, factor each extracted $m_i \le n^c$ --- now a $c\log_2 n$-bit integer ---
-directly: trial division to $n$ for its small primes ($\Ot(n)$), then deterministic Pollard--Strassen
-splitting \cite{Pol74,Str77} of the ${\le}\,c$ remaining factors, using the format's smoothness bound:
-every prime factor of $m_i$ lies below $n^2$, so the search radius is $B = n^2$ and each split costs
-$\Ot(\sqrt B) = \Ot(n)$ --- the generic $\Ot(m_i^{1/4}) = \Ot(n^{c/4})$ bound is never invoked, and the
-stage is $\Ot(n)$ per level \emph{for every fixed $c$}.  Everything after the single batched reduction
-thus costs $\Ot(n)$ per level (the elliptic work summing geometrically, the factoring work adding
-$\Ot(n)$ across the $O(\log n)$ levels), so verification is worst-case $O(n^2\log n)$ --- with the one
-caveat
-that the primorial, a single $1.44\,n^2$-bit integer depending only on $n$ (about 80\,KB at 665
-bits), is a per-bit-size precomputation whose cold construction still costs $\Theta(n^2(\log n)^2)$.
-A terminal level should then be permitted only once $\sqrt{p_k} \le n_k^{\,c}$, pushing the chain one
-polylogarithmically cheap level deeper.  The exactness checks collapse as in
-Proposition~\ref{prop:shortverif}: one half-length ladder $V = [p_{i+1}]P$ per level plus scalars
-${\le}\,n^c$, for $\sum_i(b_i/2 + O(\log^2 n))$ ladder bits and a constant roughly $5\times$
-Pomerance's.
+\begin{proposition}[verification of the revised format, rigorous and self-contained]
+\label{prop:short2verif}
+A certificate of the revised format for an $n$-bit $p_0$ is verified in $O(n^2\log n)$ bit
+operations and $O(n^2)$ bits of memory, worst case over certificates, with no precomputation of any
+kind.
+\end{proposition}
 
-\emph{Empirical compliance.}  Against the twenty published chains (70 levels): keeping the
-smoothness bound at the top-level $n^2$, as in the current definition, a cap with $c = 7$ retains
-every certificate --- the extremal fillers are 46 bits at $10^{50}{+}151$ (level 0,
-$m = n^{6.11}$) and 50 bits at $10^{90}{+}289$ (level 0, $n^{5.97}$).  Re-indexing the bounds per
-level ($n_i = \lceil\log_2 p_i\rceil$, fillers $n_i^2$-smooth and ${\le}\,n_i^c$) is the cleaner
-specification asymptotically but is not backward compatible: 23 of the 70 levels, hitting 17 of the
-20 chains, contain a filler prime exceeding $n_i^2$ (deep and terminal levels were built under the
-top-level bound), and the per-level cap would need $c \ge 6.5$.  Either way the finder is essentially
-unaffected: the $L(1/3)$ channel's fillers are smooth parts of typical size $n_i^{2+o(1)}$, and a cap
-only truncates a thin tail of lucky large-filler winners --- a constant-factor effect, not an
-asymptotic one.
+\begin{proof}[Proof sketch]
+The primorial $P_B$ of $B = \lfloor n^2/\log_2 n\rfloor$ has $\theta(B)/\ln 2 = \Theta(n^2/\log n)$
+bits, so its product tree is built \emph{per certificate} in
+$O(\log\pi(B)\cdot M(n^2/\log n)) = O(n^2\log n)$ bit operations --- this is where the reduced
+smoothness bound acts: at $B = n^2$ the same construction costs $\Theta(n^2(\log n)^2)$, the per-$n$
+table of Remark~\ref{rem:tightshort}.  Per level, $\gcd(P_B \bmod o_i,\, o_i) =
+\operatorname{rad}(m_i)$ \emph{exactly} ($P_B$ is squarefree and $B$-complete), delivered as an
+integer of fewer than $n/\log_2 n$ bits by one $O(M(n^2/\log n)) = O(n^2)$ reduction, and the
+radical cap is checked by reading its bit length.  The radicals are factored within the budget by
+one batched pass: reduce the primorial's product tree modulo $G = \prod_i \operatorname{rad}(m_i)$,
+an $O(n)$-bit integer, read off the $O(n)$ primes dividing $G$ at the leaves, and attribute them to
+levels by direct division (per-level Pollard--Strassen with search radius $B$ is a tree-free
+deterministic alternative at $\Ot(n^2\sqrt{\log n})$).  Valuations recover each $m_i$ and
+$p_{i+1}$.  The exactness tree over the $k_i \le \lfloor\log_2\operatorname{rad}(m_i)\rfloor$
+distinct primes costs under $(n/\log_2 n)\cdot\lceil\log_2 k_i\rceil < n$ ladder bits per level, so
+the elliptic work is $O(\sum_i b_i\,M(b_i)) = O(n^2\log n)$, at roughly $5\times$ Pomerance's
+constant.  A draft reference verifier accompanies \osf{} (\texttt{ecpp/vshort2.py}); it factors each
+radical by direct trial division over the sieved primes --- asymptotically the coarsest step, but
+the simplest, and dominant only far beyond feasible sizes.
+\end{proof}
 
-\emph{Factored fillers.}  If one is willing to change the payload instead, carrying each filler in
-factored form removes even the primorial: the verifier checks each listed prime
-$q_j \le n^2$ by trial division to $\sqrt{q_j} \le n$, and the $n^2$-roughness of $p_{i+1}$ need
-never be checked at all --- a composite $p_{i+1}$ fails at the next level, by the same induction that
-already carries the soundness proof.  Combined with the cap --- factoring alone does not tame the
-exactness tree, whose $\Theta(n^2(\log n)^2)$ worst case (a) is a property of the group-theoretic
-checks, not of how the factors were learned --- verification is then worst-case $O(n^2\log n)$ with
-$O(n)$ memory and \emph{no} precomputation of any kind, at the price of certificates that are no
-longer unique for a given $(p_i, A_i, x_i, o_i)$.
-
-\emph{The uncapped format, all-inclusive.}  Conversely, if one keeps the current definition
-unchanged, the worst case is $O(n^2(\log n)^2)$ \emph{with the per-$n$ precomputation included}:
-the primorial product tree costs $\Theta(n^2(\log n)^2)$ to build, one reduction against
-$\prod_i o_i$ costs $M(n^2) = O(n^2\log n)$, the shared active-branch descent delivering every
-level's prime divisors costs $O(n^2\log n)$ more, and the elliptic worst case (a top-level filler of
-$\Theta(n)$ bits with $\Theta(n/\log n)$ primes) is $\Theta(n^2(\log n)^2)$ exactly --- as it must
-be, since the $k = 0$ stratum is the restricted one-shot.  The one proviso is organizational: the
-trial division must be batched \emph{across the whole chain} (build the tree once, reduce it once
-against $\prod_i o_i$, share the descent); repeating the $n^2$-scale pass level by level costs an
-extra logarithmic factor.  (The original reference verifier repeated the pass per level, and
-additionally built its batch products by sequential multiplication, which is quadratic in the batch
-size --- $\Tt(n^3)$ asymptotically, though with so small a constant that it is invisible below
-$n \sim 10^6$; both were implementation details, not format features, and the batched organization,
-with unchanged accept/reject behavior, was merged into the reference verifier of \cite{Short} in
-August 2026.  The analogous \texttt{voneshot.py} patch accompanies \cite{OSF} in
-\texttt{verifier-batching-pr/}.)  The three regimes, then: the current definition verifies in
-$O(n^2(\log n)^2)$ fully self-contained; capped fillers give $O(n^2\log n)$ plus a once-per-$n$
-$O(n^2(\log n)^2)$ table; capped \emph{and} factored fillers give $O(n^2\log n)$ outright.
+\begin{remark}[the original format's worst case, and the design space]\label{rem:tightshort}
+Under Definition~\ref{def:short} the two sources of the extra $\log$ factor in
+Proposition~\ref{prop:shortverif} were distinct in kind: the \emph{exactness tree} --- a filler of
+$\Theta(b_i)$ bits with $\Theta(b_i/\log b_i)$ distinct primes costs $\Theta(n^2(\log n)^2)$ at the
+top level, attained because the $k = 0$ stratum is exactly the restricted one-shot of
+\S\ref{sec:restricted} --- and the \emph{recovery} of $m_i$ from the payload, whose batched
+organization reaches $M(n^2) = O(n^2\log n)$ per certificate only given the product tree of the
+primes below $n^2$, a per-$n$ table costing $\Theta(n^2(\log n)^2)$ to build (the organization the
+reference verifier has realized since its August 2026 batching patch; the analogous
+\texttt{voneshot.py} patch accompanies \osf{} in \texttt{verifier-batching-pr/}).  Earlier drafts of
+this section analyzed three repairs --- capping the fillers at $n^{O(1)}$, carrying them in factored
+form in a changed payload, or accepting the $O(n^2(\log n)^2)$ self-contained bound --- before the
+revision resolved the question along a different axis: shrink the smoothness bound until the
+primorial itself fits the verification budget, and cap the \emph{radicals} rather than the fillers,
+so that neither the payload nor the Pomerance existence fallback ($2$-power fillers, whose radical
+is $2$ but whose size is $2^{\Theta(n)}$) is disturbed.
 \end{remark}
 
 One formula in fact covers the elliptic work of the whole family of
@@ -1220,6 +1212,11 @@ $n/2^i$-bit modulus costs $\exp\bigl(c\,2^{-i/3}X(1+o(1))\bigr)$, a geometricall
 so the chain total is dominated by its top level.
 \end{proof}
 
+The caps of the revised format (Definition~\ref{def:short2}) change none of this: they constrain
+only the window-completion step, a polynomial factor absorbed by the $o(1)$.  Their practical cost
+is likewise mild --- 74\% of the original table's 120 levels satisfied both caps incidentally, so a
+finder that simply filters pays a per-level acceptance factor of about $1.35$.
+
 \begin{remark}[how much the constant means]
 \label{rem:constants}
 Constants at the $L(1/3)$ scale are sensitive to bookkeeping: the derivation must track
@@ -1238,8 +1235,14 @@ sizes but are invisible on the $L$-scale.
 \subsection{Results to date}\label{sec:shortresults}
 
 The challenge table \cite{Short} holds verified short ECPPs for the least prime above $10^c$,
-$c = 10, 20, \dots, 200$ --- the top entry at 665 bits, twice the one-shot frontier, found on hardware
-where the deepest one-shot runs needed hundreds of cores (Table~\ref{tab:shortresults}).
+$c = 10, 20, \dots, 310$ --- the top entry at 1030 bits, more than twice the one-shot frontier
+(Table~\ref{tab:shortresults}; the largest entries are in Table~\ref{tab:shortrecords}).  Entries
+through $c = 200$ were found by SEA sampling (\texttt{short.gp} and its parallel driver); the August
+2026 records campaign, $c = 210, \dots, 310$, switched the order supply to CM --- the
+dscan/batched-smoothness pipeline of \S\ref{sec:cmoneshot} feeding a staged-ECM scheduler
+(\texttt{short\_prove.py} \osf) --- and spent ${\approx}3{,}500$ core-hours on 192-core machines
+across all targets, restarts, and preemptions; the SEA/CM crossover for this search criterion
+extrapolates to ${\approx}2000$ bits.
 
 \begin{table}[htbp]
 \centering\footnotesize
@@ -1260,16 +1263,48 @@ $10^{100}+267$& 333 & 3 & ${\approx}$800 s& $10^{200}+357$  & 665 & 4 & ${\appro
 \bottomrule
 \end{tabular}
 \medskip
-\caption{The ShortPrimalityProofs challenge table \cite{Short}.  Entries through $c = 100$ by
-\texttt{short.gp} on a single core (AVS and Claude Code, Fable 5); $c = 110, \dots, 200$ by
-\texttt{parallel\_short.py} workers.}
+\caption{The ShortPrimalityProofs challenge table \cite{Short} through $c = 200$.  Entries through
+$c = 100$ by \texttt{short.gp} on a single core (AVS and Claude Code, Fable 5); $c = 110, \dots, 200$
+by \texttt{parallel\_short.py} workers.}
 \label{tab:shortresults}
 \end{table}
 
-The growth from 3 s at 200 bits to 4{,}400 s at 665 bits --- a factor ${\approx}\,10^3$ over a
-$\times 3.3$ size increase, with large per-draw variance (the lucky 432-bit chain cost 55 s) --- is
-consistent with the gentle $L(1/3)$ curve; extrapolating, $10^{300}$ (997 bits) is a
-core-days-to-weeks project.
+\begin{table}[htbp]
+\centering\footnotesize
+\begin{tabular}{@{}lrrrr@{\qquad}lrrrr@{}}
+\toprule
+$p$ & bits & levels & wall & threads & $p$ & bits & levels & wall & threads\\
+\midrule
+$10^{210}+1129$ & 698 & 4 & 20 s & 32 & $10^{270}+361$ & 897 & 5 & 9{,}615 s & 192\\
+$10^{220}+427$  & 731 & 5 & 4{,}660 s & 32 & $10^{280}+13$ & 931 & 4 & 3{,}416 s & 192\\
+$10^{230}+753$  & 765 & 4 & 13{,}218 s & 32 & $10^{290}+279$ & 964 & 5 & 546 s & 192\\
+$10^{240}+1723$ & 798 & 5 & 5{,}759 s & 192 & $10^{300}+331$ & 997 & 4 & 5{,}466 s & 192\\
+$10^{250}+1227$ & 831 & 4 & 2{,}416 s & 192 & $10^{310}+733$ & 1030 & 5 & 158 s & 192\\
+$10^{260}+49$   & 864 & 5 & 3{,}291 s & 192 & & & & &\\
+\bottomrule
+\end{tabular}
+\medskip
+\caption{The August 2026 records, $c = 210, \dots, 310$, by the CM-supply prover
+\texttt{short\_prove.py} \osf{} on AWS spot instances (wall times as logged per chain; the largest
+previously published AKS-style example was 1025 bits).}
+\label{tab:shortrecords}
+\end{table}
+
+The growth from 3 s at 200 bits to hours at 700--1030 bits --- with enormous per-draw variance
+($10^{310}$ fell in 158 s of wall time while $10^{230}$ took 13{,}218 s on 32 threads) --- is
+consistent with the gentle $L(1/3)$ curve.
+
+\emph{Migration to the revised format.}  Ten of the thirty-one published chains already satisfied
+the caps of Definition~\ref{def:short2}.  The other twenty-one were re-found from their first
+non-compliant level onward --- the compliant prefix survives, since the level moduli above the
+repair point are unchanged.  Nineteen repairs, all at moduli of at most 358 bits, took 650 seconds
+of search in aggregate with the adapted SEA finder \texttt{short2.gp} \osf{} (none longer than 254
+seconds); the two level-0 rebuilds ran on the CM prover with the revised window filter:
+$10^{170}$ (565 bits) in $1.5\times 10^4$ seconds on 6 threads, and $10^{210}$ (698 bits, whose
+level-0 filler contained the prime $166393 > B = 51572$) in $4.7\times 10^4$ seconds on 10 threads
+of a shared desktop --- 33{,}876 candidate orders and ${\approx}130$ ECM core-hours where the
+original find had fallen in 20 seconds, the exponential-scale per-draw variance in action.  Every
+chain of the migrated table verifies under both the revised and the original definitions.
 
 \subsection{Interpolating toward classical ECPP: fixed-ratio descent chains}\label{sec:bdescent}
 
