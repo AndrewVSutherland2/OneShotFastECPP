@@ -94,6 +94,12 @@ PCACHE = os.path.join(REPO_DIR, "work/pcache/oneshot_P_4294967296.bin")   # y0 =
 Y0 = 4294967296
 CM_MIN_BITS = 135                 # below this, short.gp (SEA) finishes the chain
 
+# v2 (radical-capped) format support: when V2_BCAP > 0, fillers are restricted to
+# primes <= V2_BCAP and their radical to fewer than V2_RADLIM bits (floor(log2 rad)
+# < V2_RADLIM); set by prove_chain(v2=True).  Zero = original format, no change.
+V2_BCAP = 0
+V2_RADLIM = 0.0
+
 # classpoly environment (mirrors setenv.sh); cm_method shells out to the
 # classpoly binary, so it must be on PATH in the subprocess environment
 ECM_ENV["CLASSPOLY_PHI_DIR"] = ECM_ENV.get("CLASSPOLY_PHI_DIR", os.path.join(REPO_DIR, "phi_files"))
@@ -348,6 +354,8 @@ def window_hits(sfac, q, L, cap=500000):
     sorted by o.  r(m) = least prime divisor of m; since divisors are built over
     ascending primes, the least prime is the first one used.  Divisors above
     n2*L/q can never satisfy o < r*L (r <= least prime <= n2), so bound there."""
+    if V2_BCAP:
+        sfac = {pr: e for pr, e in sfac.items() if pr <= V2_BCAP}
     primes = sorted(sfac)
     if not primes:
         return []
@@ -372,6 +380,13 @@ def window_hits(sfac, q, L, cap=500000):
         if m > 1:
             o = m * q
             if L < o < lp * L:
+                if V2_RADLIM:
+                    rad = 1
+                    for pr in primes:
+                        if m % pr == 0:
+                            rad *= pr
+                    if rad.bit_length() - 1 >= V2_RADLIM:
+                        continue
                 hits.append((o, m))
     hits.sort()
     return hits
@@ -806,6 +821,22 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
 
 
 # ------------------------------------------------------------ chain assembly
+def gp_tail_chain2(q, ntop):
+    """Finish the chain below CM_MIN_BITS with short2.gp (v2 caps)."""
+    sgp = os.path.join(ECPP_DIR, "short2.gp")
+    script = open(sgp).read() + (
+        "\nSC_tlim=60;\nSC_branchcurves=200;\n"
+        "lg=log(%d)/log(2);\n"
+        "tv=scchain2(%d,floor(%d^2/lg),%d^2,%d/lg,0);\n"
+        "if(type(tv)!=\"t_VEC\",print(\"FAIL\"),print(tv));\n"
+        % (ntop, q, ntop, ntop, ntop))
+    out = gp(script, timeout=3600)
+    line = [l for l in out.splitlines() if l.strip()][-1].strip()
+    if line == "FAIL" or not line.startswith("["):
+        raise RuntimeError("short2.gp tail chain failed for q=%d" % q)
+    return [int(t) for t in line.strip("[]").split(",")]
+
+
 def gp_tail_chain(q, n2):
     """Finish the chain below CM_MIN_BITS with short.gp's SEA search."""
     sgp = os.path.join(SPP_DIR, "short.gp") if SPP_DIR else ""
@@ -865,12 +896,18 @@ def pari_check(seq, n2):
     return len(lines) == (len(seq) - 1) // 3 and all(l == "1 1 1" for l in lines)
 
 
-def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, resume=False, maxfb=0):
-    global JOURNAL
+def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, resume=False, maxfb=0,
+                v2=False):
+    global JOURNAL, V2_BCAP, V2_RADLIM
     if not is_prp(p0, 32):
         sys.exit("p0 is not prime")
     n = p0.bit_length()
     n2 = n * n
+    if v2:
+        from math import log2 as _log2
+        V2_BCAP = int(n * n / _log2(n))
+        V2_RADLIM = n / _log2(n)
+        log("v2 caps: B = %d, radical < 2^%.2f" % (V2_BCAP, V2_RADLIM))
     log("proving p0 (%d bits), n2 = %d" % (n, n2))
     t0 = time.time()
     small_primes = sieve_primes(n2)
@@ -903,10 +940,11 @@ def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, res
             json.dump({"p0": str(p0), "seq": [str(v) for v in seq], "p": str(p),
                        "meta": levels_meta}, f)
     if p > 1:
-        log("finishing below %d bits with short.gp (p has %d bits)" % (CM_MIN_BITS, p.bit_length()))
+        log("finishing below %d bits with %s (p has %d bits)"
+            % (CM_MIN_BITS, "short2.gp" if v2 else "short.gp", p.bit_length()))
         t1 = time.time()
-        tail = gp_tail_chain(p, n2)
-        log("  short.gp tail: %d levels in %.1fs" % (len(tail) // 3, time.time() - t1))
+        tail = gp_tail_chain2(p, n) if v2 else gp_tail_chain(p, n2)
+        log("  gp tail: %d levels in %.1fs" % (len(tail) // 3, time.time() - t1))
         seq += tail
     dt = time.time() - t0
     log("chain complete: %d levels, %.1fs; verifying..." % ((len(seq) - 1) // 3, dt))
@@ -954,7 +992,8 @@ def main():
     Bmax = int(float(args["Bmax"])) if "Bmax" in args else None
     prove_chain(p0, threads, seed=seed, B0=B0, Bmax=Bmax, tag=tag, out=args.get("out"),
                 resume=bool(int(args.get("resume", "0"))),
-                maxfb=int(float(args.get("maxfb", "0"))))
+                maxfb=int(float(args.get("maxfb", "0"))),
+                v2=bool(int(args.get("v2", "0"))))
 
 
 if __name__ == "__main__":
