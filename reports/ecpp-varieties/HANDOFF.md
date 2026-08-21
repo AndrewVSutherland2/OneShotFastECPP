@@ -160,10 +160,25 @@ the two level-0 rebuilds by short_prove v2=1 on the shared box: 10^170 =
 15,106 s / 6 threads (22,654 lev-0 cands), 10^210 = 47,373 s / 10 threads
 (33,876 cands, ~130 ecm core-h, winner D=-501101320 h~22385 — its v1 find
 had been a 20 s luck fluke; ordinary-luck price paid this time).  Paper and
-spec placeholders filled, compiled clean.  REMAINING FOR DREW: flip upstream
-ShortPrimalityProofs (README clauses + verifier + certs.csv + short.gp +
-regenerate short8all; checklist in reports/short2-spec/index.html); the
-paper's [Short] bib pin then needs the new upstream commit.
+spec placeholders filled, compiled clean.  UPSTREAM PACKAGE PREPARED (2026-08-21, evening): branch `radical-cap` on the
+AndrewVSutherland2/ShortPrimalityProofs fork (local clone
+/home/claude/ShortPrimalityProofs), two commits on top of upstream 0408b2b:
+fd5f613 = pure revert of short.gp to Drew's pristine 15a87c8 version (the
+IslayResearch optimizations from ca3ccd1 — twists, backtracking, factorint
+flags, sctryorder refactor — removed per Drew: short.gp is a demonstration,
+simple not fast; ONE deliberate deviation: a parisizemax 2^32 line, without
+which the usage examples crash at 10^30 absent a gprc); 1cdbf11 = the v2
+revision: README (definition clause + revision paragraph + resources + all
+21 repaired <details> entries with updated summaries/level counts),
+vsmallECPP.py (ported v2 verifier, upstream-style header, new self-tests),
+short.gp (+v2 bounds on the simple base; smoke-tested to 10^60, chains
+verify), certs.csv (migrated 31), short8all.txt (v2 exhaustive: 55,056
+tuples, generator validated by reproducing the v1 201,072 EXACTLY under v1
+rules; all 55,056 + all 31 chains verified by the new verifier),
+parallel_short.py (dead knobs dropped; smoke-tested end-to-end).  Drew opens
+the PR: https://github.com/AndrewVSutherland2/ShortPrimalityProofs/pull/new/radical-cap
+— arm watch-codex at PR-open.  After upstream merge: bump the paper's
+[Short] bib pin from 0408b2b to the new commit.
 
 ## The deliverable
 
