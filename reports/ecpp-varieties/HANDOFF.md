@@ -79,6 +79,27 @@ prime-power, 63% have k ≤ 2, but only 1/21 chains conforms wholesale — a k=1
 spec means re-proving the table.  Restricted one-shot: (log n)² is intrinsic
 (unbounded-k fillers are its content).  List 3 = rebuttals, no action.
 
+**Spec thread, round 2 (2026-08-20)**: Drew refines k_i = 1 to "squarefree
+part of m_i bounded by n/log n" — read as: the RADICAL rad(m_i) = prod of
+distinct primes has ≤ n/log₂n BITS.  Agreed, and it is the sharp knee:
+peel p' first, [o/R]P ≤ b_i/2 bits, tree = rad_bits·⌈lg k⌉ ≤
+(n/log₂n)·log₂n = n ladder bits/level ⟹ O(n·M(n)) = O(n² log n) total.
+Subsumes k=1 for n ≳ 128; keeps 2^κ existence (rad = 2).  Caveats: (a)
+must be the radical, not m/□ (square fillers evade); (b) fixes exactness
+only — listed-primes payload still wanted for the recovery side (listing ≤
+rad_bits ≤ n/log n bits/level, O(n) total); (c) small-n floor needed: for
+n ≲ 128, n/log₂n < 2log₂n = one legal prime's size (the n=34 "violation"
+is a legal k=1 level).  COMPLIANCE over the 31 upstream chains (120
+levels, certs.csv @0408b2b): 9 levels in 8 chains violate rad_bits ≤
+n/log₂n, ALL at n ≤ 333 (c ≤ 100 era); worst = 10^50+151 level 0 (46-bit
+radical vs 22.6, needed c = 2.03; also the ONLY level violating the exact
+functional rad_bits·(1+⌈lg k⌉) ≤ n: 184 > 167); next-worst c = 1.53.
+From n = 366 up all levels sit at c ≤ 0.83; the c ≥ 210 records have ≥ 2×
+margin.  n/ln n instead: 3 violations (n = 34, 100, 167).  A slack
+constant retains everything: 2n/log₂n loses only 10^50 (by < 1 bit),
+2.1n/log₂n (or 3n/log₂n) retains all 31.  Re-proving the 8 offenders
+(all seconds-to-minutes-scale finds) is trivial anyway.
+
 ## The deliverable
 
 `reports/ecpp-varieties/ecpp-varieties.tex` — a survey, written for Drew
