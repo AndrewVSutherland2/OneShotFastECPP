@@ -100,6 +100,35 @@ constant retains everything: 2n/log₂n loses only 10^50 (by < 1 bit),
 2.1n/log₂n (or 3n/log₂n) retains all 31.  Re-proving the 8 offenders
 (all seconds-to-minutes-scale finds) is trivial anyway.
 
+**Spec thread, rounds 3-4 (2026-08-20/21) — CONVERGED DESIGN**: Drew round 3:
+tie BOTH knobs to one value: smoothness bound Y = 2n²/log₂n AND rad(m_i) ≤ Y
+as an INTEGER, payload unchanged.  Verified: everything O(n² log n)
+self-contained (primorial of Y builds in O(n² log n) — the log² died with the
+smoothness shrink; gcd(P_Y mod o, o) = rad(m); radical ≤ Y factors by trial
+division to √Y; k ≤ log₂Y ≈ 2log₂n so the tree is noise) — but compliance
+catastrophic: 2/31 chains (radicals up to 2^57 vs caps 2^15-2^18; needed c up
+to 1.6e12).  Taxonomy: 21/120 levels fail via a filler prime in (Y, n²] (16
+chains — fail ANY Y≈n²/log n design); 30 more via the integer radical cap.
+Key dichotomy established: {unchanged payload, keep published certs, fully
+self-contained O(n²log n)} — pick two; self-containment with unchanged
+payload FORCES Y = O(n²/log n) (primorial build is Θ(Y·log²)-ish otherwise;
+on-the-fly chunking is also log²).  Drew round 4: cap log₂rad(m) instead of
+rad(m) — i.e. rad(m_i) < 2^{c·n/log₂n} with Y = c·n²/log₂n.  Verified: still
+O(n²log n) (tree ≤ (cn/log₂n)·log₂n = cn ladder bits/level; the big radical
+is factored by ONE batched remainder-tree pass across the chain vs the ≤Y
+prime tree, O(n²log n) total — or per-level Pollard–Strassen radius Y,
+Õ(n²√log n), tree-free).  Bits-cap is non-binding on ALL published data at
+c ≥ 3 (max radical 57 bits vs cap ≥ 90); the binding constraint is now the
+smoothness bound (filler primes > Y).  COMPLIANCE (both knobs at c):
+c=1: 10/31, c=2: 14/31, c=3: 20/31, **c=4: 24/31 with records 9/11 passing
+and the 2 failures (10^240 lev2 ~192b, 10^280 lev3 ~114b) trivial**, c=6:
+28/31.  At c=4 the full re-find list: 10^90 lev0 (299b, orig ~350 s — the
+only level-0), 10^20 lev1 + 10^60 lev1 (toys), 10^130/10^140 lev2, 10^240
+lev2, 10^280 lev3 — ALL local-box, no spot campaign.  RECOMMENDED FINAL:
+Y = ⌊4n²/log₂n⌋, rad(m_i) < 2^{⌈4n/log₂n⌉}, payload/floor/window unchanged.
+Next steps if Drew confirms: patch vsmallECPP.py to the new design, re-find
+the 7 broken chains locally, update paper §6/Remark 6.3 wholesale.
+
 ## The deliverable
 
 `reports/ecpp-varieties/ecpp-varieties.tex` — a survey, written for Drew
