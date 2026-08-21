@@ -15,8 +15,10 @@ v1mod = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(v1mod)
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 V1CSV = os.path.join(ROOT, "certs/short2/certs_v1.csv")
-REST = os.path.join(ROOT, "work/short2repair2/certs.csv")
-P698 = os.path.join(ROOT, "work/short2repair/nextprime1e210v2.txt")
+RESTS = [os.path.join(ROOT, d, "certs.csv")
+         for d in ("work/short2repair3", "work/short2repair4", "work/short2repair2")]
+PROVED = [os.path.join(ROOT, "work/short2repair", f)
+          for f in ("nextprime1e210v2.txt", "nextprime1e170v2.txt")]
 OUT = os.path.join(ROOT, "certs/short2/certs.csv")
 
 
@@ -26,19 +28,21 @@ def load_csv(path):
 
 def main():
     v1 = load_csv(V1CSV)
-    rest = {c[0]: c for c in load_csv(REST)} if os.path.exists(REST) else {}
-    p698chain = None
-    if os.path.exists(P698):
-        p698chain = [int(t) for t in open(P698).read().split()]
+    rest = {}
+    for path in RESTS:
+        if os.path.exists(path):
+            for c in load_csv(path):
+                rest.setdefault(c[0], c)
+    for path in PROVED:                       # short_prove outputs win over drivers
+        if os.path.exists(path):
+            c = [int(t) for t in open(path).read().split()]
+            rest[c[0]] = c
     out, bad = [], 0
     for ints in v1:
         n = ints[0].bit_length()
         if first_bad_level(ints) is None:
             chain = ints
             src = "kept"
-        elif n == 698:
-            chain = p698chain
-            src = "short_prove v2"
         else:
             chain = rest.get(ints[0])
             src = "repaired"
