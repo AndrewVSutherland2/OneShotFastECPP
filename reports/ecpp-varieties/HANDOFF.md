@@ -140,7 +140,8 @@ ecpp/vshort2.py (v2 reference verifier, primorial-gcd recovery; self-tests;
 differential = exactly the predicted 10/21 split on all 31 chains),
 ecpp/short2.gp (adapted finder, shortcert2from(p,ntop) for repairs),
 ecpp/repair_short2.py (prefix-preserving migration driver, dual-validates
-v2+v1 — note v2 ⊂ v1: old verifier accepts all v2 certs),
+v2+v1 — note v2 ⊂ v1: old verifier accepts all v2 certs [superseded by the
+terminal-prime revision, round 6 below: truncated chains are v1-invalid]),
 short_prove.py v2=1 flag (CM prover with v2 filler filter + short2.gp tails;
 smoke-tested at 200 bits, 46 s, dual-verified).  Paper updated (Def 6.2
 def:short2, Prop prop:short2verif, Remark 6.3 compressed to resolved-design
