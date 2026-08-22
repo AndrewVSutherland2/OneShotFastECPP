@@ -33,16 +33,20 @@ and the write-up <code>reports/ecpp-varieties/ecpp-varieties.pdf</code> (Definit
 <code>(p_0, A_0, x_0, o_0, A_1, x_1, o_1, ..., A_k, x_k, o_k)</code> with
 <code>n = ceil(log2 p_0)</code> fixed for the whole chain, each level working modulo
 <code>p_i</code> with <code>o_i = m_i &middot; p_{i+1}</code>.  The revision changes three
-clauses, with <b><code>B = floor(n&sup2;/log&#8322; n)</code></b>:</p>
+clauses, with <b><code>B = ceil(n&sup2;/log&#8322; n)</code></b>:</p>
 <ol>
 <li><b>Smoothness.</b> <code>m_i</code> is the <i>B</i>-smooth part of <code>o_i</code>
 (every prime of <code>m_i</code> is &le; <code>B</code>; no prime of <code>o_i</code> may lie in
 <code>(B, n&sup2;]</code>).</li>
-<li><b>Radical cap.</b> <code>floor(log&#8322; rad(m_i)) &lt; n/log&#8322; n</code>, where
-<code>rad(m)</code> is the product of the distinct primes of <code>m</code>.</li>
-<li><b>Explicit floor.</b> <code>p_{i+1} = 1</code> (terminal) or
-<code>n&sup2; &lt; p_{i+1}</code> and <code>p_{i+1}&sup2; &lt; p_i</code> (roughness now
-guarantees only <code>p_{i+1} &gt; B</code>, so the floor is stated).</li>
+<li><b>Radical cap.</b> <code>log&#8322; rad(m_i) &le; ceil(n/log&#8322; n)</code>, where
+<code>rad(m)</code> is the product of the distinct primes of <code>m</code> (exact as a
+bit-length test: a squarefree power of 2 is just 2).</li>
+<li><b>Roughness and descent.</b> <code>p_1,&hellip;,p_{k+1}</code> have no prime factor
+&le; <code>B</code> (stated explicitly &mdash; for the recursive <code>p_i</code> it follows
+from the other conditions, for <code>p_{k+1}</code> it is load-bearing), with
+<code>B&sup2; &lt; p_{i+1} &lt; &radic;p_i</code> for <code>i &lt; k</code> and
+<code>p_{k+1} &lt; B&sup2;</code>: a rough integer below <code>B&sup2;</code> is 1 or
+automatically prime, so the terminal prime certifies itself by size.</li>
 </ol>
 <p>Window (<code>L_i &lt; o_i &lt; r_i L_i</code>, <code>r_i</code> the least prime of
 <code>m_i</code>), minimality, point-order semantics, and the payload are unchanged.
@@ -60,8 +64,8 @@ The two caps remove both obstacles at once:</p>
 <ul>
 <li>The primorial of <code>B</code> has <code>&Theta;(n&sup2;/log n)</code> bits, so it is built
 <i>per certificate</i> in <code>O(n&sup2; log n)</code> &mdash; no table.</li>
-<li><code>gcd(P_B mod o_i, o_i) = rad(m_i)</code> exactly, an integer of fewer than
-<code>n/log&#8322; n</code> bits whose prime factors are &le; <code>B</code>; the radicals of the
+<li><code>gcd(P_B mod o_i, o_i) = rad(m_i)</code> exactly, an integer of at most
+<code>ceil(n/log&#8322; n)</code> bits whose prime factors are &le; <code>B</code>; the radicals of the
 whole chain are factored within the budget (batched against the primorial tree, or per-level
 Pollard&ndash;Strassen; the reference verifier simply trial-divides &mdash; coarsest
 asymptotically, simplest, and dominant only far beyond feasible sizes).</li>
@@ -126,21 +130,14 @@ is verified under <i>both</i> the v2 and the original definitions.</p>
 <p>Migrated table: <code>certs/short2/certs.csv</code> (pre-migration copy:
 <code>certs_v1.csv</code>).</p>
 
-<h2>Upstream adoption checklist (ShortPrimalityProofs)</h2>
-<ol>
-<li>README: replace the three format clauses as in <b>The revision</b> above (the rest of the
-definition text is unchanged).  State <code>B = floor(n&sup2;/log&#8322; n)</code> and the radical
-cap <code>floor(log&#8322; rad(m_i)) &lt; n/log&#8322; n</code>; keep the explicit
-<code>n&sup2; &lt; p_{i+1}</code> floor.</li>
-<li>Replace <code>vsmallECPP.py</code> by (a renamed) <code>vshort2.py</code>, or ship both during
-a transition &mdash; the old verifier accepts every v2 certificate but does not enforce the caps.</li>
-<li>Replace <code>certs.csv</code> by the migrated table.</li>
-<li>Replace <code>short.gp</code> by <code>short2.gp</code> (same toy style, same knobs).</li>
-<li>Regenerate the exhaustive small-p data (<code>short8all.txt</code>): the v2 enumeration below
-2<sup>8</sup> is smaller (the caps thin the admissible orders; e.g. for p = 251 the terminal
-orders are 24, 25, 27, 32, 36, 49).  Existence for every prime p &ge; 5 still holds (2-power
-fillers).</li>
-</ol>
+<h2>Adoption status (ShortPrimalityProofs)</h2>
+<p>The radical-capped revision was merged upstream as PR #6 (commit <code>cc2caf1</code>).  The
+terminal-prime revision and the settled conventions above (ceilings; the verifier renamed
+<code>vshortECPP.py</code>; <code>certs.csv</code> truncated; <code>short8all.txt</code> = 55,056
+tuples; the simple <code>short.gp</code> carrying the same rules) are merged on the
+<a href="https://github.com/AndrewVSutherland2/ShortPrimalityProofs">AndrewVSutherland2 fork</a>'s
+<code>main</code>, awaiting Drew's upstream PR.  The definition text above matches the fork's
+README verbatim in content.</p>
 <h2>Terminal-prime revision (2026-08-22)</h2>
 <p>A second revision, proposed by Drew after the v2 merge: raise the recursion floor from
 n&sup2; to <b>B&sup2;</b> and let the terminal cofactor be a prime below B&sup2; &mdash; being

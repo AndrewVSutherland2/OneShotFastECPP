@@ -1,17 +1,21 @@
 #!/usr/bin/env python3
-"""assemble_short2.py -- merge the v2 migration outputs into certs/short2/certs.csv
-(original chain order), validating every chain under BOTH verifiers.
+"""assemble_short2.py -- validate (default) or re-assemble the migrated short-ECPP table.
 
-usage: python3 ecpp/assemble_short2.py
+Default (no arguments): deterministically validate the TRACKED table
+certs/short2/certs.csv -- every chain must verify under the revised-format verifier
+(ecpp/vshort2.py) and contain no level violating the format constraints.  Exits
+nonzero on any failure, so it doubles as a consistency gate.
+
+--merge: the historical migration mode (August 2026): merge the repair outputs from
+work/short2repair*/ (produced by repair_short2.py and short_prove.py runs; those
+work directories are transient and not tracked) into certs/short2/certs.csv,
+validating every chain along the way.  Kept for provenance; a fresh checkout
+cannot run it without re-running the migration searches.
 """
 import os, sys
 sys.path.insert(0, os.path.join(os.path.dirname(__file__)))
 from vshort2 import _verify as v2_verify
 from repair_short2 import first_bad_level
-import importlib.util
-_sp = importlib.util.spec_from_file_location(
-    "v1", os.path.join(os.path.dirname(__file__), "..", "verifier-batching-pr", "vsmallECPP.py"))
-v1mod = importlib.util.module_from_spec(_sp); _sp.loader.exec_module(v1mod)
 
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 V1CSV = os.path.join(ROOT, "certs/short2/certs_v1.csv")
@@ -26,7 +30,22 @@ def load_csv(path):
     return [[int(t) for t in line.strip().split(',')] for line in open(path) if line.strip()]
 
 
-def main():
+def validate():
+    bad = 0
+    chains = load_csv(OUT)
+    for chain in chains:
+        n = chain[0].bit_length()
+        okv2 = v2_verify(chain)
+        lev = first_bad_level(chain)
+        print(f"n={n:4d}: levels={(len(chain)-1)//3} verify={okv2[0]} format-clean={lev is None}"
+              + ("" if okv2[0] and lev is None else f"  <-- {okv2} bad-level={lev}"))
+        if not (okv2[0] and lev is None):
+            bad += 1
+    print(f"{len(chains)} chains checked, {bad} failures")
+    sys.exit(1 if bad else 0)
+
+
+def merge():
     v1 = load_csv(V1CSV)
     rest = {}
     for path in RESTS:
@@ -51,11 +70,10 @@ def main():
             bad += 1
             continue
         okv2 = v2_verify(chain)
-        okv1 = v1mod.verify(chain)
         levs = (len(chain) - 1) // 3
-        print(f"n={n:4d}: {src:14s} levels={levs} v2={okv2[0]} v1={okv1}"
-              + ("" if okv2[0] and okv1 else f"  <-- {okv2}"))
-        if not (okv2[0] and okv1):
+        print(f"n={n:4d}: {src:14s} levels={levs} v2={okv2[0]}"
+              + ("" if okv2[0] else f"  <-- {okv2}"))
+        if not okv2[0]:
             bad += 1
             continue
         out.append(chain)
@@ -69,4 +87,7 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == "--merge":
+        merge()
+    else:
+        validate()
