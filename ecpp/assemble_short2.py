@@ -33,6 +33,18 @@ def load_csv(path):
 def validate():
     bad = 0
     chains = load_csv(OUT)
+    expected = [c[0] for c in load_csv(V1CSV)]    # the authoritative prime list, in order
+    got = [c[0] for c in chains]
+    if got != expected:
+        print(f"table mismatch: {len(got)} chains present, expected the "
+              f"{len(expected)} primes of certs_v1.csv in the same order")
+        for p in expected:
+            if p not in got:
+                print(f"  missing: 10^{len(str(p))-1} chain")
+        for i, p in enumerate(got):
+            if p not in expected or got.index(p) != i:
+                print(f"  extra/duplicate/misplaced at row {i}: 10^{len(str(p))-1}")
+        sys.exit(1)
     for chain in chains:
         n = chain[0].bit_length()
         okv2 = v2_verify(chain)
