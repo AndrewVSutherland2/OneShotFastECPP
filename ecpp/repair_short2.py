@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""repair_short2.py -- migrate the published short-ECPP table to the v2 (radical-capped)
-format.  For each chain in certs.csv: find the first level whose DATA violates the v2
-constraints (a filler prime > B = floor(n^2/log2 n), or floor(log2 rad(m)) >= n/log2 n),
-keep the valid prefix, and re-find the chain from that level's modulus with short2.gp
+"""repair_short2.py -- migrate a published short-ECPP table to the revised (August
+2026) format.  For each chain in certs.csv: find the first level whose DATA violates
+the revised constraints (a filler prime > B = ceil(n^2/log2 n), or a filler radical
+with log2 rad(m) > ceil(n/log2 n)), keep the valid prefix, and re-find the chain from
+that level's modulus with short2.gp
 (first-winning-worker parallelism, kills by Popen handle only).  Every output chain is
 validated with BOTH vshort2.py (v2) and the original vsmallECPP.py (v1 => superset).
 
@@ -49,13 +50,14 @@ def v1_parse(ints):
 
 def first_bad_level(ints):
     """first level violating the v2 data constraints, or None."""
+    from math import ceil
     n = ints[0].bit_length(); lg = log2(n)
-    B = int(n * n / lg); radlim = n / lg
+    B = ceil(n * n / lg); radlim = ceil(n / lg)
     for lev, (A, x, o, pnext, m, facs) in enumerate(v1_parse(ints)):
         rad = 1
         for q in facs:
             rad *= q
-        if (facs and max(facs) > B) or (rad > 1 and rad.bit_length() - 1 >= radlim) or rad == 1:
+        if (facs and max(facs) > B) or (rad > 1 and rad.bit_length() > radlim) or rad == 1:
             return lev
     return None
 

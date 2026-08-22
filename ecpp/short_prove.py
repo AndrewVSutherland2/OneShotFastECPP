@@ -94,11 +94,14 @@ PCACHE = os.path.join(REPO_DIR, "work/pcache/oneshot_P_4294967296.bin")   # y0 =
 Y0 = 4294967296
 CM_MIN_BITS = 135                 # below this, short.gp (SEA) finishes the chain
 
-# v2 (radical-capped) format support: when V2_BCAP > 0, fillers are restricted to
-# primes <= V2_BCAP and their radical to fewer than V2_RADLIM bits (floor(log2 rad)
-# < V2_RADLIM); set by prove_chain(v2=True).  Zero = original format, no change.
+# Revised (August 2026) format support: when V2_BCAP > 0, fillers are restricted
+# to primes <= V2_BCAP = ceil(n^2/log2 n) with log2 rad(m) <= V2_RADLIM =
+# ceil(n/log2 n), and recursion requires q > V2_QFLOOR = V2_BCAP^2 (terminal
+# primes below B^2 come from the gp tail).  Set by prove_chain(v2=True); the
+# final certificate is then gated on vshort2.verify.  Zero = original format.
 V2_BCAP = 0
-V2_RADLIM = 0.0
+V2_RADLIM = 0
+V2_QFLOOR = 0
 
 # classpoly environment (mirrors setenv.sh); cm_method shells out to the
 # classpoly binary, so it must be on PATH in the subprocess environment
@@ -385,7 +388,7 @@ def window_hits(sfac, q, L, cap=500000):
                     for pr in primes:
                         if m % pr == 0:
                             rad *= pr
-                    if rad.bit_length() - 1 >= V2_RADLIM:
+                    if rad.bit_length() > V2_RADLIM:    # log2 rad(m) <= ceil(n/log2 n)
                         continue
                 hits.append((o, m))
     hits.sort()
@@ -395,8 +398,8 @@ def window_hits(sfac, q, L, cap=500000):
 def accept_q(cand, q, p, L, n2, small_primes):
     """If prime q makes a valid descent from p with cofactor m | s, return the
     sorted (o, m) options, else None."""
-    if q <= n2 or q * q >= p:
-        return None
+    if q <= (V2_QFLOOR if V2_QFLOOR else n2) or q * q >= p:
+        return None                       # v2: recursion floor is B^2, not n^2
     if cand.sfac is None:
         cand.sfac = factor_small(cand.s, small_primes)
     if not cand.sfac:
@@ -826,10 +829,10 @@ def gp_tail_chain2(q, ntop):
     sgp = os.path.join(ECPP_DIR, "short2.gp")
     script = open(sgp).read() + (
         "\nSC_tlim=60;\nSC_branchcurves=200;\n"
-        "lg=log(%d)/log(2);\n"
-        "tv=scchain2(%d,floor(%d^2/lg),%d^2,%d/lg,0);\n"
+        "lg=log(%d)/log(2); Bv=ceil(%d^2/lg);\n"
+        "tv=scchain2(%d,Bv,Bv^2,ceil(%d/lg),0);\n"
         "if(type(tv)!=\"t_VEC\",print(\"FAIL\"),print(tv));\n"
-        % (ntop, q, ntop, ntop, ntop))
+        % (ntop, ntop, q, ntop))
     out = gp(script, timeout=3600)
     line = [l for l in out.splitlines() if l.strip()][-1].strip()
     if line == "FAIL" or not line.startswith("["):
@@ -898,16 +901,18 @@ def pari_check(seq, n2):
 
 def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, resume=False, maxfb=0,
                 v2=False):
-    global JOURNAL, V2_BCAP, V2_RADLIM
+    global JOURNAL, V2_BCAP, V2_RADLIM, V2_QFLOOR
     if not is_prp(p0, 32):
         sys.exit("p0 is not prime")
     n = p0.bit_length()
     n2 = n * n
     if v2:
-        from math import log2 as _log2
-        V2_BCAP = int(n * n / _log2(n))
-        V2_RADLIM = n / _log2(n)
-        log("v2 caps: B = %d, radical < 2^%.2f" % (V2_BCAP, V2_RADLIM))
+        from math import log2 as _log2, ceil as _ceil
+        V2_BCAP = _ceil(n * n / _log2(n))
+        V2_RADLIM = _ceil(n / _log2(n))
+        V2_QFLOOR = V2_BCAP * V2_BCAP
+        log("revised format: B = %d, log2 rad <= %d, recursion floor B^2 = %d"
+            % (V2_BCAP, V2_RADLIM, V2_QFLOOR))
     log("proving p0 (%d bits), n2 = %d" % (n, n2))
     t0 = time.time()
     small_primes = sieve_primes(n2)
@@ -922,7 +927,10 @@ def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, res
     stats = {}
     if resume and os.path.exists(partial):
         st = json.load(open(partial))
-        if st.get("p0") == str(p0):
+        if st.get("fmt", 1) != (2 if v2 else 1):
+            log("partial state has fmt=%s, need %d -- ignoring it"
+                % (st.get("fmt", 1), 2 if v2 else 1))
+        elif st.get("p0") == str(p0):
             seq = [int(x) for x in st["seq"]]
             levels_meta = st.get("meta", [])
             p = int(st["p"])
@@ -937,7 +945,8 @@ def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, res
         levels_meta.append(meta)
         p = q
         with open(partial, "w") as f:
-            json.dump({"p0": str(p0), "seq": [str(v) for v in seq], "p": str(p),
+            json.dump({"p0": str(p0), "fmt": 2 if v2 else 1,
+                       "seq": [str(v) for v in seq], "p": str(p),
                        "meta": levels_meta}, f)
     if p > 1:
         log("finishing below %d bits with %s (p has %d bits)"
@@ -948,9 +957,18 @@ def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, res
         seq += tail
     dt = time.time() - t0
     log("chain complete: %d levels, %.1fs; verifying..." % ((len(seq) - 1) // 3, dt))
-    ok = verify(seq)
-    okp = pari_check(seq, n2)
-    log("vsmallECPP.verify = %s   PARI cross-check = %s" % (ok, okp))
+    if v2:
+        import importlib.util
+        _s2 = importlib.util.spec_from_file_location(
+            "vshort2", os.path.join(ECPP_DIR, "vshort2.py"))
+        _v2mod = importlib.util.module_from_spec(_s2); _s2.loader.exec_module(_v2mod)
+        ok = _v2mod.verify(seq)               # the revised format's verifier is the gate
+        okp = pari_check(seq, V2_BCAP)        # parse at B so the split matches the format
+        log("vshort2.verify = %s   PARI cross-check = %s" % (ok, okp))
+    else:
+        ok = verify(seq)
+        okp = pari_check(seq, n2)
+        log("vsmallECPP.verify = %s   PARI cross-check = %s" % (ok, okp))
     if not (ok and okp):
         sys.exit("VERIFICATION FAILED -- certificate not written")
     if out is None:
