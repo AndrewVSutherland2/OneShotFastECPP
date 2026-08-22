@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Short ECPP v2: the radical-capped revision</title>
+<style>
+ body{font:16px/1.55 Georgia,serif;max-width:56em;margin:2em auto;padding:0 1em;color:#1a1a1a;background:#fff}
+ h1{font-size:1.6em;border-bottom:2px solid #234;padding-bottom:.3em}
+ h2{font-size:1.25em;margin-top:1.6em;color:#234}
+ code,pre{font:13px/1.45 ui-monospace,Menlo,monospace;background:#f4f4f0}
+ pre{padding:.8em;overflow-x:auto;border-left:3px solid #9ab}
+ table{border-collapse:collapse;margin:1em 0;font-size:.92em}
+ td,th{border:1px solid #bbb;padding:.25em .6em;text-align:right}
+ th{background:#eef1f4}
+ td:first-child,th:first-child{text-align:left}
+ .def{background:#f7f9fb;border:1px solid #cdd6de;padding:.8em 1em;margin:1em 0}
+ .note{color:#555;font-size:.92em}
+ .fill{background:#fff3cd}
+</style>
+</head>
+<body>
+<h1>Short ECPP v2: the radical-capped revision</h1>
+<p class="note">2026-08-21 &middot; AVS + Claude (Fable 5) &middot; OneShotFastECPP, branch <code>short-ecpp</code>.
+Working note for the August 2026 revision of the
+<a href="https://github.com/AndrewVSutherland/ShortPrimalityProofs">ShortPrimalityProofs</a> format;
+design discussion in the session of 2026-08-19&ndash;21 (see <code>reports/ecpp-varieties/HANDOFF.md</code>)
+and the write-up <code>reports/ecpp-varieties/ecpp-varieties.pdf</code> (Definition 6.2, Proposition 6.4).</p>
+
+<h2>The revision</h2>
+<div class="def">
+<p>A certificate is, as before, the flat sequence
+<code>(p_0, A_0, x_0, o_0, A_1, x_1, o_1, ..., A_k, x_k, o_k)</code> with
+<code>n = ceil(log2 p_0)</code> fixed for the whole chain, each level working modulo
+<code>p_i</code> with <code>o_i = m_i &middot; p_{i+1}</code>.  The revision changes three
+clauses, with <b><code>B = ceil(n&sup2;/log&#8322; n)</code></b>:</p>
+<ol>
+<li><b>Smoothness.</b> <code>m_i</code> is the <i>B</i>-smooth part of <code>o_i</code>
+(every prime of <code>m_i</code> is &le; <code>B</code>; no prime of <code>o_i</code> may lie in
+<code>(B, n&sup2;]</code>).</li>
+<li><b>Radical cap.</b> <code>log&#8322; rad(m_i) &le; ceil(n/log&#8322; n)</code>, where
+<code>rad(m)</code> is the product of the distinct primes of <code>m</code> (exact as a
+bit-length test: a squarefree power of 2 is just 2).</li>
+<li><b>Roughness and descent.</b> <code>p_1,&hellip;,p_{k+1}</code> have no prime factor
+&le; <code>B</code> (stated explicitly &mdash; for the recursive <code>p_i</code> it follows
+from the other conditions, for <code>p_{k+1}</code> it is load-bearing), with
+<code>B&sup2; &lt; p_{i+1} &lt; &radic;p_i</code> for <code>i &lt; k</code> and
+<code>p_{k+1} &lt; B&sup2;</code>: a rough integer below <code>B&sup2;</code> is 1 or
+automatically prime, so the terminal prime certifies itself by size.</li>
+</ol>
+<p>Window (<code>L_i &lt; o_i &lt; r_i L_i</code>, <code>r_i</code> the least prime of
+<code>m_i</code>), minimality, point-order semantics, and the payload are unchanged.
+A certificate with <code>p_{k+1} = 1</code> is also valid under the original definition; one that
+uses a terminal prime is <b>not</b>: the original definition requires descending to
+<code>p_{k+1} = 1</code>, so the truncation in the next section is forced, not optional.  Existence for every prime
+<code>p_0 &ge; 5</code> is untouched: a 2-power filler has radical 2 and <code>p_{k+1} = 1</code>.</p>
+</div>
+
+<h2>Why: verification becomes O(n&sup2; log n), self-contained</h2>
+<p>The original format verifies in <code>O(n&sup2;(log n)&sup2;)</code> worst case (its k = 0
+stratum is the unrestricted-filler restricted one-shot), and reaching
+<code>O(n&sup2; log n)</code> on published certificates needs the product tree of the primes to
+n&sup2; &mdash; a per-<i>n</i> table costing <code>&Theta;(n&sup2;(log n)&sup2;)</code> to build.
+The two caps remove both obstacles at once:</p>
+<ul>
+<li>The primorial of <code>B</code> has <code>&Theta;(n&sup2;/log n)</code> bits, so it is built
+<i>per certificate</i> in <code>O(n&sup2; log n)</code> &mdash; no table.</li>
+<li><code>gcd(P_B mod o_i, o_i) = rad(m_i)</code> exactly, an integer of at most
+<code>ceil(n/log&#8322; n)</code> bits whose prime factors are &le; <code>B</code>; the radicals of the
+whole chain are factored within the budget (batched against the primorial tree, or per-level
+Pollard&ndash;Strassen; the reference verifier simply trial-divides &mdash; coarsest
+asymptotically, simplest, and dominant only far beyond feasible sizes).</li>
+<li>The radical cap bounds the order-exactness tree by
+<code>(n/log&#8322; n)&middot;ceil(log&#8322; k) &lt; n</code> ladder bits per level, so the
+elliptic work is <code>O(&Sigma; b_i M(b_i)) = O(n&sup2; log n)</code>, about 5&times;
+Pomerance's constant.</li>
+</ul>
+<p><b>Proposition.</b> A v2 certificate for an <i>n</i>-bit <code>p_0</code> is verified in
+<code>O(n&sup2; log n)</code> bit operations and <code>O(n&sup2;)</code> bits of memory, worst
+case over certificates, with no precomputation of any kind.</p>
+<p class="note">The finding analysis is untouched: the caps constrain only window completion, a
+polynomial factor.  74% of the 120 published levels satisfied both caps incidentally (a
+per-level acceptance factor of &asymp;1.35 for a finder that filters).</p>
+
+<p><b>Validation.</b> Every prime in [5, 4096] (562 primes) was swept with <code>short2.gp</code>:
+all have v2 certificates, as the 2-power existence argument guarantees.  The reference verifier
+is also faster than the (batched) original in practice: 5.6 vs 14.6 ms at 233 bits, 44 vs 141 ms
+at 665 bits, 174 vs 196 ms at 1030 bits (pure Python, this machine) &mdash; the primorial of B is
+a fraction of the n&sup2; sieve's work.</p>
+
+<h2>Migration of the published table</h2>
+<p>Of the 31 published chains (<code>certs.csv</code>, upstream commit <code>0408b2b</code>):
+<b>10 already comply</b> (c = 70, 150, 160, 180, 200, 250, 260, 270, 290, 310) and are kept
+byte-identical; <b>21 were re-found from their first non-compliant level</b> (the compliant
+prefix survives; the level moduli above the repair point are unchanged).  Every repaired chain
+was dual-verified (revised <i>and</i> original definitions) at the repair stage, i.e. before the
+terminal-prime truncation; the 21 truncated chains are, by design, no longer valid under the
+original definition.</p>
+<table>
+<tr><th>chain</th><th>repair level</th><th>modulus</th><th>engine</th><th>search time</th></tr>
+<tr><td>10^10</td><td>1</td><td>15 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^20</td><td>1</td><td>21 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^30</td><td>1</td><td>45 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^40</td><td>0</td><td>133 bits</td><td style='text-align:left'>SEA</td><td>4 s</td></tr>
+<tr><td>10^50</td><td>0</td><td>167 bits</td><td style='text-align:left'>SEA</td><td>10 s</td></tr>
+<tr><td>10^60</td><td>1</td><td>95 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^80</td><td>0</td><td>266 bits</td><td style='text-align:left'>SEA</td><td>92 s</td></tr>
+<tr><td>10^90</td><td>0</td><td>299 bits</td><td style='text-align:left'>SEA</td><td>90 s</td></tr>
+<tr><td>10^100</td><td>1</td><td>160 bits</td><td style='text-align:left'>SEA</td><td>4 s</td></tr>
+<tr><td>10^110</td><td>1</td><td>169 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^120</td><td>3</td><td>23 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^130</td><td>2</td><td>83 bits</td><td style='text-align:left'>SEA</td><td>4 s</td></tr>
+<tr><td>10^140</td><td>2</td><td>99 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^170</td><td>0</td><td>565 bits</td><td style='text-align:left'>CM</td><td>15,106 s</td></tr>
+<tr><td>10^190</td><td>1</td><td>288 bits</td><td style='text-align:left'>SEA</td><td>254 s</td></tr>
+<tr><td>10^210</td><td>0</td><td>698 bits</td><td style='text-align:left'>CM</td><td>47,473 s</td></tr>
+<tr><td>10^220</td><td>1</td><td>358 bits</td><td style='text-align:left'>SEA</td><td>164 s</td></tr>
+<tr><td>10^230</td><td>2</td><td>187 bits</td><td style='text-align:left'>SEA</td><td>4 s</td></tr>
+<tr><td>10^240</td><td>2</td><td>190 bits</td><td style='text-align:left'>SEA</td><td>6 s</td></tr>
+<tr><td>10^280</td><td>3</td><td>114 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+<tr><td>10^300</td><td>3</td><td>103 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
+</table>
+<p class='note'>The nineteen SEA repairs (short2.gp, first-winning worker) took 650 s of search in aggregate; the two level-0 rebuilds ran on the CM prover (short_prove v2=1) on a shared 16-core desktop &mdash; 10<sup>210</sup> consumed 33,876 candidate orders and &asymp;130 ECM core-hours where its original v1 find had fallen in 20 s, the exponential-scale per-draw variance in action.  All 31 repaired chains were dual-verified (revised and original definitions) before the terminal-prime truncation; the shipped truncated table verifies under the revised definition (assembled and checked by <code>ecpp/assemble_short2.py</code>).</p>
+
+<h2>Tools (this repo, <code>ecpp/</code>)</h2>
+<table>
+<tr><th>file</th><th style="text-align:left">role</th></tr>
+<tr><td><code>vshort2.py</code></td><td style="text-align:left">v2 reference verifier (primorial-gcd recovery; self-tests; differential-tested on all 31 chains)</td></tr>
+<tr><td><code>short2.gp</code></td><td style="text-align:left">SEA finder adapted to the caps; <code>shortcert2from(p, ntop)</code> for mid-chain repairs</td></tr>
+<tr><td><code>repair_short2.py</code></td><td style="text-align:left">migration driver (prefix-preserving, first-winning-worker, dual validation)</td></tr>
+<tr><td><code>short_prove.py v2=1</code></td><td style="text-align:left">CM-supply record prover with the v2 filler filter and short2.gp tails</td></tr>
+</table>
+<p>Migrated table: <code>certs/short2/certs.csv</code> (pre-migration copy:
+<code>certs_v1.csv</code>).</p>
+
+<h2>Adoption status (ShortPrimalityProofs)</h2>
+<p>The radical-capped revision was merged upstream as PR #6 (commit <code>cc2caf1</code>).  The
+terminal-prime revision and the settled conventions above (ceilings; the verifier renamed
+<code>vshortECPP.py</code>; <code>certs.csv</code> truncated; <code>short8all.txt</code> = 55,056
+tuples; the simple <code>short.gp</code> carrying the same rules) are merged on the
+<a href="https://github.com/AndrewVSutherland2/ShortPrimalityProofs">AndrewVSutherland2 fork</a>'s
+<code>main</code>, awaiting Drew's upstream PR.  The definition text above matches the fork's
+README verbatim in content.</p>
+<h2>Terminal-prime revision (2026-08-22)</h2>
+<p>A second revision, proposed by Drew after the v2 merge: raise the recursion floor from
+n&sup2; to <b>B&sup2;</b> and let the terminal cofactor be a prime below B&sup2; &mdash; being
+B-rough, an integer below B&sup2; is 1 or automatically prime, so the last prime <i>certifies
+itself by size</i> (no factoring, no primality test, one extra exactness leaf).  The recursion
+stops as soon as this is possible, and n&sup2; disappears from the format entirely.  Key
+specification subtlety (Drew): B-roughness of p<sub>k+1</sub> must be stated explicitly &mdash;
+for the recursive p<sub>i</sub> it follows from the other conditions (they are proven prime and
+exceed B&sup2;), but nothing else forces it for p<sub>k+1</sub>, and it is what makes the size
+certification sound; stated on the p<sub>i</sub> it also pins the smooth&times;rough
+decomposition of the stored products.  (Scoped to p<sub>1</sub>,&hellip;,p<sub>k+1</sub>: applied
+to p<sub>0</sub> it would exclude p<sub>0</sub> = 5, where B = 5.)</p>
+<p>Effects: <b>21 of the 31 chains shorten by exactly one level</b> (129 &rarr; 108 levels,
+absorbed terminal primes of 15&ndash;32 bits) by pure truncation &mdash; no re-searching &mdash;
+and the raised floor makes the truncation forced (the old longer forms are invalid, which the
+verifier tests check).  The 10<sup>10</sup> chain becomes a single-level certificate.
+short8all.txt is <i>provably unchanged</i>: the exhaustive enumeration below 2<sup>8</sup> under
+the new rules coincides with the current file (equal counts + containment).  short.gp gains the
+self-certifying terminal channel (a&prime;) and loses an <code>ispseudoprime</code> call.
+Fork branch <code>terminal-prime</code> (commits 85a2215 + pycache cleanup).</p>
+</body>
+</html>
