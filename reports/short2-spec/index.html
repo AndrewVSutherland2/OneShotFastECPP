@@ -141,5 +141,25 @@ a transition &mdash; the old verifier accepts every v2 certificate but does not 
 orders are 24, 25, 27, 32, 36, 49).  Existence for every prime p &ge; 5 still holds (2-power
 fillers).</li>
 </ol>
+<h2>Terminal-prime revision (2026-08-22)</h2>
+<p>A second revision, proposed by Drew after the v2 merge: raise the recursion floor from
+n&sup2; to <b>B&sup2;</b> and let the terminal cofactor be a prime below B&sup2; &mdash; being
+B-rough, an integer below B&sup2; is 1 or automatically prime, so the last prime <i>certifies
+itself by size</i> (no factoring, no primality test, one extra exactness leaf).  The recursion
+stops as soon as this is possible, and n&sup2; disappears from the format entirely.  Key
+specification subtlety (Drew): B-roughness of p<sub>k+1</sub> must be stated explicitly &mdash;
+for the recursive p<sub>i</sub> it follows from the other conditions (they are proven prime and
+exceed B&sup2;), but nothing else forces it for p<sub>k+1</sub>, and it is what makes the size
+certification sound; stated on the p<sub>i</sub> it also pins the smooth&times;rough
+decomposition of the stored products.  (Scoped to p<sub>1</sub>,&hellip;,p<sub>k+1</sub>: applied
+to p<sub>0</sub> it would exclude p<sub>0</sub> = 5, where B = 5.)</p>
+<p>Effects: <b>21 of the 31 chains shorten by exactly one level</b> (129 &rarr; 108 levels,
+absorbed terminal primes of 15&ndash;32 bits) by pure truncation &mdash; no re-searching &mdash;
+and the raised floor makes the truncation forced (the old longer forms are invalid, which the
+verifier tests check).  The 10<sup>10</sup> chain becomes a single-level certificate.
+short8all.txt is <i>provably unchanged</i>: the exhaustive enumeration below 2<sup>8</sup> under
+the new rules coincides with the current file (equal counts + containment).  short.gp gains the
+self-certifying terminal channel (a&prime;) and loses an <code>ispseudoprime</code> call.
+Fork branch <code>terminal-prime</code> (commits 85a2215 + pycache cleanup).</p>
 </body>
 </html>

@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""vshort2.py -- reference verifier for the RADICAL-CAPPED short ECPP format (v2 draft).
+"""vshort2.py -- working verifier for the RADICAL-CAPPED short ECPP format, including
+the terminal-prime revision of 2026-08-22 (the upstream reference verifier is
+ShortPrimalityProofs/vsmallECPP.py; this copy backs the local repair/assembly tools).
 
-Format (2026-08-21 draft, AVS + Fable 5).  A certificate for an odd p_0 >= 5 is the flat
+Format (August 2026, AVS + Fable 5).  A certificate for an odd p_0 >= 5 is the flat
 sequence  (p_0, A_0, x_0, o_0, A_1, x_1, o_1, ..., A_k, x_k, o_k)  with n = ceil(log2 p_0)
 FIXED for the whole chain and
 
@@ -13,16 +15,16 @@ such that, working modulo p_i at level i (p_0 given, p_{i+1} recovered below):
 
         floor(log2 rad(m_i)) < n / log2 n,      rad(m) = product of the distinct primes of m;
 
-  - p_{i+1} = o_i / m_i is 1 (terminal, forced at i = k) or satisfies
-    n^2 < p_{i+1} and p_{i+1}^2 < p_i  (note the floor n^2 is now explicit: the B-rough
-    part is only guaranteed to exceed B < n^2);
+  - p_{i+1} = o_i / m_i (B-rough by construction) satisfies, for i < k,
+    B^2 < p_{i+1} and p_{i+1}^2 < p_i; and p_{k+1} is 1 or below B^2, in which
+    case it is automatically prime (a composite B-rough integer exceeds B^2);
   - L_i < o_i < r_i L_i with L_i = (p_i^{1/4}+1)^2 (integer form) and r_i the least
     prime divisor of m_i;
   - the point with x-coordinate x_i on E_{A_i}: y^2 = x^3 + A_i x^2 + x (or its twist)
     has order exactly o_i modulo EVERY prime divisor of p_i.
 
-Every v2 certificate is also a valid certificate of the original format (the new
-conditions only restrict), so the original verifier accepts everything this one does.
+A certificate with p_{k+1} = 1 is also valid under the original format; one that
+uses a terminal prime is shorter than anything the original format admits.
 
 Why the caps: the primorial of B has Theta(n^2/log n) bits, so it can be built per
 certificate in O(n^2 log n) bit operations -- no per-n precomputation -- and
@@ -145,6 +147,7 @@ def _verify(seq):
     n = p.bit_length()            # = ceil(log2 p0): p0 is odd, never a power of 2
     lg = log2(n)
     B = int(n * n / lg)           # floor(n^2 / log2 n): the smoothness bound
+    B2 = B * B                    # recursion floor; a B-rough integer < B^2 is prime
     radlim = n / lg               # require floor(log2 rad(m)) < radlim
 
     # collect the level orders and pre-screen their sizes (both bounds implied
@@ -201,9 +204,16 @@ def _verify(seq):
         if not (L < o < r * L):
             return False, lev, "window"
 
-        # descent: p_next = 1, or n^2 < p_next (explicit floor) and p_next^2 < p
-        if p_next != 1 and (p_next <= n * n or p_next * p_next >= p):
-            return False, lev, "descent"
+        # descent (terminal-prime revision, 2026-08-22): a non-terminal level
+        # needs B^2 < p_next and p_next^2 < p; the last level needs p_next = 1
+        # or p_next < B^2 (then prime by size, being B-rough by construction)
+        last = (i + 3 == len(seq))
+        if last:
+            if p_next != 1 and p_next >= B2:
+                return False, lev, "terminal"
+        else:
+            if p_next <= B2 or p_next * p_next >= p:
+                return False, lev, "descent"
 
         # [o]P = O reached as a genuine (X:0) with X a unit mod p
         Xo, Zo = ladder(o, x, 1, A, p)
@@ -219,9 +229,7 @@ def _verify(seq):
             return False, lev, "exact"
 
         p = p_next
-    if p != 1:                                    # the chain must terminate exactly
-        return False, len(os) - 1, "tail"
-    return True, -1, "ok"
+    return True, -1, "ok"                         # the last level checked p_next above
 
 
 def verify(seq):

@@ -292,3 +292,30 @@ rebutting — several confident claims in earlier drafts fell to exactly this
 discipline (the 35-bit filler, the 1.31/1.39 constants).  Drew reads on his
 phone via the refserve links; send updated PDFs with SendUserFile and keep
 commits on short-ecpp pushed.
+
+## Spec thread, round 6 (2026-08-22): the terminal-prime revision (v2.1)
+
+Drew (post-v2-merge, PR #6 = upstream cc2caf1): raise the recursion floor
+n² → B² and allow a terminal prime p_{k+1} < B² (self-certifying: B-rough
+below B² is 1 or prime).  Analysis confirmed + measured: 21/31 chains
+shorten by exactly one level by PURE TRUNCATION (129→108 levels; absorbed
+primes 15-32 bits; 10^10 becomes single-level); truncation is FORCED (old
+long forms invalid); short8all provably unchanged (v2.1 enumeration below
+2^8 = v2's, equal count + containment); finder simplifies (channel (a'),
+ispseudoprime deleted).  Drew's spec catch: p_{k+1}'s B-roughness must be
+EXPLICIT (consequence of other conditions for recursive p_i, not forced for
+p_{k+1}; without it, junk like p_{k+1}=9 and radical-cap dodges pass an
+exists-reading).  Final wording (Drew's): "the p_i are odd integers and
+p_1,...,p_{k+1} have no prime factors ≤ B" — scoped to i ≥ 1 because p_0=5
+has B=5 (n=3) and would be excluded!  Fork branch `terminal-prime`
+(85a2215 + 6146fd1 pycache cleanup — NB the v2 PR accidentally committed
+__pycache__, now removed + .gitignore): README clauses, verifier (new
+terminal/floor logic + tests incl. forced-truncation rejections), certs.csv
+truncated, short.gp channel (a') [bug found+fixed: (a') needed the m>1
+guard — factor(1)[1,1] errors when R > L at small moduli], parallel_short
+untouched.  Validated: 31/31 truncated verify; 55,056 short8all verify;
+21/31 old forms reject; fresh chains 10^10/30/60 verify (1/2/3 levels).
+Local side: vshort2.py ported to v2.1, certs/short2/certs.csv truncated,
+paper Def 6.2 rewritten to final form + Prop sketch + migration truncation
+sentence + [Short] pin → cc2caf1 (RE-BUMP after the terminal-prime PR
+merges).  PR link: github.com/AndrewVSutherland2/ShortPrimalityProofs/pull/new/terminal-prime
