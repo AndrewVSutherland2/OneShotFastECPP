@@ -50,9 +50,10 @@ automatically prime, so the terminal prime certifies itself by size.</li>
 </ol>
 <p>Window (<code>L_i &lt; o_i &lt; r_i L_i</code>, <code>r_i</code> the least prime of
 <code>m_i</code>), minimality, point-order semantics, and the payload are unchanged.
-<b>Every v2 certificate is valid under the original definition</b> (the new conditions only
-restrict), and existence for every prime <code>p_0 &ge; 5</code> is untouched: a 2-power filler has
-radical 2.</p>
+A certificate with <code>p_{k+1} = 1</code> is also valid under the original definition; one that
+uses a terminal prime is <b>not</b> &mdash; it is shorter than any chain the original format admits
+(the next section's truncation is forced, not optional).  Existence for every prime
+<code>p_0 &ge; 5</code> is untouched: a 2-power filler has radical 2 and <code>p_{k+1} = 1</code>.</p>
 </div>
 
 <h2>Why: verification becomes O(n&sup2; log n), self-contained</h2>
@@ -92,7 +93,9 @@ a fraction of the n&sup2; sieve's work.</p>
 <b>10 already comply</b> (c = 70, 150, 160, 180, 200, 250, 260, 270, 290, 310) and are kept
 byte-identical; <b>21 were re-found from their first non-compliant level</b> (the compliant
 prefix survives; the level moduli above the repair point are unchanged).  Every repaired chain
-is verified under <i>both</i> the v2 and the original definitions.</p>
+was dual-verified (revised <i>and</i> original definitions) at the repair stage, i.e. before the
+terminal-prime truncation; the 21 truncated chains are, by design, no longer valid under the
+original definition.</p>
 <table>
 <tr><th>chain</th><th>repair level</th><th>modulus</th><th>engine</th><th>search time</th></tr>
 <tr><td>10^10</td><td>1</td><td>15 bits</td><td style='text-align:left'>SEA</td><td>2 s</td></tr>
