@@ -340,3 +340,24 @@ radlim = ⌈n/lg⌉, bit-length test); paper Def 6.2/Prop sketch updated to the
 settled forms, compiles clean.  REMAINING: Drew reviews fork main → opens the
 upstream PR → after merge, bump the paper's [Short] pin (currently cc2caf1)
 and note the verifier rename if the paper ever names it (it doesn't).
+
+## Codex review of PR #15 (OneShotFastECPP short-ecpp → main), 2026-08-22: LGTM
+
+Seven rounds, all dispositioned per the watch-codex protocol (verify against
+the tree before acting; one commit + one id-bearing reply per round).
+R1–2: finder/prover format parity + assemble_short2 as a zero-arg validator
+(pre-compaction).  R3: validator now asserts table completeness against
+certs_v1.csv (31/31, ordered; deletion/duplication negative-tested).
+R4–6: one stale-claim CLASS surfaced file-by-file — "the shipped table
+dual-verifies" was written PRE-truncation; fixed in the spec note (×2) and
+CLAUDE.md, then a proactive sweep: HANDOFF's "v2 ⊂ v1" log line marked
+superseded (chronological log, not rewritten); the PAPER's migration
+paragraph checked and left alone (its dual-verify sentence precedes the
+truncation sentence — chronology already correct).  R7a CONFIRMED: "terminal
+prime ⟹ shorter than any original-format chain" was MY overclaim in 3 places
+(paper Def 6.2, vshort2.py, spec note) — Pomerance 2-power fillers give every
+prime a ONE-level original cert; all three now say only "invalid under the
+original definition (must descend to p_{k+1}=1)"; PDF rebuilt.  R7b REFUTED:
+"PR deletes codex-review.yml/dependabot.yml" — merge-base diff touches
+nothing under .github (branch predates them); merged origin/main (50ab754)
+so the tree carries them.  Round 8: LGTM.  PR #15 now awaits Drew.
