@@ -24,7 +24,7 @@ such that, working modulo p_i at level i (p_0 given, p_{i+1} recovered below):
     has order exactly o_i modulo EVERY prime divisor of p_i.
 
 A certificate with p_{k+1} = 1 is also valid under the original format; one that
-uses a terminal prime is shorter than anything the original format admits.
+uses a terminal prime is not (the original format requires descending to p_{k+1} = 1).
 
 Why the caps: the primorial of B has Theta(n^2/log n) bits, so it can be built per
 certificate in O(n^2 log n) bit operations -- no per-n precomputation -- and
