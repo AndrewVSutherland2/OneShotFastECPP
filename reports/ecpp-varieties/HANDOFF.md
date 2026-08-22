@@ -319,3 +319,23 @@ Local side: vshort2.py ported to v2.1, certs/short2/certs.csv truncated,
 paper Def 6.2 rewritten to final form + Prop sketch + migration truncation
 sentence + [Short] pin → cc2caf1 (RE-BUMP after the terminal-prime PR
 merges).  PR link: github.com/AndrewVSutherland2/ShortPrimalityProofs/pull/new/terminal-prime
+
+## Spec thread, round 7 (2026-08-22 afternoon): conventions settled, upstream-ready
+
+Drew merged terminal-prime as FORK PR #1 (fork-first review flow; upstream PR
+comes after fork review).  His README edits: B := ⌈n²/log₂n⌉ (ceiling), and —
+after a slip that made the cap "log₂rad ≤ B" (VACUOUS: log₂rad < n/2 + log₂B
+≪ B always; caught+flagged, short8all ballooned to 162,042 as evidence) — the
+FINAL radical cap: **log₂ rad(m_i) ≤ ⌈n/log₂n⌉**.  Key fact: for squarefree
+rad this is EXACTLY bit_length(rad) ≤ ⌈n/log₂n⌉ = the old floored test's
+accept-set (squarefree 2-power boundary can't arise), so NOTHING migrates:
+certs.csv unchanged (31/31, the 0.046-bit 10^20 marginal now clears by ~1
+bit), short8all = the same 55,056 file (ceil-B's new smooth prime 11 at n=5
+can't enter any filler without busting the cap — proven + regenerated
+byte-identical).  Verifier renamed vsmallECPP.py → **vshortECPP.py** (Drew;
+parallel_short + README refs updated).  Fork main = 6d100e5 all-green (tests,
+31/31, 55,056/55,056, fresh chains).  Local: vshort2.py ported (ceil-B,
+radlim = ⌈n/lg⌉, bit-length test); paper Def 6.2/Prop sketch updated to the
+settled forms, compiles clean.  REMAINING: Drew reviews fork main → opens the
+upstream PR → after merge, bump the paper's [Short] pin (currently cc2caf1)
+and note the verifier rename if the paper ever names it (it doesn't).

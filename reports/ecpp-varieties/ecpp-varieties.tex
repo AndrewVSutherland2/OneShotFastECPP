@@ -984,10 +984,10 @@ $p_0 \ge 5$).
 
 \begin{definition}[radical-capped revision, August 2026]\label{def:short2}
 The \emph{revised format} modifies Definition~\ref{def:short} as follows, with
-$B = \lfloor n^2/\log_2 n\rfloor$.  Each $m_i$ must be \emph{$B$-smooth} and obey the
+$B = \lceil n^2/\log_2 n\rceil$.  Each $m_i$ must be \emph{$B$-smooth} and obey the
 \emph{radical cap}
 \[
-  \lfloor \log_2 \operatorname{rad}(m_i)\rfloor \;<\; n/\log_2 n,
+  \log_2 \operatorname{rad}(m_i) \;\le\; \lceil n/\log_2 n\rceil,
   \qquad \operatorname{rad}(m) = \textstyle\prod_{q \mid m,\ q\ \mathrm{prime}}\, q.
 \]
 Each $p_{i+1}$ must be \emph{$B$-rough} (no prime factor ${\le}\,B$; $1$ qualifies) --- for the
@@ -1071,20 +1071,22 @@ kind.
 \end{proposition}
 
 \begin{proof}[Proof sketch]
-The primorial $P_B$ of $B = \lfloor n^2/\log_2 n\rfloor$ has $\theta(B)/\ln 2 = \Theta(n^2/\log n)$
+The primorial $P_B$ of $B = \lceil n^2/\log_2 n\rceil$ has $\theta(B)/\ln 2 = \Theta(n^2/\log n)$
 bits, so its product tree is built \emph{per certificate} in
 $O(\log\pi(B)\cdot M(n^2/\log n)) = O(n^2\log n)$ bit operations --- this is where the reduced
 smoothness bound acts: at $B = n^2$ the same construction costs $\Theta(n^2(\log n)^2)$, the per-$n$
 table of Remark~\ref{rem:tightshort}.  Per level, $\gcd(P_B \bmod o_i,\, o_i) =
 \operatorname{rad}(m_i)$ \emph{exactly} ($P_B$ is squarefree and $B$-complete), delivered as an
-integer of fewer than $n/\log_2 n$ bits by one $O(M(n^2/\log n)) = O(n^2)$ reduction, and the
-radical cap is checked by reading its bit length.  The radicals are factored within the budget by
+integer of at most $\lceil n/\log_2 n\rceil$ bits by one $O(M(n^2/\log n)) = O(n^2)$ reduction, and
+the radical cap is checked by reading its bit length (exact: a squarefree power of $2$ is just
+$2$).  The radicals are factored within the budget by
 one batched pass: reduce the primorial's product tree modulo $G = \prod_i \operatorname{rad}(m_i)$,
 an $O(n)$-bit integer, read off the $O(n)$ primes dividing $G$ at the leaves, and attribute them to
 levels by direct division (per-level Pollard--Strassen with search radius $B$ is a tree-free
 deterministic alternative at $\Ot(n^2\sqrt{\log n})$).  Valuations recover each $m_i$ and
-$p_{i+1}$.  The exactness tree over the $k_i \le \lfloor\log_2\operatorname{rad}(m_i)\rfloor$
-distinct primes costs under $(n/\log_2 n)\cdot\lceil\log_2 k_i\rceil < n$ ladder bits per level, so
+$p_{i+1}$.  The exactness tree over the $k_i \le \lceil n/\log_2 n\rceil$
+distinct primes costs at most $\lceil n/\log_2 n\rceil\cdot\lceil\log_2 k_i\rceil = O(n)$ ladder
+bits per level, so
 the elliptic work is $O(\sum_i b_i\,M(b_i)) = O(n^2\log n)$, at roughly $5\times$ Pomerance's
 constant.  The reference verifier of \cite{Short} implements the format; it factors each
 radical by direct trial division over the sieved primes --- asymptotically the coarsest step, but

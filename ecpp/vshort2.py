@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """vshort2.py -- working verifier for the RADICAL-CAPPED short ECPP format, including
 the terminal-prime revision of 2026-08-22 (the upstream reference verifier is
-ShortPrimalityProofs/vsmallECPP.py; this copy backs the local repair/assembly tools).
+ShortPrimalityProofs/vshortECPP.py; this copy backs the local repair/assembly tools).
 
 Format (August 2026, AVS + Fable 5).  A certificate for an odd p_0 >= 5 is the flat
 sequence  (p_0, A_0, x_0, o_0, A_1, x_1, o_1, ..., A_k, x_k, o_k)  with n = ceil(log2 p_0)
 FIXED for the whole chain and
 
-    B = floor(n^2 / log2 n)          (smoothness bound)
+    B = ceil(n^2 / log2 n)           (smoothness bound)
 
 such that, working modulo p_i at level i (p_0 given, p_{i+1} recovered below):
 
   - m_i, the B-smooth part of o_i, satisfies m_i >= 2 and the RADICAL CAP
 
-        floor(log2 rad(m_i)) < n / log2 n,      rad(m) = product of the distinct primes of m;
+        log2 rad(m_i) <= ceil(n / log2 n),  rad(m) = product of the distinct primes of m;
 
   - p_{i+1} = o_i / m_i (B-rough by construction) satisfies, for i < k,
     B^2 < p_{i+1} and p_{i+1}^2 < p_i; and p_{k+1} is 1 or below B^2, in which
@@ -146,9 +146,10 @@ def _verify(seq):
         return False, -1, "p0"
     n = p.bit_length()            # = ceil(log2 p0): p0 is odd, never a power of 2
     lg = log2(n)
-    B = int(n * n / lg)           # floor(n^2 / log2 n): the smoothness bound
+    from math import ceil
+    B = ceil(n * n / lg)          # ceil(n^2 / log2 n): the smoothness bound
     B2 = B * B                    # recursion floor; a B-rough integer < B^2 is prime
-    radlim = n / lg               # require floor(log2 rad(m)) < radlim
+    radlim = ceil(n / lg)         # radical cap: log2 rad(m) <= radlim
 
     # collect the level orders and pre-screen their sizes (both bounds implied
     # by validity, so rejecting on them is sound; cf. vsmallECPP.py)
@@ -177,7 +178,7 @@ def _verify(seq):
         g = gcd(P % o, o)
         if g <= 1:                                # m = 1: r undefined, reject
             return False, lev, "m=1"
-        if g.bit_length() - 1 >= radlim:          # the radical cap
+        if g.bit_length() > radlim:               # log2 rad(m) <= ceil(n/log2 n), exact
             return False, lev, "radical"
         small = []                                # ascending prime factors of g
         gg = g
