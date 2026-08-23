@@ -102,9 +102,8 @@ certificates for $10^{20},\dots,10^{50}+\eps$ produced for this write-up appear 
 \item \textbf{Short ECPP} (repository ShortPrimalityProofs \cite{Short}): a \emph{chain} of such
 certificates in which each level's point order is ($n^2$-smooth)${}\times{}$(one prime
 $p_1 < \sqrt{p_0}$), and the next level certifies $p_1$.  Bit-lengths at least halve per level, so
-certificates stay linear in $\log p$, and verification is $O(n^2\log n)$ bit operations ---
-Pomerance-order, and since the format's August 2026 radical-capped revision the unconditional worst
-case (\S\ref{sec:shortverif}) --- while the free prime factor makes certificates
+certificates stay linear in $\log p$, and verification is $O(n^2\log n)$ bit operations, worst
+case --- Pomerance-order (\S\ref{sec:shortverif}) --- while the free prime factor makes certificates
 \emph{findable} in heuristic subexponential time $\Lp{1/3}{{\approx}1.14}$.
 \item \textbf{Classical ECPP} (Goldwasser--Kilian, Atkin--Morain): the chain descends by an
 $O(\log n)$-bit shrink per step with an essentially unconstrained cofactor.  Finding is heuristic
@@ -150,7 +149,7 @@ restricted one-shot (\S\ref{sec:restricted}) & ${\approx}\,2.5n$ & $O(n^2(\log n
   $p^{1/4+o(1)}$ SEA;\ \ $p^{1/2+o(1)}$ CM & all $p>3$\\
 one-shot, $n^4$-smooth \cite{OneShot} & ${\approx}\,2.5n$--$3n$ & $O(n^2(\log n)^2)$ &
   $p^{1/8+o(1)}$ SEA;\ \ $p^{1/4+o(1)}$ CM & all $p>3$\\
-short ECPP \cite{Short} & $O(n)$, ${\lesssim}\,5n$ & $O(n^2\log n)^{\dagger}$ &
+short ECPP \cite{Short} & $O(n)$, ${\lesssim}\,5n$ & $O(n^2\log n)$ &
   $\Lp{1/3}{(3/2)^{1/3}{\approx}1.14}$, SEA \& CM & all $p\ge 5$\\
 ECPP \cite{GK86,AM93} & $\Theta(n^2/\log n)$ & $O(n^3)$ &
   $(\log p)^{6+o(1)}$ SEA;\ \ $(\log p)^{4+\eps}$ CM & all $p$ (heur.)\rlap{${}^{\ddagger}$}\\
@@ -159,11 +158,6 @@ ECPP \cite{GK86,AM93} & $\Theta(n^2/\log n)$ & $O(n^3)$ &
 \medskip
 \caption{The certificate families.  The Pomerance-triple verification is exactly
 $(\tfrac52+o(1))\,n$ multiplications $\bmod\ p$.
-${}^{\dagger}$Under the format's radical-capped revision of August 2026
-(Definition~\ref{def:short2}), for which $O(n^2\log n)$ is the unconditional worst case with no
-precomputation (Proposition~\ref{prop:short2verif}); the original format's worst case was
-$O(n^2(\log n)^2)$, attained by its $k=0$ stratum ($=$ the restricted one-shot,
-Remark~\ref{rem:tightshort}).
 ${}^{\ddagger}$Heuristic for all $p$; provable for almost all $p$.  Primality is in ZPP via
 \cite{AH92}, but with certificates built on genus-2 Jacobians, not certificates of this format.  The AKS--Bernstein row is discussed in
 Remark~\ref{rem:aks}; the deterministic finding entry is the Lenstra--Pomerance decision bound, whose
@@ -1093,22 +1087,19 @@ radical by direct trial division over the sieved primes --- asymptotically the c
 the simplest, and dominant only far beyond feasible sizes.
 \end{proof}
 
-\begin{remark}[the original format's worst case, and the design space]\label{rem:tightshort}
+\begin{remark}[what the caps disarm]\label{rem:tightshort}
 Under Definition~\ref{def:short} the two sources of the extra $\log$ factor in
 Proposition~\ref{prop:shortverif} were distinct in kind: the \emph{exactness tree} --- a filler of
 $\Theta(b_i)$ bits with $\Theta(b_i/\log b_i)$ distinct primes costs $\Theta(n^2(\log n)^2)$ at the
 top level, attained because the $k = 0$ stratum is exactly the restricted one-shot of
 \S\ref{sec:restricted} --- and the \emph{recovery} of $m_i$ from the payload, whose batched
 organization reaches $M(n^2) = O(n^2\log n)$ per certificate only given the product tree of the
-primes below $n^2$, a per-$n$ table costing $\Theta(n^2(\log n)^2)$ to build (the organization the
-pre-revision verifier realized in its August 2026 batching patch; the analogous
-\texttt{voneshot.py} patch accompanies \osf{} in \texttt{verifier-batching-pr/}).  Earlier drafts of
-this section analyzed three repairs --- capping the fillers at $n^{O(1)}$, carrying them in factored
-form in a changed payload, or accepting the $O(n^2(\log n)^2)$ self-contained bound --- before the
-revision resolved the question along a different axis: shrink the smoothness bound until the
-primorial itself fits the verification budget, and cap the \emph{radicals} rather than the fillers,
-so that neither the payload nor the Pomerance existence fallback ($2$-power fillers, whose radical
-is $2$ but whose size is $2^{\Theta(n)}$) is disturbed.
+primes below $n^2$, a per-$n$ table costing $\Theta(n^2(\log n)^2)$ to build.  The caps of
+Definition~\ref{def:short2} target precisely these two: the smoothness bound shrinks until the
+primorial fits the verification budget with room to build it per certificate, and the cap falls on
+the \emph{radicals} rather than the fillers, so that neither the payload nor the Pomerance
+existence fallback ($2$-power fillers, whose radical is $2$ but whose size is $2^{\Theta(n)}$) is
+disturbed.
 \end{remark}
 
 One formula in fact covers the elliptic work of the whole family of
@@ -1252,7 +1243,7 @@ $c = 10, 20, \dots, 310$ --- the top entry at 1030 bits, more than twice the one
 through $c = 200$ were found by SEA sampling (\texttt{short.gp} and its parallel driver); the August
 2026 records campaign, $c = 210, \dots, 310$, switched the order supply to CM --- the
 dscan/batched-smoothness pipeline of \S\ref{sec:cmoneshot} feeding a staged-ECM scheduler
-(\texttt{short\_prove.py} \osf) --- and spent ${\approx}3{,}500$ core-hours on 192-core machines
+(\texttt{shortECPP.py} \osf) --- and spent ${\approx}3{,}500$ core-hours on 192-core machines
 across all targets, restarts, and preemptions; the SEA/CM crossover for this search criterion
 extrapolates to ${\approx}2000$ bits.
 
@@ -1298,7 +1289,7 @@ $10^{260}+49$   & 864 & 4 & 3{,}291 s & 192 & & & & &\\
 \end{tabular}
 \medskip
 \caption{The August 2026 records, $c = 210, \dots, 310$, by the CM-supply prover
-\texttt{short\_prove.py} \osf{} on AWS spot instances (wall times as logged per chain of the
+\texttt{shortECPP.py} \osf{} on AWS spot instances (wall times as logged per chain of the
 original campaign, level counts as migrated; the largest previously published AKS-style example was
 1025 bits).}
 \label{tab:shortrecords}
