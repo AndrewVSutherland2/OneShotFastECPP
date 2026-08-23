@@ -11,7 +11,7 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
 > regress), where every number is reproduced from, sources, and pending items.
 
 ## Status (2026-07-02) — COMPLETE, end to end
-- **`oneshot p=<prime>` → n⁴-smooth one-shot ECPP certificate**, verified by the challenge's
+- **`oneshotECPP p=<prime>` → n⁴-smooth one-shot ECPP certificate**, verified by the challenge's
   `voneshot.py`. Cold runs (fresh pcache): 10⁶⁰+7 0.8 s, 10⁸⁰+129 5.5 s, 10⁹⁰+289 23.6 s,
   10¹⁰⁰+267 7.9 min (B=4×10⁹ scan + a degree-35085 H_D dominate). Verified certs in `certs/`
   (2²⁵⁵−19, NIST P-256, secp256k1, 10⁶⁰…10¹⁰⁰+ε).
@@ -38,16 +38,16 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   ℓ-volcano to its floor (3 non-backtracking walkers on classical `Φ_ℓ` roots, cap v_ℓ(v)+2) —
   the floor curve has cyclic ℓ-Sylow, so it is always Montgomery-representable (kills the
   p≡3 mod 4, N≡4 mod 8 obstruction — no intake filter) and m may use the full ℓ-power of N
-  (oneshot reduces S only by n₁'s >97 part). Validated vs PARI (floor/trace/group/representability).
+  (oneshotECPP reduces S only by n₁'s >97 part). Validated vs PARI (floor/trace/group/representability).
 - **phi bundle**: 46 MB subset committed via git add -f (`phi_files_manifest.txt`): every family's
   `Φ_{ℓ,f}` for ℓ≤71 + all `Ψ_f` maps. Classical `Φ_ℓ` are needed only at the chosen invariant's
   LEVEL primes (e.g. `phi_j_59` for A₅₉) + `Φ_2`, never for enumeration. Full 2.2 GB DB external;
-  misses degrade gracefully (skip winner). Fresh-clone validated (make + tests + oneshot).
+  misses degrade gracefully (skip winner). Fresh-clone validated (make + tests + oneshotECPP).
 - Fixed upstream-worthy bugs: `class_inv_mpz.c` `mpz_j_from_u8` (unreduced J + uninit T3);
   vendored-header warnings (qform/prime/mpzutil/iqclass).
 - **Parallel classpoly**: `CLASSPOLY_JOBS`/`CLASSPOLY_JOBID`/`CLASSPOLY_ECRT_DIR` env → multi-job
   ECRT (workers split CRT primes mod W, `ecrt_dump` partial sums; JOBID=0 merges). `cm_method jobs=N`
-  orchestrates (auto-gated |D|≥1e8); oneshot passes threads. h=35085: 158→29 s, byte-identical.
+  orchestrates (auto-gated |D|≥1e8); oneshotECPP passes threads. h=35085: 158→29 s, byte-identical.
 - **Hybrid root-finder**: fproot keeps its Montgomery/Kronecker/Barrett powmod but delegates gcd +
   exact division to zp_poly's half-gcd above degree 1024 (~16–19% at d≥8000; full zp delegation
   measured parity — its modmul is slower, its gcd faster).
@@ -56,7 +56,7 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   (`fpoly_mul_par`, 3^depth leaf Kronecker products, depth ≤ 3 → up to 27 tasks) for the
   squarings and Barrett's two big multiplications, above degree ~4096.  ff_poly is not involved
   in this step, so OpenMP is safe (per Drew).
-- **Big-machine scaling (2026-07-03)**: oneshot's threads default is `omp_get_max_threads()`
+- **Big-machine scaling (2026-07-03)**: oneshotECPP's threads default is `omp_get_max_threads()`
   and is passed through to the `dscan`/`cm_method jobs=` shell-outs (was: hardcoded 16 —
   capped a 256-core production box at 16 cores for the scan phases). dscan's factor-base
   sieve reuses smooth.c's parallel `sieve_primes_range` (now exported; dscan links smooth.o)
@@ -64,13 +64,13 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   64-bit — the old `uint32_t` silently truncated once B > 2³² ≈ 4.3e9 (reachable: Bmax
   defaults to 2e10). Validated: dump/dumpscan sorted-identical pre/post (5 configs, B ≤ 1e8),
   test_dscan.py + test_smooth.py green, (2³², 2³²+6e4) window exact vs PARI (enumeration,
-  qfbsolve solvability, 4p = t²+dv² arithmetic), 256-bit oneshot cert re-verified in PARI.
+  qfbsolve solvability, 4p = t²+dv² arithmetic), 256-bit oneshotECPP cert re-verified in PARI.
   Known remaining ceilings at 256 cores: classpoly jobs setup overhead, fproot's ~27-task cap.
 - **Smoothness at scale (2026-07-04)**: `smooth_parts_multi` fuses a batch against ALL ladder
   rungs — one product tree, one shared chunk-power table (parallel prefix doubling; the old
   `reduce_big_mod` recombination ladder was G *serial* |X|-sized mulmods ≈ 90 s single-core per
   big batch at 256 threads, growing with thread count), one flat (segment×chunk) job list, one
-  descent (gcd vs ∏P_s = ∏ per-seg parts; segments disjoint). oneshot overlaps norm-equation
+  descent (gcd vs ∏P_s = ∏ per-seg parts; segments disjoint). oneshotECPP overlaps norm-equation
   scanning with smoothness testing: dscan is a forked child + drain pthread (parses dump,
   precomputes n1/n1h off-thread), next window spawned speculatively before test_batch, killed
   if a cert lands first. Phase instrumentation on stderr ([smooth segs], [scan join ... stall],
@@ -97,14 +97,14 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   + PARI ellap as the candidate-order supply (heuristically p^(1/8+o(1)): flat poly cost per
   candidate, no quadratic scan, no winner classpoly), same `smoothtest gate` n⁴ window; winners
   assembled to voneshot certs with verify() as acceptance oracle (needs `voneshot.py` at repo
-  root). Raced vs oneshot on a 192-core spot box, same prime each size: 256: CM 4.1 s / SEA
+  root). Raced vs oneshotECPP on a 192-core spot box, same prime each size: 256: CM 4.1 s / SEA
   68 s; 384: 2306/615; 416: 1774/2805; 448: 7182 / stopped 20035 s no winner. Per-candidate:
   SEA flat 7–14 core-s, CM avg 2.2–4.5 rising — expected-cost crossover extrapolates to
   ~480–512 bits (walls flip on density luck from 384 up; observed fudge over ρ(u/2): 1–8×).
   No SEA-side accelerations implemented (stage-1 gate/batch tail need ellsea internals).
   Report: `reports/sea-crossover/`; certs in `certs/sea/`; raw cands in `work/race-archive/`.
 
-- **Short ECPP records (2026-08-18)**: `ecpp/short_prove.py` — CM prover for the
+- **Short ECPP records (2026-08-18)**: `ecpp/shortECPP.py` — CM prover for the
   ShortPrimalityProofs *short ECPP* format; produced the table entries for nextprime(10^c),
   c = 210..310 (largest: 1030 bits, beating Bernstein's 1025-bit AKS example) in one day on
   spot instances (~3,500 core-h).  Per level: dscan (new `maxfb=` bounds the factor base —
@@ -123,7 +123,7 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   self-certifying terminal prime p_{k+1} < B² (rough below B² ⟹ 1 or prime); payload
   unchanged.  Verification O(n² log n) worst case, self-contained (primorial-gcd recovery —
   gcd(P_B mod o, o) = rad(m)), ~5× Pomerance.  Tools (all on the settled convention):
-  `ecpp/vshort2.py` (working verifier), `short2.gp`, `repair_short2.py`, `short_prove.py
+  `ecpp/vshort2.py` (working verifier), `short2.gp`, `repair_short2.py`, `shortECPP.py
   v2=1` (gated on vshort2), `assemble_short2.py` (zero-arg = validate the tracked table).
   Full 31-chain table migrated: repairs dual-verified (revised + original), then forced
   terminal-prime truncation — the shipped `certs/short2/certs.csv` passes the revised
@@ -136,9 +136,9 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
 ```sh
 make -j                      # ff_poly -> classpoly (incl. zp_poly) -> ecpp (all in-tree, ~15 s)
 make test [MAXD=1000]        # classpoly vs PARI (Tests 1/2/3); ~2.5 min
-. ./setenv.sh                # env: phi dir, PATH, work/pcache; needed by oneshot/cm_method
-./ecpp/oneshot p=<decimal>   # THE tool: prime -> certificate (or pbits=<n> seed=<s>)
-./ecpp/oneshot pbits=256 seed=1 threads=16 c=1 B0=4000000 B=20000000000  # all knobs
+. ./setenv.sh                # env: phi dir, PATH, work/pcache; needed by oneshotECPP/cm_method
+./ecpp/oneshotECPP p=<decimal>   # THE tool: prime -> certificate (or pbits=<n> seed=<s>)
+./ecpp/oneshotECPP pbits=256 seed=1 threads=16 c=1 B0=4000000 B=20000000000  # all knobs
 python3 ecpp/test_dscan.py   # validate the discriminant scan vs PARI + brute force
 python3 ecpp/test_smooth.py  # validate smoothness engine vs PARI (Test A + end-to-end gate)
 ./ecpp/roottest pari 256 200 # validate F_p root-finder vs PARI polrootsmod

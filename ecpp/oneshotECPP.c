@@ -16,9 +16,9 @@
 #include "curve.h"
 
 /*
-    oneshot p : produce an n^4-smooth one-shot ECPP certificate for the prime p.
+    oneshotECPP p : produce an n^4-smooth one-shot ECPP certificate for the prime p.
 
-      oneshot (p=<dec> | pbits=<n> [seed=<s>]) [threads=<t>] [c=<ratio>]
+      oneshotECPP (p=<dec> | pbits=<n> [seed=<s>]) [threads=<t>] [c=<ratio>]
               [B0=<initial scan bound>] [B=<max scan bound>] [pcache=<file>]
 
     Adaptive pipeline (all C; shells out to dscan, cm_method, classpoly): instead

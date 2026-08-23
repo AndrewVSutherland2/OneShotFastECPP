@@ -4,7 +4,7 @@
 #     classpoly -23 0
 #
 # It points classpoly at the project's modular-polynomial files and a project
-# output directory, and puts the classpoly and ecpp binaries (oneshot, cm_method,
+# output directory, and puts the classpoly and ecpp binaries (oneshotECPP, cm_method,
 # dscan, ...) on your PATH so they can find each other.
 #
 # CRT scratch files are handled by classpoly itself: it creates a private

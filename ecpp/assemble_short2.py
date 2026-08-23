@@ -7,7 +7,7 @@ certs/short2/certs.csv -- every chain must verify under the revised-format verif
 nonzero on any failure, so it doubles as a consistency gate.
 
 --merge: the historical migration mode (August 2026): merge the repair outputs from
-work/short2repair*/ (produced by repair_short2.py and short_prove.py runs; those
+work/short2repair*/ (produced by repair_short2.py and shortECPP.py runs; those
 work directories are transient and not tracked) into certs/short2/certs.csv,
 validating every chain along the way.  Kept for provenance; a fresh checkout
 cannot run it without re-running the migration searches.
@@ -64,7 +64,7 @@ def merge():
         if os.path.exists(path):
             for c in load_csv(path):
                 rest.setdefault(c[0], c)
-    for path in PROVED:                       # short_prove outputs win over drivers
+    for path in PROVED:                       # shortECPP outputs win over drivers
         if os.path.exists(path):
             c = [int(t) for t in open(path).read().split()]
             rest[c[0]] = c
