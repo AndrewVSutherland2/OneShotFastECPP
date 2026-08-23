@@ -40,7 +40,7 @@
 verifiers' code; all timing and count data are quoted from the repositories cited or measured on this
 project's hardware.  Dickman $\rho$ values were computed by numerical solution of the delay differential
 equation and cross-checked against published tables.}
-\date{August 5, 2026}
+\date{August 19, 2026}
 
 \begin{abstract}
 We survey algorithms and complexity bounds for four families of elliptic curve primality certificates ---
@@ -80,7 +80,8 @@ Pomerance's construction was an existence proof; he noted that finding such cert
 exponential time.''  A cluster of 2026 challenge repositories of Sutherland
 \cite{DANGER3,OneShot,Short} makes the gap between \emph{finding} and \emph{verifying} quantitative, by
 fixing precise certificate formats (each with a reference verifier) and soliciting certificates for
-ever-larger primes.  The four families, in the order treated here:
+ever-larger primes.  The four families --- five formats, counting the restricted one-shot stratum
+separately --- in the order treated here:
 
 \begin{enumerate}
 \item \textbf{Pomerance proofs} (repository DANGER3 \cite{DANGER3}): a single Montgomery curve with a
@@ -101,8 +102,9 @@ certificates for $10^{20},\dots,10^{50}+\eps$ produced for this write-up appear 
 \item \textbf{Short ECPP} (repository ShortPrimalityProofs \cite{Short}): a \emph{chain} of such
 certificates in which each level's point order is ($n^2$-smooth)${}\times{}$(one prime
 $p_1 < \sqrt{p_0}$), and the next level certifies $p_1$.  Bit-lengths at least halve per level, so
-certificates stay linear in $\log p$ and verification is $O(n^2\log n)$ bit operations ---
-Pomerance-order (\S\ref{sec:shortverif}) --- while the free prime factor makes certificates
+certificates stay linear in $\log p$, and verification is $O(n^2\log n)$ bit operations ---
+Pomerance-order, and since the format's August 2026 radical-capped revision the unconditional worst
+case (\S\ref{sec:shortverif}) --- while the free prime factor makes certificates
 \emph{findable} in heuristic subexponential time $\Lp{1/3}{{\approx}1.14}$.
 \item \textbf{Classical ECPP} (Goldwasser--Kilian, Atkin--Morain): the chain descends by an
 $O(\log n)$-bit shrink per step with an essentially unconstrained cofactor.  Finding is heuristic
@@ -110,13 +112,23 @@ polynomial time --- $(\log p)^{4+\eps}$ for fastECPP --- at the price of quadrat
 $O(n^3)$-bit-operation verification.
 \end{enumerate}
 
-The five formats form a hierarchy.  A Pomerance triple \emph{is} a restricted one-shot certificate
-($m = 2^k$ is certainly $n^2$-smooth), which is a one-shot certificate with an empty prime list, and
-also a zero-level short ECPP; a short ECPP is a maximally steep descent chain; classical ECPP relaxes
-the descent rate and the order structure entirely.  Existence for \emph{every} prime $p > 3$ is
-inherited down the whole hierarchy from Pomerance's theorem --- unconditionally, with no heuristics ---
-while each relaxation strictly enlarges the set of valid certificates and thereby lowers the cost of
-finding one.  Table~\ref{tab:summary} summarizes ($n = \lceil\log_2 p\rceil$; sizes exclude $p$ itself;
+The five formats are partially ordered by inclusion --- partially, not linearly.  A Pomerance triple
+\emph{is} a restricted one-shot certificate ($m = 2^k$ is certainly $n^2$-smooth) and equally a
+zero-level short ECPP; a restricted one-shot is a one-shot certificate with an empty prime list.
+Above the Pomerance triples the picture forks into \emph{incomparable} relaxations: the one-shot
+direction admits arbitrary smooth fillers and then larger \emph{listed} primes (several may lie in
+$(n^2, n^4)$, which no short-ECPP level accommodates --- and the short format's radical cap,
+Definition~\ref{def:short2}, conversely refuses the general restricted filler), while the short
+direction admits \emph{recursion} (a non-terminal level carries a recursive prime that may far exceed
+$n^4$, so its order need not be $n^4$-smooth).  Classical ECPP relaxes along both axes at once ---
+free descent rate, unconstrained cofactor --- but strictly contains neither: its steps certify a
+single \emph{prime} order above the threshold, where a short-ECPP level certifies a
+smooth-times-prime product, only the product clearing the threshold.  Each inclusion above strictly
+enlarges the set of valid certificates and thereby lowers the cost of finding one, and existence for
+every prime $p > 3$ passes unconditionally from Pomerance's theorem to every format containing his
+triples --- all four quasi-quadratic families, but not classical ECPP, whose existence-for-all-$p$
+statement is itself heuristic (note~$\ddagger$ of Table~\ref{tab:summary}).
+Table~\ref{tab:summary} summarizes ($n = \lceil\log_2 p\rceil$; sizes exclude $p$ itself;
 all verification bounds are rigorous and deterministic, all finding costs are heuristic; constants and
 derivations are in the sections below).
 
@@ -131,14 +143,14 @@ certificate & size (bits) & verification (bit ops) & finding (heuristic) & exist
 Pratt \cite{Pra75} & $O(n^2)$ & $O(n^3\log n)$ &
   $\Lp{1/3}{(64/9)^{1/3}{\approx}1.923}$ (NFS) & all $p$\\
 AKS--Bernstein certificate \cite{AKS04,Berr05,Ber07,LP19} & $n^{1+o(1)}$ & $(\log p)^{4+o(1)}$ &
-  $(\log p)^{2+o(1)}$ rand.;\ \ $(\log p)^{6}(2{+}\log\log p)^{c_0}$ det. & all $p$\\
+  $(\log p)^{2+o(1)}$ rand.;\ \ $(\log p)^{6}(2{+}\log\log p)^{c_0}$ det.\ decision & all $p$\\
 Pomerance triple \cite{Pom87,DANGER3} & ${\approx}\,2n$ & $O(n^2\log n)$ &
   $\Tt(\sqrt p) = \Tt(2^{n/2})$ & all $p>3$\\
 restricted one-shot (\S\ref{sec:restricted}) & ${\approx}\,2.5n$ & $O(n^2(\log n)^2)$ &
   $p^{1/4+o(1)}$ SEA;\ \ $p^{1/2+o(1)}$ CM & all $p>3$\\
-one-shot, $n^4$-smooth \cite{OneShot} & ${\approx}\,2.5n$--$4n$ & $O(n^2(\log n)^2)$ &
+one-shot, $n^4$-smooth \cite{OneShot} & ${\approx}\,2.5n$--$3n$ & $O(n^2(\log n)^2)$ &
   $p^{1/8+o(1)}$ SEA;\ \ $p^{1/4+o(1)}$ CM & all $p>3$\\
-short ECPP \cite{Short} & $O(n)$, ${\approx}\,5n$--$7n$ & $O(n^2\log n)^{\dagger}$ &
+short ECPP \cite{Short} & $O(n)$, ${\lesssim}\,5n$ & $O(n^2\log n)^{\dagger}$ &
   $\Lp{1/3}{(3/2)^{1/3}{\approx}1.14}$, SEA \& CM & all $p\ge 5$\\
 ECPP \cite{GK86,AM93} & $\Theta(n^2/\log n)$ & $O(n^3)$ &
   $(\log p)^{6+o(1)}$ SEA;\ \ $(\log p)^{4+\eps}$ CM & all $p$ (heur.)\rlap{${}^{\ddagger}$}\\
@@ -147,16 +159,19 @@ ECPP \cite{GK86,AM93} & $\Theta(n^2/\log n)$ & $O(n^3)$ &
 \medskip
 \caption{The certificate families.  The Pomerance-triple verification is exactly
 $(\tfrac52+o(1))\,n$ multiplications $\bmod\ p$.
-${}^{\dagger}$For fillers $m_i \le n^{O(1)}$ --- every published
-certificate, and always arrangeable (\S\ref{sec:shortverif}); the format's worst case, already attained
-by its $k=0$ stratum ($=$ the restricted one-shot), is $O(n^2(\log n)^2)$, and
-Remark~\ref{rem:tightshort} tightens the format to guarantee $O(n^2\log n)$ worst-case.
-${}^{\ddagger}$Heuristic for all $p$; provable for almost all $p$, and for all $p$ in expected
-polynomial time (ZPP) via \cite{AH92}.  The AKS--Bernstein row is discussed in
+${}^{\dagger}$Under the format's radical-capped revision of August 2026
+(Definition~\ref{def:short2}), for which $O(n^2\log n)$ is the unconditional worst case with no
+precomputation (Proposition~\ref{prop:short2verif}); the original format's worst case was
+$O(n^2(\log n)^2)$, attained by its $k=0$ stratum ($=$ the restricted one-shot,
+Remark~\ref{rem:tightshort}).
+${}^{\ddagger}$Heuristic for all $p$; provable for almost all $p$.  Primality is in ZPP via
+\cite{AH92}, but with certificates built on genus-2 Jacobians, not certificates of this format.  The AKS--Bernstein row is discussed in
 Remark~\ref{rem:aks}; the deterministic finding entry is the Lenstra--Pomerance decision bound, whose
 exponent $c_0$ is effectively computable but has never been made explicit.  The Pratt entry is the cost
 of factoring $p-1$ (and recursively below, a geometrically decreasing cost) by the number field
-sieve.}
+sieve.  The ECPP row's size and verification describe the customary smooth-cofactor descent
+($\Theta(\log n)$ bits shed per step); the strict $m = 2q$ chain of \cite{GK86} measures $\Theta(n^2)$
+and $O(n^3\log n)$ (\S\ref{sec:ecppverif}).}
 \label{tab:summary}
 \end{table}
 
@@ -169,28 +184,48 @@ effectively computable in the sense that their proofs ``implicitly contain an al
 $c_0$,'' which no one has carried out; so the sharpest citable deterministic bound is exactly
 $(\log p)^6(2+\log\log p)^{c_0}$, and the $c$ in a formulation $O(n^6\log^{c+o(1)}n)$ is not known.
 The \emph{certificate} form of the family descends from Berrizbeitia \cite{Berr05} through Cheng and
-Mih\u{a}ilescu--Avanzi to Bernstein \cite{Ber07} (see \cite{Ber07} for the history), and is spelled
-out in Appendix~\ref{app:aks}: every prime has a certificate with witness set $S = \{1\}$
-(Theorem~\ref{thm:akscert}), of total size $(\log p)^{1+o(1)}$ bits --- i.e.\ $n^{1+o(1)}$,
-essentially the same order as the elliptic certificates --- findable in \emph{expected time
-$(\log p)^{2+o(1)}$} (the only randomness is sampling an irreducible $f$ and a witness $r$, both
-dense) and verifiable in $(\log p)^{4+o(1)}$ bit operations, the cost of one $p^d$-th powering in a
-$\Theta((\log p)^{3+o(1)})$-bit ring.  As a concrete instance,
+Mih\u{a}ilescu--Avanzi to Bernstein \cite{Ber07} (see \cite{Ber07} for the history and the precise
+definition): a certificate is a tuple $(d, e, c, c_-, f, r, S)$ --- $f$ monic of degree $d$ over
+$\Z/p\Z$, $e$ a divisor of $p^d - 1$, an element $r$ and a finite witness set $S$ in
+$R = (\Z/p\Z)[y]/(f)$ --- whose validity, checked by explicit congruences and unit tests in $R$,
+forces $p$ to be a prime power by an AKS-style counting argument (a $(\log p)^{1+o(1)}$
+perfect-power test \cite{Ber98} finishes the job).  Every prime has one with $S = \{1\}$,
+$d = (\log p)^{o(1)}$, and $e = (\log p)^{2+o(1)}$ \cite[Thms.~5.1--5.3]{Ber07}, of total size
+$(\log p)^{1+o(1)}$ bits --- i.e.\ $n^{1+o(1)}$, essentially the same order as the elliptic
+certificates --- findable in \emph{expected time $(\log p)^{2+o(1)}$} (the only randomness is
+sampling an irreducible $f$ and a witness $r$, both dense) and verifiable deterministically in
+$(\log p)^{4+o(1)}$ bit operations: the dominant check is the congruence
+$(x-s)^{p^d} = r^{(p^d-1)/e}\,x - s$ in $R[x]/(x^e - r)$ for each $s \in S$, one $p^d$-th powering
+in a ring of $(\log p)^{3+o(1)}$ bits.  As a concrete instance,
 $(1,\,57449,\,28724,\,16826,\,y,\,2,\,\{1\})$ is a certificate for $2^{1024}+643$.  Deterministically,
 trying candidates for $f$ and $r$ in a fixed order heuristically finds a certificate in the same
 $(\log p)^{2+o(1)}$ time (only the guarantee is lost); the proven deterministic route remains the
-\cite{LP19} decision algorithm, whence the two finding entries in the table.  Note carefully that the
-verification is quasi-\emph{quartic}, and structurally so (Appendix~\ref{app:aks}): this family does
-\emph{not} subsume the quasi-quadratic verification of the elliptic formats --- see the closing open
-problem of \S\ref{sec:synthesis}.
+\cite{LP19} \emph{decision} algorithm --- it decides primality without producing a certificate ---
+whence the two finding entries in the table.  The find/verify asymmetry is inverted in this family
+--- finding is far cheaper than verifying --- and the inversion has a stark consequence: a verifier
+willing to use Las Vegas randomness gains \emph{nothing} from the certificate, since given the empty
+string it can regenerate certificate data itself in expected $(\log p)^{2+o(1)}$ time and run the
+same $(\log p)^{4+o(1)}$ check (composite inputs are dispatched surely, and quickly, by
+strong-pseudoprime witnesses \cite{Mil76,Rab80}).  The certificate is information its receiver could
+just as cheaply have produced --- its size is beside the point --- and what it buys is
+\emph{determinism} alone: a supplied tuple is checked with no randomness in $(\log p)^{4+o(1)}$,
+against the $(\log p)^{6}(2+\log\log p)^{c_0}$ certificate-free deterministic decision.  The
+verification itself is stubbornly quasi-\emph{quartic}: the soundness counting argument forces the
+$(\log p)^{3+o(1)}$-bit ring (its binomial condition needs $e\#S \gtrsim \sqrt{e}\,d\log p$, so
+$e = \widetilde\Omega(\log^2 p)$ for bounded $\#S$), no way to check the powering short of computing
+it is known, and larger $\#S$ trades a polylogarithmically smaller $e$ against linearly more
+congruences, and loses --- a floor for every known verifier, though not a proven lower bound.  This
+family therefore does \emph{not} subsume the quasi-quadratic verification of the elliptic formats,
+whose certificates transfer work the verifier could never afford; see the closing open problem of
+\S\ref{sec:synthesis}.
 \end{remark}
 
 Two engines supply candidate curve orders throughout, and they trade off differently in every section:
 \textbf{SEA} point counting (sample a curve, compute its order; polynomial cost per candidate, orders
 statistically ``random'') and the \textbf{CM method} (enumerate imaginary quadratic discriminants $D$
-with $4p = t^2 + |D|v^2$; orders $p+1\pm t$ arrive at polylogarithmic amortized cost, but only
-$\Tt(\sqrt B)$ of them from discriminants up to $B$, and committing to a winner costs a class polynomial
-of degree $h(D) \approx \sqrt{|D|}$).  Where the searched event is polynomially rare, CM's cheap
+with $4p = t^2 + |D|v^2$; each discriminant is tested in polylogarithmic time, but discriminants up to
+$B$ yield only $\Tt(\sqrt B)$ usable orders, and committing to a winner costs a class polynomial
+of degree $h(D) \approx \sqrt{|D|}$, computed in time $\Ot(|D|)$).  Where the searched event is polynomially rare, CM's cheap
 candidates win; where it is exponentially rare, the $\sqrt B$ supply curve throttles CM and SEA's flat
 polynomial cost per candidate wins asymptotically.  Measured crossovers appear in \S\ref{sec:oneshotfind}
 and \S\ref{sec:restrictedfind}.
@@ -224,7 +259,7 @@ Dickman distribution).  This asymmetry --- unconditional verification, heuristic
 to the subject and is the reason certificates matter at all: the expensive, unrigorous part need be run
 only once, by anyone, while the cheap, rigorous part can be repeated by everyone.
 
-\subsection{Curves over $\Z/p\Z$ and Montgomery arithmetic}\label{sec:mont}
+\subsection{Curves over \texorpdfstring{$\Z/p\Z$}{Z/pZ} and Montgomery arithmetic}\label{sec:mont}
 
 For prime $p > 3$, an elliptic curve over $\F_p$ in Montgomery form is
 \[
@@ -264,8 +299,9 @@ form of \cite{Pom87}.  Write
 \[
   L(p) \;=\; q + 1 + \lfloor 2\sqrt q\rfloor, \qquad q = \lfloor\sqrt p\rfloor,
 \]
-the integer form of $(p^{1/4}+1)^2$: by the Hasse bound \cite[V.1]{Sil09}, $L(p)$ is the largest
-possible order of a point on any elliptic curve over any field $\F_\ell$ with $\ell \le \sqrt p$.
+the integer form of $(p^{1/4}+1)^2$: by the Hasse bound \cite[V.1]{Sil09}, $L(p)$ is an upper bound on
+the order of any point on any elliptic curve over any field $\F_\ell$ with $\ell \le \sqrt p$ (an upper
+bound is all the lemma below needs; since $q$ need not be prime, the bound need not be attained).
 
 \begin{lemma}[elliptic certification]\label{lem:cert}
 Let $p > 3$ be an odd integer, and suppose that for every prime $\ell$ dividing $p$, the reduction
@@ -357,8 +393,9 @@ $\rho(8) \approx 3\times 10^{-8}$ and $\rho(4) \approx 5\times 10^{-3}$.
 
 \subsection{Two engines for curve orders: SEA and CM}\label{sec:engines}
 
-Every finder below is a filter over candidate pairs (curve, order).  There are exactly two known ways to
-manufacture such pairs, and their cost structures are dual.
+Every finder below is a filter over candidate pairs (curve, order).  Two general-purpose engines
+manufacture such pairs (special forms of $p$ admit shortcuts, \S\ref{sec:shortcuts}), and their cost
+structures are dual.
 
 \subsubsection{Point counting: Schoof--Elkies--Atkin}\label{sec:seaengine}
 Schoof's algorithm \cite{Scho85} computes $\#E$ for arbitrary $E/\F_p$ in deterministic polynomial time
@@ -412,8 +449,11 @@ navigation \cite{Kohel96,FM02,Suth13} fixes group-structure obstructions (\S\ref
 \end{enumerate}
 
 The duality, which recurs in every section: \textbf{SEA pays $\mathrm{poly}(n)$ per candidate forever;
-CM pays polylog per candidate but quadratically in the number of candidates.}  If a search needs $K$
-candidates, SEA costs $\Ot(K)\,\mathrm{poly}(n)$ and CM costs $\Ot(K^2) + \Ot(K\,\mathrm{polylog})$.
+CM pays polylog per discriminant tested but quadratically in the number of candidate orders
+delivered.}  If a search needs $K$
+candidates, SEA costs $\Ot(K)\,\mathrm{poly}(n)$ and CM costs $\Ot(K^2) + \Ot(K\,\mathrm{polylog})$
+--- the $K^2$ paid twice over, by the scan and again by the winner's class polynomial
+($|D| \approx K^2$).
 CM wins when $K$ is modest (all of classical ECPP, one-shot to ${\approx}\,450$ bits); SEA wins when $K$
 explodes (one-shot beyond ${\approx}\,500$ bits, the restricted variant, and --- in the degenerate
 single-candidate sense of \S\ref{sec:pomerance} --- never for Pomerance triples, where the admissible
@@ -499,7 +539,7 @@ costs $(1+o(1))\log_2 p$ multiplications; a Pomerance triple proves primality ou
 that.  The repository also provides \texttt{lean\_vpp.py}, which emits a Lean~4 script certifying a
 given triple, so verification can even be delegated to a proof assistant's kernel.
 
-\subsection{Finding certificates: $\Tt(\sqrt p)$, and why}\label{sec:pomfind}
+\subsection{Finding certificates: \texorpdfstring{$\Tt(\sqrt p)$}{Theta-tilde(sqrt p)}, and why}\label{sec:pomfind}
 
 Here the supply engines of \S\ref{sec:engines} are both nearly useless, which is what makes this family
 the hardest to find and the sharpest illustration of the find/verify gap.
@@ -533,7 +573,8 @@ $t \bmod 2^j$ for $j$ up to $k \approx n/2$ is exactly as hard as the event bein
 would need a small discriminant $D$ with $4p = t^2+|D|v^2$ and $t \equiv p+1 \pmod{2^k}$; only $O(1)$
 values of $t$ satisfy the congruence inside the Hasse range, and for fixed $t$ the probability that
 $4p-t^2$ has squarefull part large enough to leave $|D| \le X$ is ${\approx}\,\sqrt{X/p}$ --- total
-expected work $p^{1/2-o(1)}$ regardless.  Isogeny walks preserve the order, torsion families fix only
+expected work $p^{1/2-o(1)}$ for every parameter choice (a heuristic accounting of the natural CM
+enumerations, not an algorithm-independent lower bound).  Isogeny walks preserve the order, torsion families fix only
 $O(1)$ bits of $v_2(\#E)$, and the admissible set has no multiplicative structure to sieve on.  Nothing
 better than $\Tt(\sqrt p)$ is known, and the DANGER3 progression (below) is the empirical record of that
 $\sqrt p$ wall being pushed one decimal digit --- half a bit of $\sqrt p$ --- at a time.
@@ -569,8 +610,10 @@ $10^{26}+67$  & $1.0\times 10^{13}$ & $1.4\times 10^{11}$ & 45 min, RTX 6000 GPU
 The observed candidate counts sit between $0.01\sqrt p$ and $1.7\sqrt p$ --- the spread reflecting the
 $2^k/\sqrt p$ wobble, torsion conditioning, twist usage, and single-draw geometric variance --- and the
 per-candidate cost has been driven from CPU-microseconds to GPU-nanoseconds.  The open challenge as of
-this writing is $p = 10^{27}+103$ ($\sqrt p \approx 3.2\times 10^{13}$ candidates --- roughly ten
-RTX-6000-hours at the $10^{26}$ rate: within reach).  Note the striking asymmetry these records
+this writing is $p = 10^{27}+103$: $\sqrt p \approx 3.2\times 10^{13}$ mean-case candidates, roughly
+$170$ RTX-6000-hours at the measured $10^{26}$ rate of $5\times 10^{7}$ candidates per second --- a
+GPU-week, though the log's variance (the $10^{26}$ entry won at $0.014\sqrt p$) leaves anything from
+hours on up: within reach.  Note the striking asymmetry these records
 quantify: a certificate that takes GPU-\emph{hours} to find is verified in ${\approx}\,220$
 multiplications of 90-bit numbers --- microseconds.
 
@@ -594,8 +637,8 @@ Every Pomerance triple is the case $k = 0$, $m = 2^k$ minimal --- so one-shot ce
 every prime $p > 3$, unconditionally.  The minimality window $m < L\cdot r$ generalizes ``least power of
 two above $L$'': it forces $m/r \le L$, i.e.\ removing the smallest prime of $m$ would fall out of the
 window, keeping $\log m = \frac12\log p + O(\log n)$ and the certificate canonical-small.  Since each
-listed prime exceeds $n^2$, $k < n/(4\log_2 n) + O(1)$, so the whole certificate is
-${\approx}\,2.5n$--$4n$ bits.
+listed prime exceeds $n^2$, $k < n/(4\log_2 n) + O(1)$; and since the $q_i$ divide $m$, their combined
+length is at most $\log_2 m \approx n/2$: the whole certificate is ${\approx}\,2.5n$--$3n$ bits.
 
 \subsection{Verification}\label{sec:oneshotverif}
 
@@ -643,7 +686,8 @@ that number is bounded.
 \subsection{Finding certificates}\label{sec:oneshotfind}
 
 Since $m$ divides $\#E$ and every divisor of the $n^4$-smooth part of $\#E$ is reachable as a point
-order (up to group-structure corrections handled below), a curve is usable precisely when
+order somewhere in the isogeny class (the group-structure corrections handled below), a candidate
+order is usable precisely when
 \[
   \smoothpart{n^4}{\#E} \;>\; L \;\approx\; \sqrt p,
 \]
@@ -659,7 +703,7 @@ sizes: $1/\rho(u/2)$ is only ${\approx}\,200$ at 256 bits, $1.6\times 10^4$ at 3
 448, ${\approx}\,3\times 10^8$ at 640 bits.  What the two engines pay per candidate then separates
 them.
 
-\subsubsection{SEA sampling: $p^{1/8+o(1)}$ end-to-end}
+\subsubsection{SEA sampling: \texorpdfstring{$p^{1/8+o(1)}$}{p\string^(1/8+o(1))} end-to-end}
 The repository's \texttt{oneshot.gp} and the race harness \texttt{sea\_supply.py} \osf{} sample random
 Montgomery coefficients $A$, compute $\#E$ by SEA (both twists per count), batch-test the smoothness
 gate, and assemble the winner.  Per candidate: half an SEA count ($\Ot(n^4)$ heuristic) plus
@@ -667,7 +711,7 @@ polylogarithmic gate work, so the total is $p^{1/8+o(1)}\cdot\mathrm{poly}(n) = 
 measured per-candidate cost with stock PARI (\texttt{ellcard}) is flat: 7.2 / 10.1 / 13.7 core-seconds
 at 384 / 416 / 448 bits.
 
-\subsubsection{The CM engine: $p^{1/4+o(1)}$ end-to-end, far cheaper per candidate today}
+\subsubsection{The CM engine: \texorpdfstring{$p^{1/4+o(1)}$}{p\string^(1/4+o(1))} end-to-end, far cheaper per candidate today}
 \label{sec:cmoneshot}
 The OneShotFastECPP engine \osf{} is a fastECPP-style pipeline specialized to the one-shot problem ---
 unusual in that its $p$ is small (hundreds of bits) while its discriminants are huge ($|D|$ up to
@@ -693,12 +737,17 @@ $\ell$-torsion, walk the $\ell$-isogeny volcano to its floor \cite{Suth13,FM02},
 $\ell$-Sylow subgroup is cyclic and the curve is always representable.
 \end{enumerate}
 Because the scan must reach $B \approx (\#\text{candidates})^2$, the end-to-end heuristic cost is
-$p^{1/4+o(1)}$ even though only $p^{1/8+o(1)}$ candidates are consumed; $H_D$ and root-finding stay at
-$\Ot(p^{1/8})$ ($h(D) \approx \sqrt{|D|} \approx p^{1/8}$; the largest committed class polynomial to
+$p^{1/4+o(1)}$ even though only $p^{1/8+o(1)}$ candidates are consumed --- and the winner's commit
+stage costs the same: the winning discriminant is heuristically a uniform draw from the pool, so
+$|D| = \Theta(B) = p^{1/4+o(1)}$ typically, and its class polynomial costs $\Ot(|D|) = p^{1/4+o(1)}$
+(\S\ref{sec:cmengine}).  Only the certificate-facing objects live at the square-root scale: the degree
+$h(D) \approx \sqrt{|D|} \approx p^{1/8}$, the polynomial's $h\cdot n$ bits modulo $p$, and the
+root-finding, $\Ot(h)$ multiplications mod $p$ (the largest committed class polynomial to
 date had $h = 35{,}085$ at $10^{100}$).  Direct enumeration of solutions $(t, v) \to D$ is worse
-($\Tt(p^{3/8})$ over the $v$-range that matters), so closing the gap to $p^{1/8}$ would require
-enumerating usable $(D, t, v)$ in time proportional to their number --- not currently known, and the
-natural open problem of this section.
+($\Tt(p^{3/8})$ over the $v$-range that matters); closing the gap to $p^{1/8}$ would require
+\emph{both} enumerating usable $(D, t, v)$ in time proportional to their number \emph{and} committing
+without a quasi-linear-in-$|D|$ class polynomial computation --- neither is currently known, and the
+pair is the natural open problem of this section (\S\ref{sec:synthesis}, item~3).
 
 \subsubsection{The measured SEA/CM crossover}\label{sec:race}
 A head-to-head race on the same primes \osf, 192-core machines, everything verified by
@@ -791,12 +840,13 @@ cores); the race of \S\ref{sec:race} reached 448 bits in two spot-hours, and the
 generic 512--640-bit certificates at tens to hundreds of core-years --- possible, not yet done.
 Special-form primes (smooth $p+1$) escape the wall entirely, as P-521 shows at 521 bits.
 
-\section{Restricted one-shot ECPP: $m$ must be $n^2$-smooth}\label{sec:restricted}
+\section{Restricted one-shot ECPP: \texorpdfstring{$m$ must be $n^2$-smooth}{m must be n\string^2-smooth}}\label{sec:restricted}
 
 \subsection{The problem, and where it sits in the hierarchy}
 
 Now forbid the listed primes: the certificate is $(p, A, x_0, m)$ with \emph{every} prime factor of $m$
-below $n^2$ --- the $k = 0$ stratum of \S\ref{sec:oneshot}, equivalently a zero-level short ECPP
+below $n^2$ --- the $k = 0$ stratum of \S\ref{sec:oneshot}, equivalently a zero-level short ECPP of
+the original format
 (\S\ref{sec:short}).  The verifier is unchanged (\texttt{voneshot.py} with an empty list): it factors
 $m$ completely by trial division below $n^2$ and needs no supplied data beyond $m$ itself.  Existence
 for every $p > 3$ again follows from Pomerance triples ($2$ is $n^2$-smooth); the certificate is
@@ -814,7 +864,8 @@ be built from primes below $n^2$ instead of $n^4$.  The Dickman parameter double
   \rho(u/2)^{1+o(1)} \;=\; p^{-1/4+o(1)},
 \]
 the square of the $n^4$ density: \textbf{$p^{1/4+o(1)}$ candidates via SEA sampling, and
-$p^{1/2+o(1)}$ end-to-end for the CM route} (scan budget $B \approx \text{candidates}^2$) --- the CM
+$p^{1/2+o(1)}$ end-to-end for the CM route} (scan and winner class polynomial alike, at
+$B \approx \text{candidates}^2$) --- the CM
 engine loses its practical edge entirely here, degenerating to the same $\sqrt p$ order as the
 Pomerance brute force, while SEA sampling stays genuinely sub-$\sqrt p$.  Concretely, with the race's
 measured SEA rates (Table~\ref{tab:frontier}):
@@ -887,9 +938,9 @@ and stored in \texttt{certs/restricted/} of \osf:
 \medskip
 \noindent The observed-over-predicted ratios ($18, 1.1, 6, 3$) show the same order-of-magnitude scatter as the
 \S\ref{sec:race} race densities --- single-draw variance dominates at these pool sizes.  The 256-bit
-case (${\approx}\,3\times 10^7$ candidates at ${\approx}$5--10 core-seconds each) is a months-scale
-project on a ${\sim}3000$-core fleet with stock SEA --- feasible in principle, unattempted; 384 bits is
-out of reach.  For comparison, the \emph{unrestricted} one-shot search handled 256 bits in 4 seconds
+case (${\approx}\,3\times 10^7$ candidates at ${\approx}$5--10 core-seconds each) is a 5--10 core-year
+project --- a day or two of wall time on a ${\sim}3000$-core fleet with stock SEA: feasible,
+unattempted; 384 bits is out of reach.  For comparison, the \emph{unrestricted} one-shot search handled 256 bits in 4 seconds
 (\S\ref{sec:race}): the two exponents $1/8$ vs $1/4$ are separated by exactly this practical chasm.
 
 \section{Short ECPP}\label{sec:short}
@@ -923,12 +974,37 @@ counterexample of Remark~\ref{rem:crt}, which was found in the course of pinning
 
 \emph{Structure of the chain.}  $p_{i+1} < \sqrt{p_i}$ at least halves the bit length per level, and
 $p_{i+1} > n^2$ forces termination once $p_i \le n^4$: so $k = O(\log n) = O(\log\log p_0)$ levels, and
-the total size is $\sum_i (2+\tfrac12)\operatorname{bits}(p_i) \approx 5n$ bits --- \emph{linear} in
-$\log p_0$, like a Pomerance triple, against the quadratic size of a classical chain.  Existence for
+the total size is $\sum_i (2+\tfrac12)\operatorname{bits}(p_i) \lesssim 5n$ bits (published chains
+measure $3.2n$--$4.7n$, the ratio rising with depth toward the halving-descent bound) --- \emph{linear}
+in $\log p_0$, like a Pomerance triple, against the quadratic size of a classical chain.  Existence for
 every prime $p_0 \ge 5$ is again inherited from Pomerance triples (take $k = 0$,
 $m_0 = 2^{\kappa}$); the repository verifies it exhaustively below $2^8$ (201{,}072 short ECPPs; every
 prime $5 \le p \le 2^8$ admits one, while $p = 2, 3$ admit none, which is why the format takes
 $p_0 \ge 5$).
+
+\begin{definition}[radical-capped revision, August 2026]\label{def:short2}
+The \emph{revised format} modifies Definition~\ref{def:short} as follows, with
+$B = \lceil n^2/\log_2 n\rceil$.  Each $m_i$ must be \emph{$B$-smooth} and obey the
+\emph{radical cap}
+\[
+  \log_2 \operatorname{rad}(m_i) \;\le\; \lceil n/\log_2 n\rceil,
+  \qquad \operatorname{rad}(m) = \textstyle\prod_{q \mid m,\ q\ \mathrm{prime}}\, q.
+\]
+Each $p_{i+1}$ must be \emph{$B$-rough} (no prime factor ${\le}\,B$; $1$ qualifies) --- for the
+recursive $p_i$ this follows from the other conditions, but for $p_{k+1}$ it is load-bearing, and
+together with the smoothness of the $m_i$ it pins the decomposition of the stored products.  The
+descent bounds become $B^2 < p_{i+1} < \sqrt{p_i}$ for $i < k$, and the terminal cofactor need no
+longer be trivial: $p_{k+1} < B^2$ --- being $B$-rough, it is then $1$ or automatically \emph{prime}
+(a composite $B$-rough integer exceeds $B^2$), so the recursion stops as soon as the remaining
+prime certifies itself by size, and $n^2$ appears nowhere in the format.  The payload, window,
+minimality, and order conditions are unchanged.  A certificate with $p_{k+1} = 1$ is valid under
+Definition~\ref{def:short}; one that uses a terminal prime is not (the original format requires
+descending to $p_{k+1} = 1$).  Existence for every prime $p_0 \ge 5$ is untouched ($2$-power fillers,
+radical $2$, $p_{k+1} = 1$).  The caps exist for the verifier's sake
+(Proposition~\ref{prop:short2verif}): the smoothness bound shrinks the primorial until it is
+constructible within the verification budget, the radical cap disarms the exactness tree, and the
+raised floor makes the terminal prime free to certify.
+\end{definition}
 
 \subsection{Verification: Pomerance-order bit complexity}\label{sec:shortverif}
 
@@ -960,11 +1036,16 @@ $O(\log m_i)$ ladder bits on each of the $\lceil\log_2 k_i\rceil$ levels of the 
 ladder bit costing $O(1)$ multiplications $\bmod\ p_i$; globally, one batched trial division of all the
 $o_i$ against the prime table at $M(n^2) = O(n^2\log n)$ \cite{Bern04} (the sieve itself is
 $O(n^2\log\log n)$).  Consequently, whenever the fillers satisfy
-$\log m_i\cdot\log k_i = O(b_i)$ --- in particular whenever $m_i \le n^{O(1)}$, which holds for every
-certificate in the challenge table (the largest filler there has 50 bits, and the largest exponent
-$\log m_i/\log n$ is $6.11$; see Remark~\ref{rem:tightshort}) and can always be arranged
-(2-power fillers, \S\ref{sec:pomexist}) --- \emph{verification costs $O(n^2\log n)$ bit operations: the
-same order as verifying a Pomerance triple, exceeded only by a constant factor}.
+$\log m_i\cdot\log k_i = O(b_i)$ --- in particular whenever $m_i \le n^{O(1)}$, which held for every
+certificate of the original challenge table (the largest filler there had 50 bits, and the largest
+exponent $\log m_i/\log n$ was $6.11$), and also whenever every filler is a
+prime power, whatever its size ($k_i = 1$ makes the exactness tree trivial) --- \emph{verification
+costs $O(n^2\log n)$ bit operations: the
+same order as verifying a Pomerance triple, exceeded only by a constant factor}.  The second clause is
+what makes the bound attainable for \emph{every} prime: the zero-level certificate with
+$m_0 = 2^{\kappa} \approx \sqrt p$ provided by Pomerance's existence argument (\S\ref{sec:pomexist})
+has $k_0 = 1$.  (Polynomially bounded fillers are what every \emph{found} certificate has; no argument
+guarantees a full chain of them for every prime.)
 \end{proposition}
 
 The constant is roughly an order of magnitude with the reference formulas: the two-register ladder
@@ -979,75 +1060,55 @@ $O((\log p_0)^{2+o(1)})$; the chain structure --- one big prime per level, geome
 moduli, small smooth fillers --- is precisely what deletes the one-shot's extra log factor, the same
 mechanism as in the fixed-ratio chains of \S\ref{sec:bdescent}.
 
-\begin{remark}[tightened specifications with worst-case $O(n^2\log n)$ verification]
-\label{rem:tightshort}
-The two potential sources of a second $\log$ factor in Proposition~\ref{prop:shortverif} are distinct
-in kind.  (a)~\emph{The exactness tree}: its depth $\log k_i$ multiplies the filler bits, and the
-definition permits a filler of $\Theta(b_i)$ bits with $\Theta(b_i/\log b_i)$ distinct primes, for
-which the top level costs $\Theta(n^2(\log n)^2)$ --- a worst case over certificates, vacuous for the
-ones the finder produces.  (b)~\emph{The trial division}: the per-certificate cost is
-$M(n^2) = \Theta(n^2\log n)$ --- Pomerance-order --- but only given the precomputed product tree of
-the primes below $n^2$, whose construction costs $\Theta(n^2(\log n)^2)$; a self-contained accounting
-carries the extra log here instead.
+The August 2026 revision (Definition~\ref{def:short2}) removes the worst case and the
+precomputation caveat at once, with no change to the certificate payload:
 
-\emph{Capping the fillers.}  Requiring only $m_i \le n^c$ for a fixed $c$, with the certificate
-payload unchanged, removes both sources --- though one must be careful where the trial division
-happens.  Direct per-prime trial division of $o_i$ cannot run in $o(n_i^3)$ at a level of $n_i$ bits:
-each of the $\pi(n_i^2) \approx n_i^2/(2\ln n_i)$ candidate primes must scan the $(n_i/2)$-bit
-$o_i$, $\Omega(n_i)$ apiece.  Instead the verifier splits the recovery in two stages.  First, extract
-the smooth parts of \emph{all} levels in one batched pass: reduce the primorial
-$P = \prod_{q \le n^2} q$ modulo $\prod_i o_i$ at cost $M(1.44\,n^2) = O(n^2\log n)$, remainder-tree
-down to the individual $o_i$ ($\Ot(n)$), and apply the repeated-squaring gcd trick at each level
-($\Ot(n_i)$).  Second, factor each extracted $m_i \le n_i^c$ --- now a $c\log_2 n_i$-bit integer ---
-directly: trial division to $n_i$ for its small primes, then deterministic Pollard--Strassen
-splitting \cite{Pol74,Str77} of the $O(1)$ remaining factors in $(n_i, n_i^2]$, at
-$\Ot(n_i^{c/4}+n_i)$ per level.  Everything after the single batched reduction is quasi-linear per
-level and sums geometrically, so verification is worst-case $O(n^2\log n)$ --- with the one caveat
-that the primorial, a single $1.44\,n^2$-bit integer depending only on $n$ (about 80\,KB at 665
-bits), is a per-bit-size precomputation whose cold construction still costs $\Theta(n^2(\log n)^2)$.
-A terminal level should then be permitted only once $\sqrt{p_k} \le n_k^{\,c}$, pushing the chain one
-polylogarithmically cheap level deeper.  The exactness checks collapse as in
-Proposition~\ref{prop:shortverif}: one half-length ladder $V = [p_{i+1}]P$ per level plus scalars
-${\le}\,n_i^c$, for $\sum_i(b_i/2 + O(\log^2 n))$ ladder bits and a constant roughly $5\times$
-Pomerance's.
+\begin{proposition}[verification of the revised format, rigorous and self-contained]
+\label{prop:short2verif}
+A certificate of the revised format for an $n$-bit $p_0$ is verified in $O(n^2\log n)$ bit
+operations and $O(n^2)$ bits of memory, worst case over certificates, with no precomputation of any
+kind.
+\end{proposition}
 
-\emph{Empirical compliance.}  Against the twenty published chains (70 levels): keeping the
-smoothness bound at the top-level $n^2$, as in the current definition, a cap with $c = 7$ retains
-every certificate --- the extremal fillers are 46 bits at $10^{50}{+}151$ (level 0,
-$m = n^{6.11}$) and 50 bits at $10^{90}{+}289$ (level 0, $n^{5.97}$).  Re-indexing the bounds per
-level ($n_i = \lceil\log_2 p_i\rceil$, fillers $n_i^2$-smooth and ${\le}\,n_i^c$) is the cleaner
-specification asymptotically but is not backward compatible: 23 of the 70 levels, hitting 17 of the
-20 chains, contain a filler prime exceeding $n_i^2$ (deep and terminal levels were built under the
-top-level bound), and the per-level cap would need $c \ge 6.5$.  Either way the finder is essentially
-unaffected: the $L(1/3)$ channel's fillers are smooth parts of typical size $n_i^{2+o(1)}$, and a cap
-only truncates a thin tail of lucky large-filler winners --- a constant-factor effect, not an
-asymptotic one.
+\begin{proof}[Proof sketch]
+The primorial $P_B$ of $B = \lceil n^2/\log_2 n\rceil$ has $\theta(B)/\ln 2 = \Theta(n^2/\log n)$
+bits, so its product tree is built \emph{per certificate} in
+$O(\log\pi(B)\cdot M(n^2/\log n)) = O(n^2\log n)$ bit operations --- this is where the reduced
+smoothness bound acts: at $B = n^2$ the same construction costs $\Theta(n^2(\log n)^2)$, the per-$n$
+table of Remark~\ref{rem:tightshort}.  Per level, $\gcd(P_B \bmod o_i,\, o_i) =
+\operatorname{rad}(m_i)$ \emph{exactly} ($P_B$ is squarefree and $B$-complete), delivered as an
+integer of at most $\lceil n/\log_2 n\rceil$ bits by one $O(M(n^2/\log n)) = O(n^2)$ reduction, and
+the radical cap is checked by reading its bit length (exact: a squarefree power of $2$ is just
+$2$).  The radicals are factored within the budget by
+one batched pass: reduce the primorial's product tree modulo $G = \prod_i \operatorname{rad}(m_i)$,
+an $O(n)$-bit integer, read off the $O(n)$ primes dividing $G$ at the leaves, and attribute them to
+levels by direct division (per-level Pollard--Strassen with search radius $B$ is a tree-free
+deterministic alternative at $\Ot(n^2\sqrt{\log n})$).  Valuations recover each $m_i$ and
+$p_{i+1}$.  The exactness tree over the $k_i \le \lceil n/\log_2 n\rceil$
+distinct primes costs at most $\lceil n/\log_2 n\rceil\cdot\lceil\log_2 k_i\rceil = O(n)$ ladder
+bits per level, so
+the elliptic work is $O(\sum_i b_i\,M(b_i)) = O(n^2\log n)$, at roughly $5\times$ Pomerance's
+constant.  The reference verifier of \cite{Short} implements the format; it factors each
+radical by direct trial division over the sieved primes --- asymptotically the coarsest step, but
+the simplest, and dominant only far beyond feasible sizes.
+\end{proof}
 
-\emph{Factored fillers.}  If one is willing to change the payload instead, carrying each filler in
-factored form removes even the primorial: the verifier checks each listed prime
-$q_j \le n^2$ by trial division to $\sqrt{q_j} \le n$, and the $n^2$-roughness of $p_{i+1}$ need
-never be checked at all --- a composite $p_{i+1}$ fails at the next level, by the same induction that
-already carries the soundness proof.  Verification is then worst-case $O(n^2\log n)$ with $O(n)$
-memory and \emph{no} precomputation of any kind, at the price of certificates that are no longer
-unique for a given $(p_i, A_i, x_i, o_i)$.
-
-\emph{The uncapped format, all-inclusive.}  Conversely, if one keeps the current definition
-unchanged, the worst case is $O(n^2(\log n)^2)$ \emph{with the per-$n$ precomputation included}:
-the primorial product tree costs $\Theta(n^2(\log n)^2)$ to build, one reduction against
-$\prod_i o_i$ costs $M(n^2) = O(n^2\log n)$, the shared active-branch descent delivering every
-level's prime divisors costs $O(n^2\log n)$ more, and the elliptic worst case (a top-level filler of
-$\Theta(n)$ bits with $\Theta(n/\log n)$ primes) is $\Theta(n^2(\log n)^2)$ exactly --- as it must
-be, since the $k = 0$ stratum is the restricted one-shot.  The one proviso is organizational: the
-trial division must be batched \emph{across the whole chain} (build the tree once, reduce it once
-against $\prod_i o_i$, share the descent); repeating the $n^2$-scale pass level by level costs an
-extra logarithmic factor.  (The reference verifier currently does repeat the pass per level, and
-additionally builds its batch products by sequential multiplication, which is quadratic in the batch
-size --- $\Tt(n^3)$ asymptotically, though with so small a constant that it is invisible below
-$n \sim 10^6$; both are local changes to the implementation, not to the format.  Patched verifiers
-realizing the batched organization, with unchanged accept/reject behavior, accompany
-\cite{OSF} in \texttt{verifier-batching-pr/}.)  The three regimes, then: the current definition verifies in
-$O(n^2(\log n)^2)$ fully self-contained; capped fillers give $O(n^2\log n)$ plus a once-per-$n$
-$O(n^2(\log n)^2)$ table; factored fillers give $O(n^2\log n)$ outright.
+\begin{remark}[the original format's worst case, and the design space]\label{rem:tightshort}
+Under Definition~\ref{def:short} the two sources of the extra $\log$ factor in
+Proposition~\ref{prop:shortverif} were distinct in kind: the \emph{exactness tree} --- a filler of
+$\Theta(b_i)$ bits with $\Theta(b_i/\log b_i)$ distinct primes costs $\Theta(n^2(\log n)^2)$ at the
+top level, attained because the $k = 0$ stratum is exactly the restricted one-shot of
+\S\ref{sec:restricted} --- and the \emph{recovery} of $m_i$ from the payload, whose batched
+organization reaches $M(n^2) = O(n^2\log n)$ per certificate only given the product tree of the
+primes below $n^2$, a per-$n$ table costing $\Theta(n^2(\log n)^2)$ to build (the organization the
+reference verifier has realized since its August 2026 batching patch; the analogous
+\texttt{voneshot.py} patch accompanies \osf{} in \texttt{verifier-batching-pr/}).  Earlier drafts of
+this section analyzed three repairs --- capping the fillers at $n^{O(1)}$, carrying them in factored
+form in a changed payload, or accepting the $O(n^2(\log n)^2)$ self-contained bound --- before the
+revision resolved the question along a different axis: shrink the smoothness bound until the
+primorial itself fits the verification budget, and cap the \emph{radicals} rather than the fillers,
+so that neither the payload nor the Pomerance existence fallback ($2$-power fillers, whose radical
+is $2$ but whose size is $2^{\Theta(n)}$) is disturbed.
 \end{remark}
 
 One formula in fact covers the elliptic work of the whole family of
@@ -1089,8 +1150,8 @@ descends faster than square root (observed chains like $665 \to 333 \to 159 \to 
 
 \begin{proposition}[heuristic finding cost]\label{prop:shortfind}
 Fix $b \in [\tfrac12, 1)$ and put $\sigma = 1-b$.  Under the heuristics (H1)--(H3) below, the
-expected cost of finding one level of a ratio-$b$ chain at modulus $p$ --- in particular a short ECPP
-level, $b = \tfrac12$ --- is
+budgeted-ECM search above (channels (1)--(3)) finds one level of a ratio-$b$ chain at modulus $p$ ---
+in particular a short ECPP level, $b = \tfrac12$ --- at expected cost
 \[
   \Lp{1/3}{(3\sigma)^{1/3}}
   \;=\; \Lp{1/3}{(3/2)^{1/3} \approx 1.14}\quad\text{at } \sigma = \tfrac12,
@@ -1116,6 +1177,18 @@ hence absorbed by the $o(1)$ (\S\ref{sec:smooth}).
 \emph{(H3)} ECM peels every prime factor ${}\le y$ of a candidate in expected time
 $L_y(1/2,\sqrt2)\cdot\mathrm{poly}(n)$ \cite{Len87}; a candidate that fails to peel within the budget
 is discarded (the early abort of channel (3)), which affects only the search, never soundness.
+
+These heuristics model exactly the budgeted prover, and (H2) is its \emph{discoverability} condition,
+not an added restriction: the prover can exhibit $q$ only if everything else in $N$ peels --- a second
+prime factor above $y$ would sit with $q$ in the unfactored rough part and hide it --- while the
+discarded cofactor $N/(mq)$ is otherwise arbitrary within $y$-smoothness (the filler $m$ is a
+\emph{divisor} of the smooth part, not all of it).  The one channel outside the model --- $q \le y$,
+exposed by the peeling itself, with the window completed by a large filler --- needs an $n^2$-smooth
+part exceeding $\sqrt p/y = p^{1/2 - o(1)}$, an event of probability $p^{-1/4+o(1)}$ (the
+restricted-one-shot density, \S\ref{sec:restrictedfind}), far below the main channel's
+$\rho(u) = 1/\Lp{1/3}{\cdot}$ and hence negligible.  Finally, the clean threshold --- every prime
+${\le}\,y$ peels, nothing above does --- idealizes the reference finder's \texttt{factorint}-under-%
+\texttt{alarm} budget; the soft cutoff moves constants, not the exponent.
 
 Write $P_1 = \ln p$, $P_2 = \ln\ln p$, and $X = P_1^{1/3}P_2^{2/3}$, so that
 $\Lp{1/3}{c} = \exp((c+o(1))X)$, and take $\ln y = \gamma P_1^{2/3}P_2^{1/3}$ --- the scale is forced
@@ -1147,29 +1220,37 @@ $n/2^i$-bit modulus costs $\exp\bigl(c\,2^{-i/3}X(1+o(1))\bigr)$, a geometricall
 so the chain total is dominated by its top level.
 \end{proof}
 
-\begin{remark}[conventions, and the previously quoted constants $1.31$ and $1.39$]
+The caps of the revised format (Definition~\ref{def:short2}) change none of this: they constrain
+only the window-completion step, a polynomial factor absorbed by the $o(1)$.  Their practical cost
+is likewise mild --- 74\% of the original table's 120 levels satisfied both caps incidentally, so a
+finder that simply filters pays a per-level acceptance factor of about $1.35$.
+
+\begin{remark}[how much the constant means]
 \label{rem:constants}
-Earlier revisions of this write-up, following the prototype analysis in \osf{} (report
-\emph{descent-chain}), quoted $\Lp{1/3}{(9\sigma/2)^{1/3} \approx 1.31}$ for the SEA supply and
-$\Lp{1/3}{(2/3)(18\sigma)^{1/3} \approx 1.39}$ for CM.  Those constants come from two coarser
-choices.  Approximating $\ln\ln y$ by $\ln\ln p$ (rather than $\tfrac23\ln\ln p$) inflates the
-peeling coefficient by $(3/2)^{1/2}$ and the optimized constant by $(3/2)^{1/3} \approx 1.14$,
-turning $(3\sigma)^{1/3}$ into $(9\sigma/2)^{1/3}$; and, for CM, imposing the balance
-``scan $=$ candidates${}\times{}$peeling'' --- which the minimax in the proof shows to be non-binding
---- yields $(16\sigma/3)^{1/3} = (2/3)(18\sigma)^{1/3}$.  The corrected accounting makes the two
-supplies share the leading constant; the real difference between them lives in the polynomial
-factors (a stock SEA count per candidate against a polylogarithmic amortized scan), which matter at
-feasible sizes but are invisible on the $L$-scale.  And since all these expressions converge only at
-the $\ln\ln\ln p/\ln\ln p$ rate, no such constant is quantitatively meaningful at feasible sizes
-anyway: the robust conclusions are the exponent $1/3$, the $(1-b)^{1/3}$ shape of the
-$b$-dependence, and ``cheaper than factoring $p$.''
+Constants at the $L(1/3)$ scale are sensitive to bookkeeping: the derivation must track
+$\ln\ln y = \tfrac23\ln\ln p$ --- not $\ln\ln p$, which silently inflates the optimized constant by
+$(3/2)^{1/3}$ --- and the minimax over $\gamma$ must be left free (imposing a scan-equals-peeling
+balance on the CM side yields a larger, spurious constant, since that trade never binds).  And the
+$o(1)$ terms converge only at the $\ln\ln\ln p/\ln\ln p$ rate, so no such constant is quantitatively
+meaningful at feasible sizes anyway.  The robust conclusions are the exponent $1/3$, the
+$(1-b)^{1/3}$ shape of the $b$-dependence, ``cheaper than factoring $p$'' (whose NFS constant
+$(64/9)^{1/3} \approx 1.92$ carries the same caveats), and the fact that the two supplies share the
+leading constant --- their real difference lives in the polynomial factors (a stock SEA point count
+per candidate against a polylogarithmically amortized scan), which matter enormously at feasible
+sizes but are invisible on the $L$-scale.
 \end{remark}
 
 \subsection{Results to date}\label{sec:shortresults}
 
 The challenge table \cite{Short} holds verified short ECPPs for the least prime above $10^c$,
-$c = 10, 20, \dots, 200$ --- the top entry at 665 bits, twice the one-shot frontier, found on hardware
-where the deepest one-shot runs needed hundreds of cores (Table~\ref{tab:shortresults}).
+$c = 10, 20, \dots, 310$ --- the top entry at 1030 bits, more than twice the one-shot frontier
+(Table~\ref{tab:shortresults}; the largest entries are in Table~\ref{tab:shortrecords}).  Entries
+through $c = 200$ were found by SEA sampling (\texttt{short.gp} and its parallel driver); the August
+2026 records campaign, $c = 210, \dots, 310$, switched the order supply to CM --- the
+dscan/batched-smoothness pipeline of \S\ref{sec:cmoneshot} feeding a staged-ECM scheduler
+(\texttt{short\_prove.py} \osf) --- and spent ${\approx}3{,}500$ core-hours on 192-core machines
+across all targets, restarts, and preemptions; the SEA/CM crossover for this search criterion
+extrapolates to ${\approx}2000$ bits.
 
 \begin{table}[htbp]
 \centering\footnotesize
@@ -1190,16 +1271,52 @@ $10^{100}+267$& 333 & 3 & ${\approx}$800 s& $10^{200}+357$  & 665 & 4 & ${\appro
 \bottomrule
 \end{tabular}
 \medskip
-\caption{The ShortPrimalityProofs challenge table \cite{Short}.  Entries through $c = 100$ by
-\texttt{short.gp} on a single core (AVS and Claude Code, Fable 5); $c = 110, \dots, 200$ by
-\texttt{parallel\_short.py} workers.}
+\caption{The ShortPrimalityProofs challenge table \cite{Short} through $c = 200$.  Entries through
+$c = 100$ by \texttt{short.gp} on a single core (AVS and Claude Code, Fable 5); $c = 110, \dots, 200$
+by \texttt{parallel\_short.py} workers.}
 \label{tab:shortresults}
 \end{table}
 
-The growth from 3 s at 200 bits to 4{,}400 s at 665 bits --- a factor ${\approx}\,10^3$ over a
-$\times 3.3$ size increase, with large per-draw variance (the lucky 432-bit chain cost 55 s) --- is
-consistent with the gentle $L(1/3)$ curve; extrapolating, $10^{300}$ (997 bits) is a
-core-days-to-weeks project.
+\begin{table}[htbp]
+\centering\footnotesize
+\begin{tabular}{@{}lrrrr@{\qquad}lrrrr@{}}
+\toprule
+$p$ & bits & levels & wall & threads & $p$ & bits & levels & wall & threads\\
+\midrule
+$10^{210}+1129$ & 698 & 4 & 20 s & 32 & $10^{270}+361$ & 897 & 5 & 9{,}615 s & 192\\
+$10^{220}+427$  & 731 & 5 & 4{,}660 s & 32 & $10^{280}+13$ & 931 & 4 & 3{,}416 s & 192\\
+$10^{230}+753$  & 765 & 4 & 13{,}218 s & 32 & $10^{290}+279$ & 964 & 5 & 546 s & 192\\
+$10^{240}+1723$ & 798 & 5 & 5{,}759 s & 192 & $10^{300}+331$ & 997 & 4 & 5{,}466 s & 192\\
+$10^{250}+1227$ & 831 & 4 & 2{,}416 s & 192 & $10^{310}+733$ & 1030 & 5 & 158 s & 192\\
+$10^{260}+49$   & 864 & 5 & 3{,}291 s & 192 & & & & &\\
+\bottomrule
+\end{tabular}
+\medskip
+\caption{The August 2026 records, $c = 210, \dots, 310$, by the CM-supply prover
+\texttt{short\_prove.py} \osf{} on AWS spot instances (wall times as logged per chain; the largest
+previously published AKS-style example was 1025 bits).}
+\label{tab:shortrecords}
+\end{table}
+
+The growth from 3 s at 200 bits to hours at 700--1030 bits --- with enormous per-draw variance
+($10^{310}$ fell in 158 s of wall time while $10^{230}$ took 13{,}218 s on 32 threads) --- is
+consistent with the gentle $L(1/3)$ curve.
+
+\emph{Migration to the revised format.}  Ten of the thirty-one published chains already satisfied
+the caps of Definition~\ref{def:short2}.  The other twenty-one were re-found from their first
+non-compliant level onward --- the compliant prefix survives, since the level moduli above the
+repair point are unchanged.  Nineteen repairs, all at moduli of at most 358 bits, took 650 seconds
+of search in aggregate with the adapted SEA finder \texttt{short2.gp} \osf{} (none longer than 254
+seconds); the two level-0 rebuilds ran on the CM prover with the revised window filter:
+$10^{170}$ (565 bits) in $1.5\times 10^4$ seconds on 6 threads, and $10^{210}$ (698 bits, whose
+level-0 filler contained the prime $166393 > B = 51572$) in $4.7\times 10^4$ seconds on 10 threads
+of a shared desktop --- 33{,}876 candidate orders and ${\approx}130$ ECM core-hours where the
+original find had fallen in 20 seconds, the exponential-scale per-draw variance in action.  Every
+chain of the migrated table was verified under both the revised and the original definitions.
+The terminal-prime relaxation of Definition~\ref{def:short2} then shortened twenty-one of the
+thirty-one chains by exactly one level ($129$ levels in all became $108$): each was truncated at
+its first recursive prime below $B^2$ (the absorbed primes have 15--32 bits), with no re-searching
+--- and the raised floor makes the truncation forced, the old longer forms now being invalid.
 
 \subsection{Interpolating toward classical ECPP: fixed-ratio descent chains}\label{sec:bdescent}
 
@@ -1208,10 +1325,11 @@ prime satisfies $q \le p^b$ (and the point order is just $c\cdot q$ with no mini
 analyzed and prototyped in \osf{} (report \emph{descent-chain}) for $b \in (\tfrac12, 1)$: certificate
 size $O(n)/(1-b)$; verification $O(n^2\log n)/(1-b^2)$ bit operations --- Pomerance's order, the
 geometric shrink killing the one-shot's extra log factor; finding
-$\Lp{1/3}{(3(1-b))^{1/3}}$ (Proposition~\ref{prop:shortfind}; the prototype report's original
-constants used the coarser convention of Remark~\ref{rem:constants}), which tends to $0$ as
-$b \to 1$ --- recovering polynomial-time
-classical ECPP in the limit, at the price of $\Theta(n)$ levels and quadratic certificates.  Short ECPP
+$\Lp{1/3}{(3(1-b))^{1/3}}$ (Proposition~\ref{prop:shortfind}), which tends to $0$ as
+$b \to 1$, at the price of $\Theta(n)$ levels and quadratic certificates.  The interpolation toward
+classical ECPP is qualitative only: the estimate's $o(1)$ terms are not uniform in $b$, so letting
+$b = b(n) \to 1$ does not \emph{recover} the polynomial-time bound --- at polylogarithmic cofactor
+sizes the Dickman analysis gives way to the prime-density analysis of \S\ref{sec:ecpp}.  Short ECPP
 is the $b = \tfrac12$ endpoint with minimized orders.  Measured with $b = 0.85$ on a 16-core desktop:
 $2^{255}-19$ proved in 3.7 s (vs ${\approx}$15 s one-shot), $10^{100}+267$ in 3.7 s (vs 7.9 min
 one-shot), 1024 bits in 128 s (9 steps, verification 405 ms), 2048 bits in 5.2 h (12 steps,
@@ -1242,9 +1360,9 @@ curves per step, a step costs $(\log p)^{5+\eps}$, and the downrun --- $\Theta(\
 strict $m = 2q$ descent, a logarithmic factor fewer with polynomially smooth cofactors peeled ---
 puts the route at $(\log p)^{6+o(1)}$ in total.
 Adleman and Huang \cite{AH92} closed the gap of exceptional primes by a random reduction through
-Jacobians of genus-2 curves, putting primality in ZPP: \emph{every} prime has an
-elliptic-curve-style certificate findable in expected polynomial time --- a theorem, though never a
-practical algorithm.
+Jacobians of genus-2 curves, putting primality in ZPP --- a theorem, though never a practical
+algorithm; their certificates involve two-dimensional abelian varieties, so this does not give
+every prime a certificate in the elliptic-curve format defined above.
 \item \textbf{CM supply (Atkin--Morain \cite{AM93}; fastECPP):} replace point counting by the CM supply
 of \S\ref{sec:cmengine}: for each small discriminant $D$ with $4p = t^2+|D|v^2$, the candidate orders
 $p+1\pm t$ are known before any curve is built; trial-divide them, keep one of the form $c\cdot q$ with
@@ -1269,6 +1387,11 @@ two scalar multiplications of every step: $\sum_j O(b_j)\,M(b_j)$ over $\Theta(n
 linearly decaying size is $O(n^3\log n/\theta) = O(n^3)$ bit operations for the customary cofactor
 lengths --- the $M$-factor cancels against the step count --- quasi-cubic, the benchmark against which
 the $O(n^2\log n)$-class formats of \S\S\ref{sec:pomerance}--\ref{sec:short} are the improvement.
+These are typical-output figures for the customary smooth-cofactor regime, not worst cases over the
+format: the strict Goldwasser--Kilian descent $m = 2q$ sheds only one bit per step ($\theta = 1$),
+giving $\Theta(n^2)$ bits and $O(n^3\log n)$ verification, and the format equally admits (rare,
+never searched for) steeper chains that would verify faster.  Table~\ref{tab:summary} quotes the
+customary regime.
 (Verification is embarrassingly parallel across steps, a fact used in practice for the record
 certificates below.)
 
@@ -1315,20 +1438,27 @@ single-draw geometric variance dominating the rest.
 Open problems, in roughly increasing order of depth:
 \begin{enumerate}
 \item \emph{Find a Pomerance triple for $10^{27}+103$} \cite{DANGER3} --- the standing challenge;
-${\approx}\,3\times 10^{13}$ candidates at the measured GPU rate is around ten GPU-hours.
+${\approx}\,3\times 10^{13}$ mean-case candidates at the measured GPU rate ($5\times 10^7$ per
+second) is around $170$ GPU-hours.
 \item \emph{Beat $\Tt(\sqrt p)$ for Pomerance triples}, or give evidence none of the standard toolkits
-(CM, isogenies, torsion families, sieving) can.  The obstruction is that ``$2^k$ divides $\#E$'' is a
-codimension-$(n/2)$ condition with no multiplicative structure (\S\ref{sec:pomfind}).
-\item \emph{Close the one-shot $p^{1/8}$ vs $p^{1/4}$ gap}: enumerate usable $(D, t, v)$ with
-$4p = t^2+|D|v^2$ in time proportional to their number rather than to the discriminant bound $B$.  Any
-such enumeration would make the CM route $p^{1/8+o(1)}$ end-to-end and move the SEA crossover
-(\S\ref{sec:race}) beyond reach.
+(CM, isogenies, torsion families, sieving) can.  The obstruction is that ``$2^k$ divides $\#E$'' is an
+event of probability $2^{-n/2+o(n)}$ with no multiplicative structure to sieve on
+(\S\ref{sec:pomfind}).
+\item \emph{Close the one-shot $p^{1/8}$ vs $p^{1/4}$ gap.}  Two separate barriers hold the CM route
+at $p^{1/4+o(1)}$ (\S\ref{sec:cmoneshot}): the scan costs $\Tt(B)$ to find the usable $(D, t, v)$ with
+$4p = t^2+|D|v^2$ below $B$, and the winner's class polynomial costs $\Ot(|D|) = \Ot(B)$ --- with
+$B \approx K^2$ forced by the $1/\sqrt{|D|}$ solvability density, not by the algorithm.  Closing the
+gap needs both an output-sensitive enumeration of usable $(D, t, v)$ and a commit cheaper than
+quasi-linear-in-$|D|$ class polynomial construction (say, one root of $H_D$ modulo $p$ in
+$h^{1+o(1)} = |D|^{1/2+o(1)}$ time --- a long-standing open problem in its own right); either alone
+still leaves $p^{1/4+o(1)}$, and both together would move the SEA crossover (\S\ref{sec:race}) beyond
+reach.
 \item \emph{Instrument SEA for early-abort supply}: expose the order modulo small $\ell$ during the
 Elkies phase to gate candidates before the full $\Ot(n^4)$ count (modeled $\times$3--5 at one-shot
 sizes; needs internals no current library exports).
 \item \emph{A generic 256-bit restricted certificate} (\S\ref{sec:restrictedresults}):
-${\approx}\,3\times 10^7$ SEA candidates --- months on a ${\sim}3000$-core fleet with stock tools, much
-less with item 4.
+${\approx}\,3\times 10^7$ SEA candidates --- 5--10 core-years, days on a ${\sim}3000$-core fleet with
+stock tools, much less with item 4.
 \item \emph{Rigorous existence with the right densities.}  Existence of all four quasi-quadratic
 formats is unconditional (via \cite{Pom87}), but every \emph{finding} bound in this write-up is
 heuristic; even the classical chain's polynomial time is only ``almost all $p$'' provable
@@ -1341,169 +1471,56 @@ $O(\log\log p)$ multiplications for special primes; and whether $(5/2)\log_2 p$ 
 $p$ --- he declined to conjecture it --- remains untouched.  The formats here show the \emph{finding}
 cost of the known constructions rising steeply as verification approaches his constant; whether that
 trade-off is intrinsic is open.
-\item \emph{The three-way trade-off.}  Exhibit a certificate family achieving simultaneously:
-finding in (even randomized, even heuristic) polynomial time; size $n^{1+o(1)}$; and verification in
-$O(n^{2+o(1)})$ bit operations.  Short ECPP achieves the last two with $\Lp{1/3}{{\approx}1.14}$
-finding; the AKS--Bernstein certificate (Appendix~\ref{app:aks}) achieves the first two --- finding in
-expected \emph{quadratic} time --- with $(\log p)^{4+o(1)}$ verification, a quartic floor that is
-structural for its proof technique.  No known family achieves all three.
+\item \emph{The find/verify trade-off.}  Exhibit a certificate family achieving both finding in
+(even randomized, even heuristic) polynomial time and verification in $O(n^{2+o(1)})$ bit operations.
+(Certificate size needs no third demand: a verifier must read what it uses, so effective size never
+exceeds verification time --- and the AKS--Bernstein family shows a small certificate can even be
+worthless, Remark~\ref{rem:aks}.)  Short ECPP achieves the verification side with
+$\Lp{1/3}{{\approx}1.14}$ finding; the AKS--Bernstein certificate achieves the finding side ---
+expected \emph{quadratic} time --- but verifies quartically, for every known way of checking its
+central congruence (Remark~\ref{rem:aks}).  No known family achieves both.
 \end{enumerate}
-
-\appendix
-
-\section{The AKS--Bernstein certificate}\label{app:aks}
-
-This appendix spells out, from \cite{Ber07}, the certificate summarized in Remark~\ref{rem:aks}: the
-definition, the existence theorem with witness set $S = \{1\}$, the verification algorithm with its
-cost accounting, and the comparison with the elliptic formats.  Throughout, $p > 1$ is the integer to
-be certified and $n = \lceil\log_2 p\rceil$.
-
-\subsection{The certificate}
-
-\begin{definition}[{\cite[Def.~3.1]{Ber07}}]\label{def:akscert}
-Let $d, e$ be positive integers, $c, c_-$ integers, $f$ a monic polynomial in $(\Z/p\Z)[y]$ of degree
-$d$, $R = (\Z/p\Z)[y]/f$, $r \in R$, and $S \subseteq R$ a finite set.  Then
-$(d, e, c, c_-, f, r, S)$ is a \emph{certificate} for $p$ if:
-\begin{enumerate}
-\item $e$ divides $p^d - 1$, and $e > c \ge c_- \ge 0$;
-\item $r^{p^d-1} = 1$ in $R$, and $r^{(p^d-1)/q} - 1$ is a unit in $R$ for each prime $q \mid e$;
-\item every $s \in S$ is a unit in $R$; $s^e - (s')^e$ is a unit for all distinct $s, s' \in S$; and
-$s^e - r$ is a unit for all $s \in S$;
-\item $\displaystyle\binom{e\#S}{c_-}\binom{c}{c_-}\binom{e\#S - c_- + e-1-c}{e-1-c} \;\ge\;
-p^{d\sqrt{e/3}}$; and
-\item $(x-s)^{p^d} = r^{(p^d-1)/e}\,x - s$ in the ring $R[x]/(x^e - r)$, for every $s \in S$.
-\end{enumerate}
-If $p$ has a certificate then $p$ is a power of a prime \cite[Thm.~3.2]{Ber07}.
-\end{definition}
-
-Nothing is assumed about $f$ beyond monicity --- in particular the verifier never tests
-irreducibility; soundness maps $R$ onto a field over a prime divisor of $p$ regardless.  The proof of
-soundness is an AKS-type counting argument: condition (2) makes $r^{(p^d-1)/e}$ an exact $e$-th root
-of unity $\zeta$ locally, condition (5) lets Frobenius-like maps generate at least
-$p^{d\sqrt{e/3}}$ distinct products of the $\zeta^i x - s$ (this is where condition (4) enters), and a
-Minkowski-lattice collision among the maps $u \mapsto u^{p^i P^j}$ then forces $p$ to be a prime
-power.  A $(\log p)^{1+o(1)}$ perfect-power test \cite{Ber98} upgrades ``prime power'' to
-``prime.''
-
-\subsection{Existence: $S = \{1\}$ always suffices}
-
-\begin{theorem}[{\cite[Thms.~5.1--5.3]{Ber07}}]\label{thm:akscert}
-Let $p$ be prime.
-\begin{enumerate}
-\item For every $d \ge 1$, every divisor $e \ge 6$ of $p^d-1$ with $e \ge d^2\lceil\log_2 p\rceil^2$,
-every monic \emph{irreducible} $f$ of degree $d$, and every $r \in R$ such that $r^{(p^d-1)/e}$ has
-order $e$: the tuple $(d, e, 0, 0, f, r, \{1\})$ is a certificate for $p$.
-\item Such a pair $(d, e)$ exists for every $p \ge 2$, and the least admissible $d$ satisfies
-$d \le \exp(O(\log\log\log p \cdot \log\log\log\log p)) = (\log p)^{o(1)}$, so that
-$e = (\log p)^{2+o(1)}$; this rests on lower bounds for the smooth part of $p^d - 1$ of
-Odlyzko--Pomerance type.
-\end{enumerate}
-Consequently every prime has a certificate with $\#S = 1$ and $c = c_- = 0$, of total size
-$(\log p)^{1+o(1)}$ bits: the small integers $d, e$, and the elements $f, r$ of
-$O(d\log p)$ bits each.
-\end{theorem}
-
-Irreducibility of $f$ and the order condition on $r$ enter only here, to \emph{guarantee} existence
-($R$ is then a field, and any generator of $R^*$ works for $r$); an $f$ that happens to be reducible
-can still appear in a valid certificate.  The finder of \cite[\S4]{Ber07} samples both: an irreducible
-$f$ in expected $d$ trials, and a valid $r$ in expected $\prod_{q \mid e} q/(q-1) = (\log p)^{o(1)}$
-trials, each trial one exponentiation of cost $(\log p)^{2+o(1)}$; locating $(d, e)$ costs
-$(\log p)^{2+o(1)}$ by batched remainder trees.  Total expected finding time:
-$(\log p)^{2+o(1)}$.  Larger witness sets $S$ permit smaller $e$ --- the gain in condition (4) is only
-logarithmic in $\#S$, however, while the cost of condition (5) grows linearly in $\#S$, so bounded
-$\#S$ is asymptotically optimal and the freedom is used for constant-factor tuning
-\cite[\S7]{Ber07}.
-
-\subsection{The verification algorithm}\label{sec:aksverif}
-
-Given $p$ and a claimed certificate $(d, e, c, c_-, f, r, S)$ with $d, \#S \le (\log p)^{o(1)}$ and
-$e \le (\log p)^{2+o(1)}$ (``reasonably small'' in \cite[\S6]{Ber07}; the verifier rejects larger
-parameters):
-\begin{enumerate}
-\item Check that $p$ is not a perfect power \cite{Ber98}.  \hfill $(\log p)^{1+o(1)}$
-\item Compute $p^d - 1$; check $e \mid p^d - 1$ and $e > c \ge c_- \ge 0$.  \hfill
-$(\log p)^{1+o(1)}$
-\item Check condition (4): the three binomial coefficients are integers of $(\log p)^{2+o(1)}$ bits,
-computable by balanced products; compare against $p^{d\sqrt{e/3}}$ via $(\log p)^{2+o(1)}$-bit
-arithmetic.  \hfill $(\log p)^{2+o(1)}$
-\item Check $r^{p^d-1} = 1$ in $R$: $d\log_2 p$ squarings in $R$, each $(\log p)^{1+o(1)}$ bit
-operations.  \hfill $(\log p)^{2+o(1)}$
-\item Factor $e$ by trial division; for each of its $(\log p)^{o(1)}$ primes $q$, check that
-$r^{(p^d-1)/q} - 1$ is a unit in $R$ (a unit test in $R$ is a polynomial gcd with $f$ plus integer
-gcds with $p$, $(\log p)^{1+o(1)}$).  \hfill $(\log p)^{2+o(1)}$
-\item Check the unit conditions on $S$: each $s$, each $s^e - r$, each $s^e - (s')^e$.  \hfill
-$(\log p)^{1+o(1)}$ per test
-\item \emph{The big exponentiation.}  For each $s \in S$, compute $(x-s)^{p^d}$ in
-$R[x]/(x^e - r)$ by square-and-multiply and compare with $r^{(p^d-1)/e}x - s$.  A ring element
-occupies $e \cdot d \cdot \log_2 p = (\log p)^{3+o(1)}$ bits, one ring multiplication costs
-$(\log p)^{3+o(1)}$ (Kronecker substitution), and there are $d\log_2 p = (\log p)^{1+o(1)}$
-squarings: \hfill $(\log p)^{4+o(1)}$
-\end{enumerate}
-Accept iff all checks pass; then $p$ is a prime power by Definition~\ref{def:akscert}, hence prime by
-step 1.  Every step is deterministic and unconditional.  The total is $(\log p)^{4+o(1)}$ bit
-operations, entirely dominated by step 7.
-
-\subsection{Why quartic, and the comparison with the elliptic formats}\label{sec:aksquartic}
-
-The quartic cost of step 7 is structural, not an artifact: condition (4) --- the engine of the
-soundness proof --- forces $e\#S \gtrsim \sqrt{e}\,d\log p$ up to logarithmic factors, i.e.\
-$e = \widetilde\Omega((\log p)^2)$ for bounded $\#S$, so that the congruence ring has
-$\widetilde\Omega((\log p)^3)$ bits; and the exponent $p^d$ forces $\Omega(\log p)$ ring squarings.
-Within this proof technique, $(\log p)^{4+o(1)}$ verification is therefore a floor (larger $\#S$
-trades a polylogarithmically smaller $e$ against linearly more congruences, and loses).  The upshot
-for this survey's central trade-off: the AKS--Bernstein certificate achieves \emph{polynomial ---
-indeed expected quadratic --- finding} and \emph{linear size}, but quartic verification; the short
-ECPP of \S\ref{sec:short} achieves \emph{linear size} and \emph{quasi-quadratic verification}, but
-$\Lp{1/3}{\cdot}$ finding.  Neither dominates the other, and no known certificate family combines
-polynomial finding, linear size, and quasi-quadratic verification --- the closing open problem of
-\S\ref{sec:synthesis}.
 
 \begin{thebibliography}{FKMW04}
 
 \bibitem[AH92]{AH92} L.~M. Adleman, M.-D.~A. Huang, \emph{Primality Testing and Abelian Varieties over
-Finite Fields}, Lecture Notes in Math.\ 1512, Springer, 1992.
+Finite Fields}, Lecture Notes in Math.\ 1512, Springer, 1992, \href{https://doi.org/10.1007/BFb0090185}{doi:10.1007/BFb0090185}.
 
 \bibitem[AKS04]{AKS04} M.~Agrawal, N.~Kayal, N.~Saxena, PRIMES is in P, \emph{Ann.\ of Math.}\ 160
-(2004), 781--793.
+(2004), 781--793, \href{https://doi.org/10.4007/annals.2004.160.781}{doi:10.4007/annals.2004.160.781}.
 
 \bibitem[AM93]{AM93} A.~O.~L. Atkin, F.~Morain, Elliptic curves and primality proving, \emph{Math.\
-Comp.}\ 61 (1993), 29--68.
-
-\bibitem[Bac90]{Bach90} E.~Bach, Explicit bounds for primality testing and related problems,
-\emph{Math.\ Comp.}\ 55 (1990), 355--380.
+Comp.}\ 61 (1993), 29--68, \href{https://doi.org/10.1090/S0025-5718-1993-1199989-X}{doi:10.1090/S0025-5718-1993-1199989-X}.
 
 \bibitem[Ber04]{Bern04} D.~J. Bernstein, How to find smooth parts of integers, preprint, 2004,
 \url{https://cr.yp.to/papers.html#smoothparts}.
 
 \bibitem[Ber07]{Ber07} D.~J. Bernstein, Proving primality in essentially quartic random time,
-\emph{Math.\ Comp.}\ 76 (2007), 389--403.
+\emph{Math.\ Comp.}\ 76 (2007), 389--403, \href{https://doi.org/10.1090/S0025-5718-06-01786-8}{doi:10.1090/S0025-5718-06-01786-8}.
 
 \bibitem[Ber98]{Ber98} D.~J. Bernstein, Detecting perfect powers in essentially linear time,
-\emph{Math.\ Comp.}\ 67 (1998), 1253--1283.
+\emph{Math.\ Comp.}\ 67 (1998), 1253--1283, \href{https://doi.org/10.1090/S0025-5718-98-00952-1}{doi:10.1090/S0025-5718-98-00952-1}.
 
 \bibitem[Berr05]{Berr05} P.~Berrizbeitia, Sharpening ``PRIMES is in P'' for a large family of
-numbers, \emph{Math.\ Comp.}\ 74 (2005), 2043--2059.
+numbers, \emph{Math.\ Comp.}\ 74 (2005), 2043--2059, \href{https://doi.org/10.1090/S0025-5718-05-01727-8}{doi:10.1090/S0025-5718-05-01727-8}.
 
 \bibitem[BLS75]{BLS75} J.~Brillhart, D.~H. Lehmer, J.~L. Selfridge, New primality criteria and
-factorizations of $2^m\pm 1$, \emph{Math.\ Comp.}\ 29 (1975), 620--647.
-
-\bibitem[BLS12]{BLS12} R.~Br\"oker, K.~Lauter, A.~V. Sutherland, Modular polynomials via isogeny
-volcanoes, \emph{Math.\ Comp.}\ 81 (2012), 1201--1231.
+factorizations of $2^m\pm 1$, \emph{Math.\ Comp.}\ 29 (1975), 620--647, \href{https://doi.org/10.1090/S0025-5718-1975-0384673-1}{doi:10.1090/S0025-5718-1975-0384673-1}.
 
 \bibitem[CEP83]{CEP83} E.~R. Canfield, P.~Erd\H{o}s, C.~Pomerance, On a problem of Oppenheim concerning
-``factorisatio numerorum,'' \emph{J.~Number Theory} 17 (1983), 1--28.
+``factorisatio numerorum,'' \emph{J.~Number Theory} 17 (1983), 1--28, \href{https://doi.org/10.1016/0022-314X(83)90002-1}{doi:10.1016/0022-314X(83)90002-1}.
 
 \bibitem[Cor08]{Cor08} G.~Cornacchia, Su di un metodo per la risoluzione in numeri interi
 dell'equazione $\sum C_h x^{n-h}y^h = P$, \emph{Giornale di Matematiche di Battaglini} 46 (1908),
 33--90.
 
-\bibitem[Cox13]{Cox13} D.~A. Cox, \emph{Primes of the Form $x^2+ny^2$}, 2nd ed., Wiley, 2013.
+\bibitem[Cox13]{Cox13} D.~A. Cox, \emph{Primes of the Form $x^2+ny^2$}, 2nd ed., Wiley, 2013, \href{https://doi.org/10.1002/9781118400722}{doi:10.1002/9781118400722}.
 
 \bibitem[CP05]{CP05} R.~Crandall, C.~Pomerance, \emph{Prime Numbers: A Computational Perspective}, 2nd
-ed., Springer, 2005.
+ed., Springer, 2005, \href{https://doi.org/10.1007/0-387-28979-8}{doi:10.1007/0-387-28979-8}.
 
 \bibitem[Deu41]{Deu41} M.~Deuring, Die Typen der Multiplikatorenringe elliptischer
-Funktionenk\"orper, \emph{Abh.\ Math.\ Sem.\ Univ.\ Hamburg} 14 (1941), 197--272.
+Funktionenk\"orper, \emph{Abh.\ Math.\ Sem.\ Univ.\ Hamburg} 14 (1941), 197--272, \href{https://doi.org/10.1007/BF02940746}{doi:10.1007/BF02940746}.
 
 \bibitem[Dic30]{Dic30} K.~Dickman, On the frequency of numbers containing prime factors of a certain
 relative magnitude, \emph{Ark.\ Mat.\ Astr.\ Fys.}\ 22A (1930), 1--14.
@@ -1513,123 +1530,127 @@ computational issues, in \emph{Computational Perspectives on Number Theory}, AMS
 7 (1998), 21--76.
 
 \bibitem[Eng09]{Enge09} A.~Enge, The complexity of class polynomial computation via floating point
-approximations, \emph{Math.\ Comp.}\ 78 (2009), 1089--1107.
+approximations, \emph{Math.\ Comp.}\ 78 (2009), 1089--1107, \href{https://doi.org/10.1090/S0025-5718-08-02200-X}{doi:10.1090/S0025-5718-08-02200-X}.
 
 \bibitem[Eng24]{Enge24} A.~Enge, FastECPP over MPI, 2024, \href{https://arxiv.org/abs/2404.05506}
 {arXiv:2404.05506}; software CM/cm-ecpp, \url{https://www.multiprecision.org/cm/ecpp.html}.
 
 \bibitem[FKMW04]{FKMW04} J.~Franke, T.~Kleinjung, F.~Morain, T.~Wirth, Proving the primality of very
-large numbers with fastECPP, in \emph{Algorithmic Number Theory (ANTS-VI)}, LNCS 3076, Springer, 2004.
+large numbers with fastECPP, in \emph{Algorithmic Number Theory (ANTS-VI)}, LNCS 3076, Springer, 2004, \href{https://doi.org/10.1007/978-3-540-24847-7_14}{doi:10.1007/978-3-540-24847-7\_14}.
 
 \bibitem[FM02]{FM02} M.~Fouquet, F.~Morain, Isogeny volcanoes and the SEA algorithm, in
-\emph{Algorithmic Number Theory (ANTS-V)}, LNCS 2369, Springer, 2002, 276--291.
+\emph{Algorithmic Number Theory (ANTS-V)}, LNCS 2369, Springer, 2002, 276--291, \href{https://doi.org/10.1007/3-540-45455-1_23}{doi:10.1007/3-540-45455-1\_23}.
 
 \bibitem[GK86]{GK86} S.~Goldwasser, J.~Kilian, Almost all primes can be quickly certified, in
-\emph{Proc.\ 18th STOC}, 1986, 316--329; journal version: Primality testing using elliptic curves,
-\emph{J.~ACM} 46 (1999), 450--472.
+\emph{Proc.\ 18th STOC}, 1986, 316--329, \href{https://doi.org/10.1145/12130.12162}
+{doi:10.1145/12130.12162}; journal version: Primality testing using elliptic curves,
+\emph{J.~ACM} 46 (1999), 450--472, \href{https://doi.org/10.1145/320211.320213}
+{doi:10.1145/320211.320213}.
 
 \bibitem[Gra08]{Gran08} A.~Granville, Smooth numbers: computational number theory and beyond, in
 \emph{Algorithmic Number Theory}, MSRI Publ.\ 44, Cambridge, 2008, 267--323.
 
 \bibitem[HB88]{HB88} D.~R. Heath-Brown, The number of primes in a short interval, \emph{J.~reine
-angew.\ Math.}\ 389 (1988), 22--63.
+angew.\ Math.}\ 389 (1988), 22--63, \href{https://doi.org/10.1515/crll.1988.389.22}{doi:10.1515/crll.1988.389.22}.
 
 \bibitem[Hil86]{Hil86} A.~Hildebrand, On the number of positive integers $\le x$ and free of prime
-factors $> y$, \emph{J.~Number Theory} 22 (1986), 289--307.
+factors $> y$, \emph{J.~Number Theory} 22 (1986), 289--307, \href{https://doi.org/10.1016/0022-314X(86)90013-2}{doi:10.1016/0022-314X(86)90013-2}.
 
 \bibitem[HvdH21]{HvdH21} D.~Harvey, J.~van der Hoeven, Integer multiplication in time $O(n\log n)$,
-\emph{Ann.\ of Math.}\ 193 (2021), 563--617.
+\emph{Ann.\ of Math.}\ 193 (2021), 563--617, \href{https://doi.org/10.4007/annals.2021.193.2.4}{doi:10.4007/annals.2021.193.2.4}.
 
 \bibitem[Koh96]{Kohel96} D.~Kohel, \emph{Endomorphism rings of elliptic curves over finite fields},
 PhD thesis, University of California, Berkeley, 1996.
 
 \bibitem[Len87]{Len87} H.~W. Lenstra, Jr., Factoring integers with elliptic curves, \emph{Ann.\ of
-Math.}\ 126 (1987), 649--673.
+Math.}\ 126 (1987), 649--673, \href{https://doi.org/10.2307/1971363}{doi:10.2307/1971363}.
 
 \bibitem[LL93]{LL93} A.~K. Lenstra, H.~W. Lenstra, Jr.\ (eds.), \emph{The Development of the Number
-Field Sieve}, Lecture Notes in Math.\ 1554, Springer, 1993.
+Field Sieve}, Lecture Notes in Math.\ 1554, Springer, 1993, \href{https://doi.org/10.1007/BFb0091534}{doi:10.1007/BFb0091534}.
 
 \bibitem[LP19]{LP19} H.~W. Lenstra, Jr., C.~Pomerance, Primality testing with Gaussian periods,
-\emph{J.~Eur.\ Math.\ Soc.}\ 21 (2019), 1229--1269.
+\emph{J.~Eur.\ Math.\ Soc.}\ 21 (2019), 1229--1269, \href{https://doi.org/10.4171/JEMS/861}{doi:10.4171/JEMS/861}.
 
 \bibitem[McL26]{McL26} A.~McLain (with GPT 5.5 Codex / Claude), Danger 2026 Data Challenge code and
 research notes, 2026, \url{https://github.com/alexamclain/Danger2026DataChallenge}.
 
 \bibitem[Mil76]{Mil76} G.~L. Miller, Riemann's hypothesis and tests for primality, \emph{J.~Comput.\
-System Sci.}\ 13 (1976), 300--317.
+System Sci.}\ 13 (1976), 300--317, \href{https://doi.org/10.1016/S0022-0000(76)80043-8}{doi:10.1016/S0022-0000(76)80043-8}.
 
 \bibitem[Mon87]{Mon87} P.~L. Montgomery, Speeding the Pollard and elliptic curve methods of
-factorization, \emph{Math.\ Comp.}\ 48 (1987), 243--264.
+factorization, \emph{Math.\ Comp.}\ 48 (1987), 243--264, \href{https://doi.org/10.1090/S0025-5718-1987-0866113-7}{doi:10.1090/S0025-5718-1987-0866113-7}.
 
 \bibitem[Mor07]{Mor07} F.~Morain, Implementing the asymptotically fast version of the elliptic curve
-primality proving algorithm, \emph{Math.\ Comp.}\ 76 (2007), 493--505.
+primality proving algorithm, \emph{Math.\ Comp.}\ 76 (2007), 493--505, \href{https://doi.org/10.1090/S0025-5718-06-01890-4}{doi:10.1090/S0025-5718-06-01890-4}.
 
 \bibitem[Pol74]{Pol74} J.~M. Pollard, Theorems on factorization and primality testing,
-\emph{Proc.\ Cambridge Philos.\ Soc.}\ 76 (1974), 521--528.
+\emph{Proc.\ Cambridge Philos.\ Soc.}\ 76 (1974), 521--528, \href{https://doi.org/10.1017/S0305004100049252}{doi:10.1017/S0305004100049252}.
 
 \bibitem[Pom87]{Pom87} C.~Pomerance, Very short primality proofs, \emph{Math.\ Comp.}\ 48 (1987),
-315--322.
+315--322, \href{https://doi.org/10.1090/S0025-5718-1987-0866117-4}{doi:10.1090/S0025-5718-1987-0866117-4}.
 
 \bibitem[Pra75]{Pra75} V.~R. Pratt, Every prime has a succinct certificate, \emph{SIAM J.~Comput.}\ 4
-(1975), 214--220.
+(1975), 214--220, \href{https://doi.org/10.1137/0204018}{doi:10.1137/0204018}.
 
 \bibitem[Rab80]{Rab80} M.~O. Rabin, Probabilistic algorithm for testing primality, \emph{J.~Number
-Theory} 12 (1980), 128--138.
+Theory} 12 (1980), 128--138, \href{https://doi.org/10.1016/0022-314X(80)90084-0}{doi:10.1016/0022-314X(80)90084-0}.
 
 \bibitem[Rue26]{Rue26} F.~Ruehle (with Claude Opus 4.6), Danger 2026 Data Challenge implementation,
 2026, \url{https://github.com/ruehlef/Danger2026DataChallenge}; see also J.~Shi,
 \url{https://github.com/JaneShi99/pomerance-p24}.
 
 \bibitem[Sch85]{Scho85} R.~Schoof, Elliptic curves over finite fields and the computation of square
-roots mod $p$, \emph{Math.\ Comp.}\ 44 (1985), 483--494.
+roots mod $p$, \emph{Math.\ Comp.}\ 44 (1985), 483--494, \href{https://doi.org/10.1090/S0025-5718-1985-0777280-6}{doi:10.1090/S0025-5718-1985-0777280-6}.
 
 \bibitem[Sch87]{Scho87} R.~Schoof, Nonsingular plane cubic curves over finite fields, \emph{J.~Combin.\
-Theory Ser.~A} 46 (1987), 183--211.
+Theory Ser.~A} 46 (1987), 183--211, \href{https://doi.org/10.1016/0097-3165(87)90003-3}{doi:10.1016/0097-3165(87)90003-3}.
 
 \bibitem[Sch95]{Scho95} R.~Schoof, Counting points on elliptic curves over finite fields,
-\emph{J.~Th\'eor.\ Nombres Bordeaux} 7 (1995), 219--254.
+\emph{J.~Th\'eor.\ Nombres Bordeaux} 7 (1995), 219--254, \href{https://doi.org/10.5802/jtnb.142}{doi:10.5802/jtnb.142}.
 
 \bibitem[Sil09]{Sil09} J.~H. Silverman, \emph{The Arithmetic of Elliptic Curves}, 2nd ed., GTM 106,
-Springer, 2009.
+Springer, 2009, \href{https://doi.org/10.1007/978-0-387-09494-6}{doi:10.1007/978-0-387-09494-6}.
 
 \bibitem[SS14]{SS14} I.~E. Shparlinski, A.~V. Sutherland, On the distribution of Atkin and Elkies
-primes, \emph{Found.\ Comput.\ Math.}\ 14 (2014), 285--297.
+primes, \emph{Found.\ Comput.\ Math.}\ 14 (2014), 285--297, \href{https://doi.org/10.1007/s10208-013-9181-9}{doi:10.1007/s10208-013-9181-9}.
 
 \bibitem[Str77]{Str77} V.~Strassen, Einige Resultate \"uber Berechnungskomplexit\"at,
 \emph{Jahresber.\ Deutsch.\ Math.-Verein.}\ 78 (1976/77), 1--8.
 
 \bibitem[Sut11]{Suth11} A.~V. Sutherland, Computing Hilbert class polynomials with the Chinese
-remainder theorem, \emph{Math.\ Comp.}\ 80 (2011), 501--538.
+remainder theorem, \emph{Math.\ Comp.}\ 80 (2011), 501--538, \href{https://doi.org/10.1090/S0025-5718-2010-02373-7}{doi:10.1090/S0025-5718-2010-02373-7}.
 
 \bibitem[Sut12]{Suth12} A.~V. Sutherland, Accelerating the CM method, \emph{LMS J.~Comput.\ Math.}\ 15
-(2012), 172--204.
+(2012), 172--204, \href{https://doi.org/10.1112/S1461157012001015}{doi:10.1112/S1461157012001015}.
 
 \bibitem[Sut13]{Suth13} A.~V. Sutherland, Isogeny volcanoes, in \emph{ANTS-X}, Open Book Ser.\ 1, MSP,
-2013, 507--530.
+2013, 507--530, \href{https://doi.org/10.2140/obs.2013.1.507}{doi:10.2140/obs.2013.1.507}.
 
 \bibitem[t5k]{t5k} The PrimePages, Top twenty: Elliptic Curve Primality Proof,
 \url{https://t5k.org/top20/page.php?id=27} (accessed Aug 2026).
 
 \bibitem[Wat69]{Wat69} W.~C. Waterhouse, Abelian varieties over finite fields, \emph{Ann.\ Sci.\
-\'Ecole Norm.\ Sup.}\ (4) 2 (1969), 521--560.
+\'Ecole Norm.\ Sup.}\ (4) 2 (1969), 521--560, \href{https://doi.org/10.24033/asens.1183}{doi:10.24033/asens.1183}.
 
 \bibitem[DANGER3]{DANGER3} A.~V. Sutherland, \emph{DANGER3} (Pomerance triples: definition, verifier
 \texttt{vpp.py}, Lean verifier, exhaustive data to $2^{32}$, challenge log),
-\url{https://github.com/AndrewVSutherland/DANGER3}, 2026.
+\url{https://github.com/AndrewVSutherland/DANGER3}, 2026 (commit \texttt{3cd7be6}, accessed
+August 19, 2026).
 
 \bibitem[OneShot]{OneShot} A.~V. Sutherland, \emph{OneShotPrimalityProofs} (one-shot ECPP: definition,
 verifier \texttt{voneshot.py}, finder \texttt{oneshot.gp}, exhaustive data to $2^8$, challenge table),
-\url{https://github.com/AndrewVSutherland/OneShotPrimalityProofs}, 2026.  Part of the DARPA expMath
-program.
+\url{https://github.com/AndrewVSutherland/OneShotPrimalityProofs}, 2026 (commit \texttt{188f53e},
+accessed August 19, 2026).  Part of the DARPA expMath program.
 
 \bibitem[Short]{Short} A.~V. Sutherland, \emph{ShortPrimalityProofs} (short ECPP: definition, verifier
 \texttt{vsmallECPP.py}, finders \texttt{short.gp}/\texttt{parallel\_short.py}, exhaustive data to
-$2^8$, challenge table), \url{https://github.com/AndrewVSutherland/ShortPrimalityProofs}, 2026.
+$2^8$, challenge table), \url{https://github.com/AndrewVSutherland/ShortPrimalityProofs}, 2026
+(commit \texttt{cc2caf1}, accessed August 22, 2026).
 
 \bibitem[OSF]{OSF} A.~V. Sutherland and Claude Code, \emph{OneShotFastECPP} (the CM one-shot
 engine: \texttt{dscan}/\texttt{smooth}/\texttt{fproot}/\texttt{cm\_method}/\texttt{oneshot}; reports
 \emph{descent-chain}, \emph{sea-crossover}, and this write-up; verified certificates),
-\url{https://github.com/AndrewVSutherland2/OneShotFastECPP}, 2026.
+\url{https://github.com/AndrewVSutherland2/OneShotFastECPP}, 2026 (branch \texttt{short-ecpp}).
 
 \end{thebibliography}
 

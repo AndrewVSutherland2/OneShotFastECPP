@@ -1,0 +1,539 @@
+\documentclass[11pt]{amsart}
+
+\usepackage[margin=1.02in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{xcolor}
+\definecolor{linkblue}{rgb}{0.04,0.23,0.52}
+\definecolor{darkred}{rgb}{0.55,0.05,0.05}
+\definecolor{darkgreen}{rgb}{0.05,0.38,0.18}
+\usepackage[colorlinks=true,linkcolor=linkblue,citecolor=linkblue,urlcolor=linkblue]{hyperref}
+\hypersetup{pdftitle={Technical review of Elliptic curve primality proofs, from very short to one-shot},pdfauthor={Reviewer's report}}
+
+\newcommand{\F}{\mathbb{F}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\Ot}{\widetilde O}
+\newcommand{\Lt}[2]{L_p\!\left(#1,#2\right)}
+\newcommand{\manuscript}{\emph{manuscript}}
+\newcommand{\Pzero}{\textcolor{darkred}{\textbf{Priority 0}}}
+\newcommand{\Pone}{\textcolor{darkred}{\textbf{Priority 1}}}
+\newcommand{\Ptwo}{\textcolor{darkgreen}{\textbf{Priority 2}}}
+\newcommand{\sourceat}[2]{\emph{Manuscript}, \S#1, p.~#2}
+
+\setlist[enumerate]{leftmargin=*,itemsep=0.65em,topsep=0.4em}
+\setlist[itemize]{leftmargin=*,itemsep=0.35em,topsep=0.3em}
+\renewcommand{\arraystretch}{1.12}
+
+\begin{document}
+
+\title[Review of the ECPP survey]{Technical review of\\
+``Elliptic curve primality proofs, from very short to one-shot''}
+\author{Reviewer's report}
+\date{August 19, 2026}
+
+\begin{abstract}
+This report reviews the version of \texttt{ecpp.tex} dated August 5, 2026.  The source compiles to 25 pages; all page references below refer to that compiled version.  The manuscript contains substantial useful material, especially the common elliptic certification lemma, the discussion of ring-class-field thinning in CM searches, and the comparison of one-shot and short ECPP formats.  It nevertheless needs significant revision before it can serve as a reliable survey of the requested certificate families.  The most important corrections are to separate standard smooth-cofactor ECPP from strict order-$2q$ ECPP, correct the CM class-polynomial cost, state the actual worst-case short-ECPP verification bound, and qualify several new heuristic claims.  The report also proposes cuts that should reduce the manuscript by roughly 8--10 pages without sacrificing its main mathematical content.
+\end{abstract}
+
+\maketitle
+\tableofcontents
+
+\section{Executive assessment}
+
+The draft is valuable but is not ready in its present form.  Its principal difficulties are:
+
+\begin{enumerate}
+\item It no longer covers all certificate families in the requested scope with comparable depth.
+\item It conflates standard smooth-cofactor ECPP with strict order-$2q$ Goldwasser--Kilian ECPP.
+\item The one-shot CM section gives the wrong exponent for class-polynomial construction.
+\item The summary table presents a conditional short-ECPP verification bound as the headline bound for the unrestricted format.
+\item Several original heuristic results are stated more definitively than the derivations support.
+\item Two practical extrapolations are arithmetically inconsistent with the timing data immediately preceding them.
+\item The paper simultaneously functions as a survey, a design document for altered certificate formats, and a computational challenge report; separating these purposes would substantially improve both length and focus.
+\end{enumerate}
+
+\subsection*{Priority summary}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.12\textwidth}p{0.31\textwidth}X@{}}
+\toprule
+Priority & Issue & Recommended action\\
+\midrule
+\Pzero & Standard ECPP and strict $2q$ ECPP are merged & Give separate definitions, search bounds, certificate-size bounds, and verification bounds.\\
+\Pzero & CM class-polynomial cost & Replace the claimed $\Ot(p^{1/8})$ construction cost by $p^{1/4+o(1)}$ in the $n^4$ one-shot setting; retain $p^{1/8+o(1)}$ only for the polynomial degree or comparable storage quantities.\\
+\Pzero & Short-ECPP verification row & State $O(n^2(\log n)^2)$ as the unrestricted worst case; list $O(n^2\log n)$ separately for bounded/polynomial fillers or the published examples.\\
+\Pone & Scope and hierarchy & Restore the missing certificate families or explicitly make the paper elliptic-only; replace the asserted chain of containments by a partial-order diagram.\\
+\Pone & New short-ECPP search theorem & Clarify that the derivation analyzes a stricter residual-prime algorithm, not the full finder described just before it, or weaken the claim to a conjectural envelope.\\
+\Pone & Numerical estimates & Correct the Pomerance GPU estimate and the restricted one-shot fleet estimate.\\
+\Ptwo & Length and presentation & Remove the long specification-design remark, compress AKS to one page, consolidate record tables, and move implementation details to a companion report or repository.\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section{Corrections and substantive revisions}
+
+\subsection{The scope does not match the requested scope}
+
+The abstract says that the paper surveys four elliptic-curve families, while the introduction then gives five elliptic entries.  Pratt certificates receive only an introductory paragraph and a summary-table row, rather than a definition, soundness proof, verifier, search method, and practical discussion.  AKS receives a long appendix, while standard ECPP and strict order-$2q$ ECPP are merged into one section and one row; see \sourceat{1}{1--3}.
+
+The requested scope contains eight distinct certificate types: Pratt, Bernstein/AKS, Pomerance, $n^2$-smooth one-shot ECPP, $n^4$-smooth one-shot ECPP, short ECPP, standard smooth-cofactor ECPP, and strict order-$2q$ ECPP.  There are two coherent revisions:
+
+\begin{enumerate}
+\item Restore concise but complete sections for Pratt and AKS, and split the two ECPP variants.
+\item Recast the paper as an explicitly elliptic-only survey, remove both Pratt and AKS, and revise the title, abstract, introduction, and table accordingly.
+\end{enumerate}
+
+The present compromise gives Pratt too little attention, AKS too much, and the two classical ECPP variants insufficiently precise treatment.
+
+\subsection{The claimed hierarchy is not a chain}
+
+The manuscript says that the five formats form a hierarchy in which each relaxation strictly enlarges the preceding class; see \sourceat{1}{2--3}.  The valid containments include
+\[
+ \text{Pomerance}
+ \subset
+ n^2\text{-smooth one-shot}
+ \subset
+ n^4\text{-smooth one-shot}
+\]
+and
+\[
+ \text{Pomerance}
+ \subset
+ n^2\text{-smooth one-shot}
+ \subset
+ \text{short ECPP}.
+\]
+But $n^4$-smooth one-shot ECPP and short ECPP are generally incomparable:
+
+\begin{itemize}
+\item A one-shot order may contain several primes in $(n^2,n^4)$, which does not fit the short format.
+\item A nonterminal short certificate may contain a prime $p_{i+1}$ much larger than $n^4$, so its order need not be $n^4$-smooth.
+\end{itemize}
+
+Ordinary ECPP is also not simply a relaxation of short ECPP.  In a Goldwasser--Kilian step, the certified prime factor itself exceeds the local Hasse threshold.  In a short-ECPP step, the recursive prime may be below $\sqrt{p_i}$, and it is the product with the smooth filler that exceeds the threshold.
+
+The related statement that existence for the whole hierarchy follows from Pomerance is valid only for the formats that admit a zero-level Pomerance certificate.  It does not establish existence of a strict order-$2q$ certificate for every prime.  Replace the hierarchy paragraph by a partial-order diagram, followed by a two-axis description: permitted order structure versus permitted recursion.
+
+\subsection{The one-shot CM class-polynomial exponent is wrong}
+\label{sec:cmerror}
+
+The one-shot CM section correctly derives that the search needs
+\[
+ K=p^{1/8+o(1)}
+\]
+usable candidate orders and therefore scans discriminants up to
+\[
+ B=K^{2+o(1)}=p^{1/4+o(1)}.
+\]
+It then states that the winner's class polynomial and root-finding remain $\Ot(p^{1/8})$, because
+\[
+ h(D)\asymp \sqrt{|D|}\asymp p^{1/8};
+\]
+see \sourceat{4.3.2}{11--12}.
+
+This confuses the degree $h(D)$ with the cost of constructing the class polynomial.  For the CRT algorithm cited in the manuscript, computing $H_D$ modulo the target modulus has expected running time
+\[
+ |D|^{1+o(1)}
+\]
+under GRH, not $h(D)^{1+o(1)}$ \cite{Sutherland2011}.  The accelerated root-only CM method also retains a time bound essentially linear in $|D|$, while reducing space and subsequent root-handling costs \cite{Sutherland2012}.  Thus a winner with
+\[
+ |D|=p^{1/4+o(1)}
+\]
+has class-polynomial or root-construction cost
+\[
+ p^{1/4+o(1)}.
+\]
+The polynomial degree, and storage for its coefficients modulo $p$, are on the $p^{1/8+o(1)}$ scale.  The final CM exponent remains $p^{1/4+o(1)}$, since the scan already has this cost; the correction changes which stages attain the exponent.
+
+There is also an internal terminology problem in \S2.6.2: testing one discriminant may be polylogarithmic, but obtaining $K$ \emph{usable orders} costs $K^{2+o(1)}$.  Candidate orders therefore do not arrive at polylogarithmic amortized cost when the amortization is over usable traces rather than tested discriminants.
+
+\subsection{Standard ECPP and strict order-\texorpdfstring{$2q$}{2q} ECPP must be separated}
+\label{sec:ecppsplit}
+
+The classical section begins with general orders $\#E=cq$, then describes the Goldwasser--Kilian/SEA route with $\#E=2q$, and finally analyzes the Atkin--Morain route with a smooth cofactor $c$.  The summary row uses the smaller certificate and verification bounds associated with smooth-cofactor descent while also including the strict-$2q$ SEA search analysis; see \sourceat{7}{20}.
+
+These are different certificate formats with different chain geometries.
+
+\paragraph{Strict order-$2q$ ECPP.}
+Here $q\approx p/2$, so a step usually removes only one bit.  There are $\Theta(n)$ levels, the certificate has size $\Theta(n^2)$, and verification costs
+\[
+ \sum_{b\le n} O\bigl(bM(b)\bigr)
+ = O(n^3\log n)
+\]
+under $M(b)=O(b\log b)$.  With the manuscript's $\Ot(n^4)$ SEA point-counting bound, $O(n)$ curves per level and $\Theta(n)$ levels give $n^{6+o(1)}$ total search time.  Morain's basic and fast CM analyses already treat the strict $m=2q$ condition and give heuristic bounds $\Ot(n^5)$ and $\Ot(n^4)$, respectively \cite{Morain2007}.
+
+\paragraph{Standard smooth-cofactor ECPP.}
+If the finder typically removes $\Theta(\log n)$ bits through a smooth cofactor at each level, there are $\Theta(n/\log n)$ levels.  The resulting certificate size is $\Theta(n^2/\log n)$ and verification is $O(n^3)$.  These are typical-output bounds for a specified search regime, not worst-case bounds over every tuple allowed by a broad $cq$ definition.
+
+The paper should give separate definitions and rows.  It should also distinguish explicitly between worst-case complexity over valid certificates and the complexity of certificates emitted by a particular finder.
+
+\subsection{The headline short-ECPP verification bound is conditional}
+
+The table lists $O(n^2\log n)$ for short ECPP, with a footnote restricting this to polynomially bounded fillers and claiming that such fillers are always arrangeable.  The body later acknowledges that the unrestricted format has worst-case
+\[
+ O\bigl(n^2(\log n)^2\bigr),
+\]
+because its zero-level stratum contains unrestricted $n^2$-smooth one-shot certificates; see \sourceat{6.2}{15--17}.
+
+The summary table should therefore use
+\[
+ \boxed{O\bigl(n^2(\log n)^2\bigr)}
+\]
+as the unconditional worst-case verification bound for the current format.  A second entry or parenthetical can state $O(n^2\log n)$ for bounded-factor or polynomial-filler certificates, including all published examples.
+
+The assertion that polynomial fillers can always be arranged is not established by the cited Pomerance existence argument.  A zero-level Pomerance certificate has filler
+\[
+ m\asymp\sqrt p=2^{\Theta(n)},
+\]
+not $n^{O(1)}$.  A deeper chain may eventually reach a terminal modulus where a polynomial filler is possible, but the manuscript does not prove the existence of suitable intermediate prime descents with polynomial fillers for every input prime.
+
+\subsection{The capped-filler remark contains two complexity errors}
+
+The long specification-design remark in \S6.2 should probably be moved out of a survey.  If it is retained, two claims need correction; see \sourceat{6.2}{16--17}.
+
+First, the text says that direct trial division cannot run in $o(n_i^3)$ and supports this using
+\[
+ \pi(n_i^2)\cdot\Omega(n_i)
+ =\Omega\!\left(\frac{n_i^3}{\log n_i}\right).
+\]
+But $n_i^3/\log n_i=o(n_i^3)$.  The intended statement may be a soft-$\Omega(n_i^3)$ bound, or it may rely on a more expensive division model, but the displayed argument does not prove the literal assertion.
+
+Second, deterministic Pollard--Strassen splitting of a filler $m_i\le n_i^c$ in
+\[
+ \Ot\bigl(n_i^{c/4}+n_i\bigr)
+\]
+is not quasi-linear for an arbitrary fixed $c$.  It is quasi-linear only for $c\le4$, and it remains within an $O(n_i^2\operatorname{polylog}n_i)$ verification budget only for approximately $c\le8$.  The empirical value $c=7$ is compatible with the latter goal, but the unrestricted statement for a generic fixed $c$ is too broad.
+
+\subsection{The short-ECPP search theorem does not analyze the finder just described}
+
+The practical workhorse described in \S6.3 permits
+\[
+ \#E=mqd
+\]
+with an arbitrary discarded cofactor $d$.  It succeeds when a suitable prime $q$ can be exposed and combined with a divisor $m$ of the smooth part.  The subsequent heuristic proof instead assumes
+\[
+ N=S q
+\]
+with the entire complementary factor $S=N/q$ being $y$-smooth; see \sourceat{6.3}{17--19}.
+
+This is a stricter residual-prime strategy, corresponding essentially to $d=1$.  It may give a heuristic upper bound for an explicitly restricted finder, but it does not derive the complexity of the more permissive channel (3) described immediately before it.  The proposition should therefore do one of the following:
+
+\begin{enumerate}
+\item State explicitly that it analyzes a stricter algorithm in which the complementary cofactor is fully smooth.
+\item Develop a probability model that includes an arbitrary discarded cofactor.
+\item Present $\Lt{1/3}{(3/2)^{1/3}}$ as a conjectural envelope rather than as the established heuristic complexity of the reference finder.
+\end{enumerate}
+
+The paragraph correcting older constants $1.31$ and $1.39$ is too detailed for the main survey while this more basic modeling issue remains unresolved.
+
+\subsection{The limit \texorpdfstring{$b\to1$}{b to 1} does not recover a polynomial bound}
+
+The fixed-ratio subsection derives an $L(1/3,c(b))$ estimate for each fixed $b<1$ and then says that $c(b)\to0$ as $b\to1$, ``recovering polynomial-time classical ECPP in the limit''; see \sourceat{6.5}{19}.
+
+A family of subexponential bounds whose leading constants tend to zero does not by itself yield a polynomial bound when $b=b(n)\to1$.  The hidden terms, the increasing number of levels, and the dependence of all heuristics on $b$ would require uniform control.  This should be described as a qualitative interpolation, not as a recovered complexity theorem.
+
+\subsection{Adleman--Huang is not a finder for the stated ECPP format}
+
+The classical section says that Adleman and Huang show that every prime has an ``elliptic-curve-style certificate'' findable in expected polynomial time; see \sourceat{7.1}{20}.  Their ZPP algorithm uses two-dimensional abelian varieties and is not a certificate finder for the exact elliptic-curve formats defined in the manuscript \cite{AdlemanHuang1992}.
+
+It is appropriate to mention Adleman--Huang as the theorem that puts primality in ZPP, but it should not be used to fill an ``exists for every prime'' entry for strict ECPP.
+
+\subsection{Two practical extrapolations are numerically inconsistent}
+
+\paragraph{Pomerance challenge estimate.}
+The manuscript says that $3.2\times10^{13}$ candidates for $10^{27}+103$ would take roughly ten RTX-6000-hours at the reported $10^{26}$ rate.  The preceding row reports $1.4\times10^{11}$ candidates in 45 minutes.  At that rate,
+\[
+ 3.2\times10^{13}\cdot
+ \frac{45\ \mathrm{min}}{1.4\times10^{11}}
+ \approx 10{,}300\ \mathrm{min}
+ \approx 171\ \mathrm{hours},
+\]
+not ten hours; see \sourceat{3.5}{9--10}.  A smaller expected candidate count may justify ten hours, but then the manuscript should state that smaller count rather than $3.2\times10^{13}$.
+
+\paragraph{Restricted one-shot fleet estimate.}
+The manuscript estimates $3.1\times10^7$ candidates at 5--10 core-seconds each.  This is approximately 5--10 core-years.  On 3,000 cores, ideal wall time is about 15--30 hours, not months; see \sourceat{5.2--5.3}{14}.  If a large utilization or implementation penalty is intended, it should be stated explicitly.
+
+\subsection{The AKS ``finding'' entry needs sharper terminology}
+
+Bernstein distinguishes the promised-prime task of constructing candidate certificate data from deterministic verification.  The former can be performed in $n^{2+o(1)}$ expected time, while the known verifier takes $n^{4+o(1)}$; the complete certified primality prover must perform the verification and therefore remains $n^{4+o(1)}$ end-to-end \cite{Bernstein2007,BernsteinWeb}.
+
+The table should distinguish:
+\[
+\begin{array}{ll}
+\text{promised-prime certificate constructor} & n^{2+o(1)},\\
+\text{deterministic verifier} & n^{4+o(1)},\\
+\text{end-to-end Las Vegas certified prover} & n^{4+o(1)}.
+\end{array}
+\]
+
+The Lenstra--Pomerance $n^6$-type result is a deterministic \emph{decision} algorithm, not a deterministic constructor for Bernstein's particular certificate format \cite{LenstraPomerance2019}.  It should not appear in the same ``finding'' cell without an explicit change of problem.
+
+\subsection{The claimed AKS quartic ``floor'' is stronger than what is proved}
+
+The appendix usefully explains the cost of the known dense-ring verifier: a ring element occupies $n^{3+o(1)}$ bits and the exponent has $n^{1+o(1)}$ bits, leading naturally to $n^{4+o(1)}$ work.  It then describes quartic verification as a structural lower bound for the proof technique; see \sourceat{A.4}{23}.
+
+This is not a lower bound against every possible verifier exploiting the special ring structure, modular composition, or a different encoding of the same conditions.  A safer statement is that quartic complexity is the natural cost of Bernstein's known verifier in the parameter regime supplied by the existence theorem.
+
+\subsection{Several certificate-size constants are unnecessarily loose}
+
+For an $n^4$-smooth one-shot certificate, excluding the input $p$, the coefficients $A$ and $x_0$ contribute at most $2n$ bits, the order $m$ contributes $n/2+O(\log n)$ bits, and
+\[
+ \sum_i \log_2 q_i \le \log_2 m.
+\]
+Ignoring tuple-delimiter overhead, the total is therefore at most
+\[
+ 3n+o(n),
+\]
+not $4n$; compare \sourceat{4.1}{10}.
+
+For short ECPP, the geometric sum in the body gives approximately $5n+o(n)$ bits when $p_0$ is excluded, whereas the table gives roughly $5n$--$7n$ without explaining the upper constant; compare \sourceat{6.1}{15}.  Since these constants are not central, the cleanest solution is to write $O(n)$ in the table and avoid pseudo-precision in the surrounding prose.
+
+\subsection{\texorpdfstring{$L(p)$}{L(p)} is an upper bound, not necessarily an attained maximum}
+
+The preliminary section calls
+\[
+ L(p)=q+1+\lfloor2\sqrt q\rfloor,
+ \qquad q=\lfloor\sqrt p\rfloor,
+\]
+``the largest possible order'' of a point over all fields $\F_\ell$ with $\ell\le\sqrt p$; see \sourceat{2.3}{5}.  Since $q$ need not be prime, this value need not be attained by any field in the range.  It is a convenient uniform Hasse upper bound.  Replace ``the largest possible order'' by ``an explicit upper bound for the order.''
+
+\subsection{Several absolute formulations should be weakened}
+
+The following formulations are stronger than the arguments supplied:
+
+\begin{itemize}
+\item A one-shot curve is called usable ``precisely when'' its smooth part exceeds $L$, even though point-order and group-exponent obstructions are handled later by isogeny navigation.  State the group-structure or isogeny assumption in the criterion.
+\item ``There are exactly two known ways'' to supply curve-order pairs should be replaced by ``the two general-purpose engines used here are SEA and CM.''
+\item The Pomerance section says that the CM route requires $p^{1/2-o(1)}$ work ``regardless.''  The derivation is a heuristic for the enumerations considered, not an algorithm-independent lower bound.
+\item ``Codimension-$n/2$'' in the open-problem list is metaphorical and undefined.  Replace it by the explicit success probability $2^{-n/2+o(n)}$ or remove it.
+\end{itemize}
+
+\section{Recommendations for reducing the length}
+
+The manuscript is trying to serve three purposes:
+
+\begin{enumerate}
+\item a general survey of primality-certificate formats;
+\item a research note proposing altered short-certificate specifications and new asymptotics;
+\item a computational report on challenge records and implementation details.
+\end{enumerate}
+
+The cleanest reduction is to separate the second and third purposes from the survey.
+
+\subsection{Highest-value cuts}
+
+\begin{enumerate}
+\item \textbf{Remove the tightened-short-specifications remark from the survey.}  The capped-filler, factored-filler, batching, compatibility, implementation-patch, and empirical-compliance discussion is useful design work, but it is not needed to define or compare the requested families.  Retaining only the two conclusions
+\[
+ O\bigl(n^2(\log n)^2\bigr)
+ \quad\text{(unrestricted worst case)},
+ \qquad
+ O(n^2\log n)
+ \quad\text{(bounded fillers)}
+\]
+would save roughly two pages.
+
+\item \textbf{Move the full $L(1/3)$ optimization to an appendix or companion note.}  The main text needs the assumptions, strategy, and resulting heuristic.  The differentiation in the parameter $\gamma$, the comparison with old constants, and the convention discussion are too detailed for a general survey, particularly while the model's relation to the actual finder remains unclear.
+
+\item \textbf{Replace the numerous record tables by one practical-frontier table.}  For each family, list the largest generic example, largest special-form example, approximate proving resources, and approximate verification time.  Raw certificate tuples belong in repositories, not in the survey.
+
+\item \textbf{Remove the fixed-ratio descent subsection unless it becomes a separately defined certificate type.}  It is interesting new work, but it was not among the requested types and currently ends with an unjustified limiting claim.  A one-paragraph mention in the conclusion is sufficient.
+
+\item \textbf{Compress the CM and SEA implementation descriptions.}  Module names, cache architecture, adaptive segment ladders, and per-machine throughput belong in a computational companion report.  The survey needs only the asymptotic distinction:
+\[
+\begin{array}{c|c}
+\text{SEA} & \text{polynomial cost per essentially independent order},\\
+\text{CM} & K\text{ usable orders require }K^{2+o(1)}\text{ discriminant tests}.
+\end{array}
+\]
+One practical crossover sentence can follow.
+
+\item \textbf{Reduce the open-problem list from eight items to three.}  The conceptual questions are:
+\begin{itemize}
+\item Can usable CM traces be enumerated in closer to output-sensitive time?
+\item Can the smooth-order heuristics be proved uniformly in $p$?
+\item Is there an intrinsic search-versus-verification trade-off?
+\end{itemize}
+Individual challenge targets, software instrumentation requests, and fleet estimates belong in repository issues.
+
+\item \textbf{Remove repeated hierarchy summaries.}  The classification is repeated in the abstract, introduction, post-list paragraph, table caption, and synthesis.  One diagram and one summary table are enough.
+
+\item \textbf{Move implementation and model attribution out of mathematical tables.}  Code names, worker counts, model names, and collaborator attributions can be consolidated in acknowledgments or a computational-data section.
+\end{enumerate}
+
+These cuts should remove roughly 8--10 pages.  Adding concise missing sections for Pratt and the two separate classical ECPP variants would still leave a shorter and more complete paper.
+
+\section{Certificate size and the AKS appendix}
+
+Certificate size should remain a secondary statistic, not a central organizing principle.  It is still worth retaining one asymptotic size column in the summary table because:
+
+\begin{itemize}
+\item the requested specification asks for it;
+\item it distinguishes linear one-shot and short certificates from long classical chains;
+\item most importantly, it shows that certificate length does not determine verification complexity.
+\end{itemize}
+
+The Bernstein and short-ECPP certificates may both have size $n^{1+o(1)}$, while their known deterministic verification costs are respectively
+\[
+ n^{4+o(1)}
+ \qquad\text{and}\qquad
+ n^{2+o(1)}.
+\]
+That contrast is more informative than the exact constants $2.5n$, $5n$, or $7n$.
+
+\subsection*{Recommended AKS treatment}
+
+If the paper retains non-elliptic families, compress the AKS appendix to approximately one page.  The main text needs only:
+
+\begin{enumerate}
+\item Bernstein's specialized certificate with $S=\{1\}$ and $c=c_-=0$, rather than the full general definition.
+\item The existence parameters
+\[
+ d=n^{o(1)},
+ \qquad
+ e=n^{2+o(1)}.
+\]
+\item Certificate size $n^{1+o(1)}$.
+\item Promised-prime randomized construction $n^{2+o(1)}$.
+\item Deterministic verification, and therefore end-to-end certified proving, $n^{4+o(1)}$.
+\item One sentence explaining that the large verification ring contains $n^{3+o(1)}$ bits.
+\end{enumerate}
+
+The full binomial condition, the Minkowski-lattice proof sketch, the seven-step accounting, and the attempted lower-bound discussion are disproportionate to AKS's role in an otherwise elliptic-focused survey.
+
+Removing AKS altogether is coherent only if the paper is explicitly changed into an elliptic-only survey.  In that case Pratt should also be removed rather than left as an isolated comparison row.
+
+\section{Bibliography and production issues}
+
+The bibliography does not yet meet the requested hyperlink standard.  Most journal papers are plain bibliographic entries without DOI links, while repositories and a few preprints have URLs.  Core references should use DOI hyperlinks whenever available; examples are included in the bibliography of this report.
+
+Mutable repositories should be cited with a release tag or commit hash whenever the text relies on exact verifier behavior, unpublished reports, or record tables.  This is especially important for the claims in the title-page note that all verifier costs and all timing data were checked against particular code versions.
+
+A local compilation of the manuscript produced no substantive cross-reference failures, but it did produce PDF-bookmark warnings from mathematics in section titles.  These can be removed with \verb|\texorpdfstring|.  There is also a minor underfull bibliography line; it is cosmetic.
+
+\section{Recommended final organization}
+
+A shorter complete version could use the following structure:
+
+\begin{enumerate}
+\item Introduction, cost model, and common certification criteria.
+\item One summary table and one partial-order/design-space diagram.
+\item Pratt certificates.
+\item Bernstein's singleton AKS certificate.
+\item Pomerance triples.
+\item $n^2$- and $n^4$-smooth one-shot ECPP in one combined section.
+\item Short ECPP.
+\item Standard smooth-cofactor ECPP.
+\item Strict order-$2q$ Goldwasser--Kilian ECPP.
+\item One consolidated practical-results section and a brief conclusion.
+\end{enumerate}
+
+The mathematical priority should be verification complexity and search complexity.  Certificate size should remain a compact secondary statistic rather than a repeated theme.
+
+\section{Revision checklist}
+
+\begin{enumerate}
+\item Split the current classical-ECPP section into standard smooth-cofactor and strict $2q$ formats.
+\item Correct the class-polynomial construction cost in the one-shot CM section.
+\item Change the short-ECPP summary row to the unrestricted worst-case verification bound.
+\item Remove or qualify ``always arrangeable'' for polynomial fillers.
+\item Repair the two capped-filler complexity claims.
+\item Reframe the $L(1/3)$ short-ECPP result as applying to a specified restricted finder, or supply a model for discarded cofactors.
+\item Replace the asserted hierarchy by a partial-order diagram.
+\item Correct both practical extrapolations.
+\item Distinguish Bernstein certificate construction, deterministic verification, and end-to-end proving.
+\item Remove the claim of a proved quartic lower bound for AKS verification.
+\item Compress record tables, implementation detail, open problems, and the AKS appendix.
+\item Add DOI links and repository version identifiers.
+\end{enumerate}
+
+\begin{thebibliography}{99}
+
+\bibitem{Manuscript}
+Claude Code (Fable 5), \emph{Elliptic curve primality proofs, from very short to one-shot}, unpublished manuscript, version dated August 5, 2026.
+
+\bibitem{AdlemanHuang1992}
+L.~M. Adleman and M.-D.~A. Huang,
+\emph{Primality Testing and Abelian Varieties over Finite Fields},
+Lecture Notes in Mathematics 1512, Springer, 1992,
+\href{https://doi.org/10.1007/BFb0090185}{doi:10.1007/BFb0090185}.
+
+\bibitem{AtkinMorain1993}
+A.~O.~L. Atkin and F.~Morain,
+Elliptic curves and primality proving,
+\emph{Math. Comp.} 61 (1993), 29--68,
+\href{https://doi.org/10.1090/S0025-5718-1993-1199989-X}{doi:10.1090/S0025-5718-1993-1199989-X}.
+
+\bibitem{Bernstein2007}
+D.~J. Bernstein,
+Proving primality in essentially quartic random time,
+\emph{Math. Comp.} 76 (2007), 389--403,
+\href{https://doi.org/10.1090/S0025-5718-06-01786-8}{doi:10.1090/S0025-5718-06-01786-8}.
+
+\bibitem{BernsteinWeb}
+D.~J. Bernstein,
+\emph{Proving primality}, comparison and implementation notes,
+\href{https://cr.yp.to/primetests.html}{https://cr.yp.to/primetests.html}.
+
+\bibitem{GoldwasserKilian1999}
+S.~Goldwasser and J.~Kilian,
+Primality testing using elliptic curves,
+\emph{J. ACM} 46 (1999), 450--472,
+\href{https://doi.org/10.1145/320211.320213}{doi:10.1145/320211.320213}.
+
+\bibitem{LenstraPomerance2019}
+H.~W. Lenstra, Jr. and C.~Pomerance,
+Primality testing with Gaussian periods,
+\emph{J. Eur. Math. Soc.} 21 (2019), 1229--1269,
+\href{https://doi.org/10.4171/JEMS/861}{doi:10.4171/JEMS/861}.
+
+\bibitem{Morain2007}
+F.~Morain,
+Implementing the asymptotically fast version of the elliptic curve primality proving algorithm,
+\emph{Math. Comp.} 76 (2007), 493--505,
+\href{https://doi.org/10.1090/S0025-5718-06-01890-4}{doi:10.1090/S0025-5718-06-01890-4}.
+
+\bibitem{Pomerance1987}
+C.~Pomerance,
+Very short primality proofs,
+\emph{Math. Comp.} 48 (1987), 315--322,
+\href{https://doi.org/10.1090/S0025-5718-1987-0866117-4}{doi:10.1090/S0025-5718-1987-0866117-4}.
+
+\bibitem{Sutherland2011}
+A.~V. Sutherland,
+Computing Hilbert class polynomials with the Chinese remainder theorem,
+\emph{Math. Comp.} 80 (2011), 501--538,
+\href{https://doi.org/10.1090/S0025-5718-2010-02373-7}{doi:10.1090/S0025-5718-2010-02373-7}.
+
+\bibitem{Sutherland2012}
+A.~V. Sutherland,
+Accelerating the CM method,
+\emph{LMS J. Comput. Math.} 15 (2012), 172--204,
+\href{https://doi.org/10.1112/S1461157012001015}{doi:10.1112/S1461157012001015}.
+
+\bibitem{DANGER3}
+A.~V. Sutherland,
+\emph{DANGER3}, 2026,
+\href{https://github.com/AndrewVSutherland/DANGER3}{GitHub repository}.
+
+\bibitem{OneShot}
+A.~V. Sutherland,
+\emph{OneShotPrimalityProofs}, 2026,
+\href{https://github.com/AndrewVSutherland/OneShotPrimalityProofs}{GitHub repository}.
+
+\bibitem{Short}
+A.~V. Sutherland,
+\emph{ShortPrimalityProofs}, 2026,
+\href{https://github.com/AndrewVSutherland/ShortPrimalityProofs}{GitHub repository}.
+
+\end{thebibliography}
+
+\end{document}
