@@ -49,17 +49,59 @@ def v1_parse(ints):
 
 
 def first_bad_level(ints):
-    """first level violating the v2 data constraints, or None."""
+    """first level violating the revised-format data constraints, or None.
+
+    Splits each order at B (not n^2): the filler m is the B-smooth part, and
+    whatever remains is the B-rough p_{i+1} -- which may legally be a terminal
+    prime anywhere below B^2, including (B, n^2]."""
     from math import ceil
     n = ints[0].bit_length(); lg = log2(n)
     B = ceil(n * n / lg); radlim = ceil(n / lg)
-    for lev, (A, x, o, pnext, m, facs) in enumerate(v1_parse(ints)):
+    primes = sieve_primes(B)
+    for lev in range(0, (len(ints) - 1) // 3):
+        oo = ints[3 * lev + 3]
         rad = 1
-        for q in facs:
-            rad *= q
-        if (facs and max(facs) > B) or (rad > 1 and rad.bit_length() > radlim) or rad == 1:
+        for q in primes:
+            if q * q > oo:
+                break
+            if oo % q == 0:
+                rad *= q
+                while oo % q == 0:
+                    oo //= q
+        if 1 < oo <= B:                  # leftover prime <= B: still filler
+            rad *= oo; oo = 1
+        if rad == 1 or rad.bit_length() > radlim:
+            return lev
+        # the B-rough remainder must be a usable p_{i+1}: 1, small enough to be
+        # prime outright (B-rough < B^2), or actually prime -- a COMPOSITE
+        # remainder >= B^2 hides several filler primes in (B, n^2] and cannot
+        # survive into a revised-format chain
+        if not (oo == 1 or oo < B * B or _is_prp(oo)):
             return lev
     return None
+
+
+def _is_prp(n, rounds=24):
+    if n < 2:
+        return False
+    for p in (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37):
+        if n % p == 0:
+            return n == p
+    d = n - 1
+    s = (d & -d).bit_length() - 1
+    d >>= s
+    for _ in range(rounds):
+        a = random.randrange(2, n - 1)
+        x = pow(a, d, n)
+        if x == 1 or x == n - 1:
+            continue
+        for _ in range(s - 1):
+            x = x * x % n
+            if x == n - 1:
+                break
+        else:
+            return False
+    return True
 
 
 def run_repair(p0, ntop, pstart, workers, tlim, logdir, tag):
