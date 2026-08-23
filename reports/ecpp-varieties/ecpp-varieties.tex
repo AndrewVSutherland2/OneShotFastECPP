@@ -100,8 +100,9 @@ $p^{1/2+o(1)}$ end-to-end (CM).  This interpolates between Pomerance proofs and 
 certificates for $10^{20},\dots,10^{50}+\eps$ produced for this write-up appear in
 \S\ref{sec:restricted}.
 \item \textbf{Short ECPP} (repository ShortPrimalityProofs \cite{Short}): a \emph{chain} of such
-certificates in which each level's point order is ($n^2$-smooth)${}\times{}$(one prime
-$p_1 < \sqrt{p_0}$), and the next level certifies $p_1$.  Bit-lengths at least halve per level, so
+certificates in which each level's point order is ($B$-smooth, $B = \lceil n^2/\log_2 n\rceil$,
+Definition~\ref{def:short2})${}\times{}$(one prime $p_1 < \sqrt{p_0}$), and the next level
+certifies $p_1$ --- until the prime falls below $B^2$ and certifies itself by size.  Bit-lengths at least halve per level, so
 certificates stay linear in $\log p$, and verification is $O(n^2\log n)$ bit operations, worst
 case --- Pomerance-order (\S\ref{sec:shortverif}) --- while the free prime factor makes certificates
 \emph{findable} in heuristic subexponential time $\Lp{1/3}{{\approx}1.14}$.

@@ -72,7 +72,36 @@ def first_bad_level(ints):
             rad *= oo; oo = 1
         if rad == 1 or rad.bit_length() > radlim:
             return lev
+        # the B-rough remainder must be a usable p_{i+1}: 1, small enough to be
+        # prime outright (B-rough < B^2), or actually prime -- a COMPOSITE
+        # remainder >= B^2 hides several filler primes in (B, n^2] and cannot
+        # survive into a revised-format chain
+        if not (oo == 1 or oo < B * B or _is_prp(oo)):
+            return lev
     return None
+
+
+def _is_prp(n, rounds=24):
+    if n < 2:
+        return False
+    for p in (2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 37):
+        if n % p == 0:
+            return n == p
+    d = n - 1
+    s = (d & -d).bit_length() - 1
+    d >>= s
+    for _ in range(rounds):
+        a = random.randrange(2, n - 1)
+        x = pow(a, d, n)
+        if x == 1 or x == n - 1:
+            continue
+        for _ in range(s - 1):
+            x = x * x % n
+            if x == n - 1:
+                break
+        else:
+            return False
+    return True
 
 
 def run_repair(p0, ntop, pstart, workers, tlim, logdir, tag):
