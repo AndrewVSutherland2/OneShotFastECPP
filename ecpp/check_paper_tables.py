@@ -31,9 +31,13 @@ for line in open(CSV):
     total_levels += lev
 
 ROW = re.compile(r"\$10\^\{(\d+)\}\+(\d+)\$\s*&\s*(\d+)\s*&\s*(\d+)\s*&")
+tex = open(TEX).read()
+blocks = [b for b in re.findall(r"\\begin\{table\}.*?\\end\{table\}", tex, re.S)
+          if "tab:shortresults" in b or "tab:shortrecords" in b]
+assert len(blocks) == 2, f"expected the two short-ECPP tables, found {len(blocks)}"
 seen = {}
 bad = 0
-for m in ROW.finditer(open(TEX).read()):
+for m in ROW.finditer("\n".join(blocks)):
     c, off, bits, lev = (int(g) for g in m.groups())
     if c in seen:
         print(f"c={c}: appears twice in the tables")
