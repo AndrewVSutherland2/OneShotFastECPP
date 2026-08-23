@@ -361,3 +361,28 @@ original definition (must descend to p_{k+1}=1)"; PDF rebuilt.  R7b REFUTED:
 "PR deletes codex-review.yml/dependabot.yml" — merge-base diff touches
 nothing under .github (branch predates them); merged origin/main (50ab754)
 so the tree carries them.  Round 8: LGTM.  PR #15 now awaits Drew.
+
+## Format-currency audit of the paper (2026-08-22, Drew's question)
+
+Question: is the write-up completely up to date with the revised format and
+O(n² log n) worst-case verification?  Audit result: the complexity story was
+already right everywhere (intro item 4, Table 1 + dagger, prop:short2verif,
+§8 item 8); ELEVEN prose spots + both results tables were stale, all fixed:
+def:short retitled "original definition"; short8all count 201,072 → dual
+count (55,056 revised / 201,072 original); measured size range 3.2n–4.7n →
+2.4n–4.7n (excl-p₀ convention; low end = the truncated 1-level c=10 chain);
+the §6.2 opening paragraph no longer attributes the n²-trial-division
+algorithm to vshortECPP.py (scoped "under the original definition"; the
+name now appears in prop:short2verif's proof, whose current file it is);
+prop:shortverif scoped to the original format; "the format's worst case" →
+"the original format's"; "sharpen the repository's O(n^{2+o(1)})" →
+"repository's original bound" (README now states O(n² log n) worst case);
+batching-patch parenthetical → pre-revision verifier; §6.3 search problem
+marked "stated with the original bounds"; caps-impact paragraph gains the
+current short.gp terminal-prime channel sentence.  TABLES: level counts
+were the pre-migration 120; now per-chain from the migrated table (Σ=108:
+17 rows changed, incl. c=90 and c=300 UP by one — repairs re-found deeper),
+bits(10^180+313) 599 → 598 (pre-existing typo), captions say CPU/wall times
+are the original finds, level counts migrated.  Verified against upstream
+certs.csv @7e7412e (= fork, byte-identical).  vshortECPP.py keeps p_next in
+the exactness tree, so the §6.2 parenthetical stays true of both verifiers.

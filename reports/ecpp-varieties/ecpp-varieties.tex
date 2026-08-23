@@ -950,7 +950,7 @@ unattempted; 384 bits is out of reach.  For comparison, the \emph{unrestricted} 
 The ShortPrimalityProofs repository \cite{Short} adds the one ingredient the one-shot format forbids ---
 recursion --- while keeping everything else as small as possible.
 
-\begin{definition}[{\cite{Short}}]\label{def:short}
+\begin{definition}[{original definition, \cite{Short}}]\label{def:short}
 A \emph{short ECPP} is a sequence of integers
 \[
   (p_0,\, A_0,\, x_0,\, m_0p_1,\, A_1,\, x_1,\, m_1p_2,\, \dots,\, A_k,\, x_k,\, m_kp_{k+1})
@@ -975,10 +975,10 @@ counterexample of Remark~\ref{rem:crt}, which was found in the course of pinning
 \emph{Structure of the chain.}  $p_{i+1} < \sqrt{p_i}$ at least halves the bit length per level, and
 $p_{i+1} > n^2$ forces termination once $p_i \le n^4$: so $k = O(\log n) = O(\log\log p_0)$ levels, and
 the total size is $\sum_i (2+\tfrac12)\operatorname{bits}(p_i) \lesssim 5n$ bits (published chains
-measure $3.2n$--$4.7n$, the ratio rising with depth toward the halving-descent bound) --- \emph{linear}
+measure $2.4n$--$4.7n$, the ratio rising with depth toward the halving-descent bound; the low end is the one-level terminal-prime chain of the revised format below) --- \emph{linear}
 in $\log p_0$, like a Pomerance triple, against the quadratic size of a classical chain.  Existence for
 every prime $p_0 \ge 5$ is again inherited from Pomerance triples (take $k = 0$,
-$m_0 = 2^{\kappa}$); the repository verifies it exhaustively below $2^8$ (201{,}072 short ECPPs; every
+$m_0 = 2^{\kappa}$); the repository verifies it exhaustively below $2^8$ ($55{,}056$ short ECPPs under the revised caps of Definition~\ref{def:short2} below, $201{,}072$ under the original definition; either way every
 prime $5 \le p \le 2^8$ admits one, while $p = 2, 3$ admit none, which is why the format takes
 $p_0 \ge 5$).
 
@@ -1008,7 +1008,7 @@ raised floor makes the terminal prime free to certify.
 
 \subsection{Verification: Pomerance-order bit complexity}\label{sec:shortverif}
 
-The reference verifier \texttt{vshortECPP.py} processes the levels in order, working modulo $p_i$ at
+Under the original definition the reference verifier processes the levels in order, working modulo $p_i$ at
 level $i$ (write $b_i = \lceil\log_2 p_i\rceil$, so $b_{i+1} \le \lceil b_i/2\rceil$ and
 $\sum_i b_i < 2n + O(\log n)$; one sieve to $n^2$ serves the whole chain since $n$ is fixed at the top):
 it recovers $m_i$ and $p_{i+1} = o_i/m_i$ by trial division of the carried product $o_i$ over the primes
@@ -1024,7 +1024,7 @@ $p_{i+1}$ inside the tree; for bounded $k_i$ this changes nothing, and in genera
 extra factor $\log k_i$ on the $b_i$ term.)
 
 \begin{proposition}[verification cost, bit operations]\label{prop:shortverif}
-Let a valid short ECPP for an $n$-bit $p_0$ have levels $i = 0, \dots, k$ with fillers $m_i$ having
+Let a valid short ECPP of the original format for an $n$-bit $p_0$ have levels $i = 0, \dots, k$ with fillers $m_i$ having
 $k_i$ distinct prime factors.  With the primes below $n^2$ and their product tree precomputed --- a
 certificate-independent table depending only on $n$, built once in $O(n^2(\log n)^2)$ bit operations
 and stored in $O(n^2)$ bits --- the certificate is verified in
@@ -1051,12 +1051,12 @@ guarantees a full chain of them for every prime.)
 The constant is roughly an order of magnitude with the reference formulas: the two-register ladder
 spends 12 multiplications per scalar bit against the doubling-only chain's 5, the level sum
 $\sum b_i$ approaches $2n$ against Pomerance's single $(n/2)$-bit chain, and the trial-division pass
-adds ${\approx}\,M(n^2) \approx 2n^2\log_2 n$.  In the format's worst case --- a filler of
+adds ${\approx}\,M(n^2) \approx 2n^2\log_2 n$.  In the original format's worst case --- a filler of
 $\Theta(b_i)$ bits with $\Theta(b_i/\log b_i)$ distinct primes, which the definition permits and which
 is exactly what the $k = 0$ stratum ($=$ the restricted one-shot, \S\ref{sec:restricted}) can look like
 --- the tree factor is genuine and verification degrades to $\Theta(n^2(\log n)^2)$, the one-shot
-bound, as the inclusion of \S\ref{sec:restricted} forces.  Both statements sharpen the repository's
-$O((\log p_0)^{2+o(1)})$; the chain structure --- one big prime per level, geometrically shrinking
+bound, as the inclusion of \S\ref{sec:restricted} forces.  Both statements sharpen the repository's original
+$O((\log p_0)^{2+o(1)})$ bound; the chain structure --- one big prime per level, geometrically shrinking
 moduli, small smooth fillers --- is precisely what deletes the one-shot's extra log factor, the same
 mechanism as in the fixed-ratio chains of \S\ref{sec:bdescent}.
 
@@ -1088,7 +1088,7 @@ $p_{i+1}$.  The exactness tree over the $k_i \le \lceil n/\log_2 n\rceil$
 distinct primes costs at most $\lceil n/\log_2 n\rceil\cdot\lceil\log_2 k_i\rceil = O(n)$ ladder
 bits per level, so
 the elliptic work is $O(\sum_i b_i\,M(b_i)) = O(n^2\log n)$, at roughly $5\times$ Pomerance's
-constant.  The reference verifier of \cite{Short} implements the format; it factors each
+constant.  The reference verifier of \cite{Short} (\texttt{vshortECPP.py}) implements the format; it factors each
 radical by direct trial division over the sieved primes --- asymptotically the coarsest step, but
 the simplest, and dominant only far beyond feasible sizes.
 \end{proof}
@@ -1101,7 +1101,7 @@ top level, attained because the $k = 0$ stratum is exactly the restricted one-sh
 \S\ref{sec:restricted} --- and the \emph{recovery} of $m_i$ from the payload, whose batched
 organization reaches $M(n^2) = O(n^2\log n)$ per certificate only given the product tree of the
 primes below $n^2$, a per-$n$ table costing $\Theta(n^2(\log n)^2)$ to build (the organization the
-reference verifier has realized since its August 2026 batching patch; the analogous
+pre-revision verifier realized in its August 2026 batching patch; the analogous
 \texttt{voneshot.py} patch accompanies \osf{} in \texttt{verifier-batching-pr/}).  Earlier drafts of
 this section analyzed three repairs --- capping the fillers at $n^{O(1)}$, carrying them in factored
 form in a changed payload, or accepting the $O(n^2(\log n)^2)$ self-contained bound --- before the
@@ -1125,7 +1125,8 @@ prime --- which is why it alone combines subexponential findability with Pomeran
 
 The search problem at one level of the chain: given $p$ (a level modulus), find a curve and a divisor
 $o = mq$ of $\#E$ with $m$ $n^2$-smooth, $q$ prime in $(n^2, \sqrt p)$, and $o$ in the window
-$(L, rL)$.  Compare \S\ref{sec:restricted}: the order may now contain \emph{one arbitrary prime} up to
+$(L, rL)$ --- stated with the original bounds, the convention for this subsection (the revision's
+effect is summarized after Proposition~\ref{prop:shortfind}).  Compare \S\ref{sec:restricted}: the order may now contain \emph{one arbitrary prime} up to
 $\sqrt p$ --- but the prover must \emph{discover} $q$, i.e.\ partially factor $\#E$.  The reference
 finder \texttt{short.gp} \cite{Short} (SEA on random curves and their twists, so two orders per point
 count) recognizes winners through three channels of increasing cost:
@@ -1223,7 +1224,10 @@ so the chain total is dominated by its top level.
 The caps of the revised format (Definition~\ref{def:short2}) change none of this: they constrain
 only the window-completion step, a polynomial factor absorbed by the $o(1)$.  Their practical cost
 is likewise mild --- 74\% of the original table's 120 levels satisfied both caps incidentally, so a
-finder that simply filters pays a per-level acceptance factor of about $1.35$.
+finder that simply filters pays a per-level acceptance factor of about $1.35$.  The current
+\texttt{short.gp} implements the revised bounds directly and gains a channel from the terminal
+prime: a rough cofactor landing below $B^2$ is prime outright and ends the chain with no
+factorization and no primality test.
 
 \begin{remark}[how much the constant means]
 \label{rem:constants}
@@ -1258,22 +1262,23 @@ extrapolates to ${\approx}2000$ bits.
 \toprule
 $p$ & bits & levels & CPU time & $p$ & bits & levels & CPU time\\
 \midrule
-$10^{10}+19$  & 34  & 2 & ${<}$1 s        & $10^{110}+7$    & 366 & 4 & ${\approx}$850 s\\
-$10^{20}+39$  & 67  & 2 & ${\approx}$1 s  & $10^{120}+79$   & 399 & 4 & ${\approx}$1400 s\\
+$10^{10}+19$  & 34  & 1 & ${<}$1 s        & $10^{110}+7$    & 366 & 3 & ${\approx}$850 s\\
+$10^{20}+39$  & 67  & 2 & ${\approx}$1 s  & $10^{120}+79$   & 399 & 3 & ${\approx}$1400 s\\
 $10^{30}+57$  & 100 & 2 & ${\approx}$1 s  & $10^{130}+1113$ & 432 & 3 & ${\approx}$55 s\\
-$10^{40}+121$ & 133 & 3 & ${\approx}$2 s  & $10^{140}+13$   & 466 & 4 & ${\approx}$800 s\\
-$10^{50}+151$ & 167 & 3 & ${\approx}$3 s  & $10^{150}+67$   & 499 & 5 & ${\approx}$1500 s\\
-$10^{60}+7$   & 200 & 3 & ${\approx}$3 s  & $10^{160}+303$  & 532 & 5 & ${\approx}$1200 s\\
-$10^{70}+33$  & 233 & 4 & ${\approx}$45 s & $10^{170}+63$   & 565 & 4 & ${\approx}$830 s\\
-$10^{80}+129$ & 266 & 4 & ${\approx}$180 s& $10^{180}+313$  & 599 & 4 & ${\approx}$850 s\\
-$10^{90}+289$ & 299 & 3 & ${\approx}$350 s& $10^{190}+253$  & 632 & 4 & ${\approx}$1400 s\\
+$10^{40}+121$ & 133 & 2 & ${\approx}$2 s  & $10^{140}+13$   & 466 & 3 & ${\approx}$800 s\\
+$10^{50}+151$ & 167 & 2 & ${\approx}$3 s  & $10^{150}+67$   & 499 & 4 & ${\approx}$1500 s\\
+$10^{60}+7$   & 200 & 3 & ${\approx}$3 s  & $10^{160}+303$  & 532 & 4 & ${\approx}$1200 s\\
+$10^{70}+33$  & 233 & 3 & ${\approx}$45 s & $10^{170}+63$   & 565 & 4 & ${\approx}$830 s\\
+$10^{80}+129$ & 266 & 3 & ${\approx}$180 s& $10^{180}+313$  & 598 & 4 & ${\approx}$850 s\\
+$10^{90}+289$ & 299 & 4 & ${\approx}$350 s& $10^{190}+253$  & 632 & 4 & ${\approx}$1400 s\\
 $10^{100}+267$& 333 & 3 & ${\approx}$800 s& $10^{200}+357$  & 665 & 4 & ${\approx}$4400 s\\
 \bottomrule
 \end{tabular}
 \medskip
 \caption{The ShortPrimalityProofs challenge table \cite{Short} through $c = 200$.  Entries through
 $c = 100$ by \texttt{short.gp} on a single core (AVS and Claude Code, Fable 5); $c = 110, \dots, 200$
-by \texttt{parallel\_short.py} workers.}
+by \texttt{parallel\_short.py} workers.  CPU times are those of the original finds; level counts
+refer to the current (migrated) table.}
 \label{tab:shortresults}
 \end{table}
 
@@ -1283,18 +1288,19 @@ by \texttt{parallel\_short.py} workers.}
 \toprule
 $p$ & bits & levels & wall & threads & $p$ & bits & levels & wall & threads\\
 \midrule
-$10^{210}+1129$ & 698 & 4 & 20 s & 32 & $10^{270}+361$ & 897 & 5 & 9{,}615 s & 192\\
+$10^{210}+1129$ & 698 & 4 & 20 s & 32 & $10^{270}+361$ & 897 & 4 & 9{,}615 s & 192\\
 $10^{220}+427$  & 731 & 5 & 4{,}660 s & 32 & $10^{280}+13$ & 931 & 4 & 3{,}416 s & 192\\
-$10^{230}+753$  & 765 & 4 & 13{,}218 s & 32 & $10^{290}+279$ & 964 & 5 & 546 s & 192\\
-$10^{240}+1723$ & 798 & 5 & 5{,}759 s & 192 & $10^{300}+331$ & 997 & 4 & 5{,}466 s & 192\\
+$10^{230}+753$  & 765 & 4 & 13{,}218 s & 32 & $10^{290}+279$ & 964 & 4 & 546 s & 192\\
+$10^{240}+1723$ & 798 & 4 & 5{,}759 s & 192 & $10^{300}+331$ & 997 & 5 & 5{,}466 s & 192\\
 $10^{250}+1227$ & 831 & 4 & 2{,}416 s & 192 & $10^{310}+733$ & 1030 & 5 & 158 s & 192\\
-$10^{260}+49$   & 864 & 5 & 3{,}291 s & 192 & & & & &\\
+$10^{260}+49$   & 864 & 4 & 3{,}291 s & 192 & & & & &\\
 \bottomrule
 \end{tabular}
 \medskip
 \caption{The August 2026 records, $c = 210, \dots, 310$, by the CM-supply prover
-\texttt{short\_prove.py} \osf{} on AWS spot instances (wall times as logged per chain; the largest
-previously published AKS-style example was 1025 bits).}
+\texttt{short\_prove.py} \osf{} on AWS spot instances (wall times as logged per chain of the
+original campaign, level counts as migrated; the largest previously published AKS-style example was
+1025 bits).}
 \label{tab:shortrecords}
 \end{table}
 
