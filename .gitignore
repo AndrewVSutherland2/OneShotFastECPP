@@ -13,7 +13,7 @@ ecpp/smoothtest
 ecpp/roottest
 ecpp/hdroot
 ecpp/cm_method
-ecpp/oneshot
+ecpp/oneshotECPP
 ecpp/descent_bench
 ecpp/invjtest
 ecpp/cmjtest
@@ -27,7 +27,7 @@ ecpp/zpbench
 # they are needed at the primes dividing the LEVEL of the chosen invariant (e.g.
 # phi_j_59 for Atkin A_59) to derive the starting f-value from the starting
 # j-invariant, not for enumeration.  The full ~2.2 GB database (all levels) is NOT
-# redistributed -- see INSTALL.  Missing files degrade gracefully (oneshot skips
+# redistributed -- see INSTALL.  Missing files degrade gracefully (oneshotECPP skips
 # that discriminant and tries the next winner).
 phi_files/*
 
@@ -42,3 +42,7 @@ classinv.bbl
 
 # python
 __pycache__/
+
+# LaTeX scratch and the external challenge verifier (fetched, not shipped)
+texput.log
+/voneshot.py

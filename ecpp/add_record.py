@@ -4,7 +4,7 @@
 usage: add_record.py <cert1.txt> [<cert2.txt> ...]
 
 Each cert file holds one flat short-ECPP sequence (whitespace-separated); a
-sibling <cert>.json (as written by OneShotFastECPP's short_prove.py) supplies
+sibling <cert>.json (as written by OneShotFastECPP's shortECPP.py) supplies
 timing metadata when present.  Every certificate is re-verified here with
 vsmallECPP.verify before anything is written.  certs.csv gains one line per
 certificate (kept sorted by p0); a README <details> block is printed for each
@@ -54,7 +54,7 @@ def details_block(seq, meta):
         else:
             timing = "%.0f wall minutes on %s cores" % (secs / 60.0, threads)
     hdr = ("$p=10^{%d}+%d$,&nbsp; via <a href=\"https://github.com/AndrewVSutherland2/OneShotFastECPP\">"
-           "short_prove.py</a> (CM + ECM descent%s, %d levels)."
+           "shortECPP.py</a> (CM + ECM descent%s, %d levels)."
            % (c, off, (", " + timing) if timing else "", levels))
     return ("<details>\n<summary>%s</summary>\n\n```\n%s\n```\n</details>"
             % (hdr, " ".join(map(str, seq))))

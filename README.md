@@ -20,7 +20,7 @@ library, which implements the algorithms in
 git clone https://github.com/AndrewVSutherland2/OneShotFastECPP.git && cd OneShotFastECPP
 make -j                           # ff_poly -> classpoly -> zp_poly -> ecpp tools (~1 min)
 . ./setenv.sh                     # point classpoly at the bundled modular polynomials
-./ecpp/oneshot p=$(python3 -c 'print(2**255-19)')
+./ecpp/oneshotECPP p=$(python3 -c 'print(2**255-19)')
 ```
 
 Output is a single line `p A x₀ m q₁ … q_k`:
@@ -40,7 +40,7 @@ python3 voneshot.py 578960446186580977117854925043439539266349923328202820197287
 # True
 ```
 
-`oneshot` accepts `p=<decimal>` or `pbits=<n> [seed=<s>]` (a random n-bit prime),
+`oneshotECPP` accepts `p=<decimal>` or `pbits=<n> [seed=<s>]` (a random n-bit prime),
 plus `threads=<t>`, `c=<work ratio>`, `B0=`/`B=` (initial/max discriminant-scan
 bounds), and `pcache=<file>`.  The smoothness bound climbs a power-of-2 ladder
 starting just above n² — prime-product *segments* are built on demand (and cached
@@ -69,17 +69,17 @@ See **[`design.md`](design.md)** for the full technical writeup and performance.
 
 | program | purpose |
 |---|---|
-| **`oneshot`** | prime → one-shot ECPP certificate (**the main tool**) |
-| **`short_prove.py`** | prime → *short ECPP* certificate chain (the record prover; see below) |
+| **`oneshotECPP`** | prime → one-shot ECPP certificate (**the main tool**) |
+| **`shortECPP.py`** | prime → *short ECPP* certificate chain (the record prover; see below) |
 | `cm_method` | `D`, `p` → the `j`-invariant of a curve `E/F_p` with CM by `D`, trace ±t (picks the best class invariant, converts back to `j`) |
 | `dscan` | CM-discriminant search (Cornacchia + factor base), parallel |
 | `smoothtest` | batched n⁴-smoothness testing (Bernstein remainder tree) |
 | `roottest` | validate the big-`F_p` root finder against PARI |
 
 
-## Short ECPP records: `short_prove.py`
+## Short ECPP records: `shortECPP.py`
 
-`ecpp/short_prove.py` is a prover for **short ECPP certificates** in the
+`ecpp/shortECPP.py` is a prover for **short ECPP certificates** in the
 [ShortPrimalityProofs](https://github.com/AndrewVSutherland/ShortPrimalityProofs) format:
 a descending chain of levels p = p₀ > p₁ > … with p_{i+1} < √p_i, each level exhibiting a
 Montgomery curve point of exact order o = m·q where m is n²-smooth and q = p_{i+1} — giving
@@ -98,8 +98,8 @@ independent PARI `ellmul` cross-check before it is written.
 
 ```sh
 . ./setenv.sh
-python3 ecpp/short_prove.py c=150 threads=32          # nextprime(10^150)
-python3 ecpp/short_prove.py p=<decimal> tag=myprime   # any (probable) prime
+python3 ecpp/shortECPP.py c=150 threads=32          # nextprime(10^150)
+python3 ecpp/shortECPP.py p=<decimal> tag=myprime   # any (probable) prime
 # knobs: B0=/Bmax= (discriminant-scan schedule), maxfb= (factor-base cap),
 #        resume=1 (replay the winner journal after a crash/preemption), out=<file>
 ```
@@ -157,8 +157,8 @@ Verify any of them with `python3 voneshot.py $(cat certs/<file>)`.
 
 ## Requirements
 
-- **gcc** 13+ and **GMP** 6+ (the build and `oneshot` itself).
-- **PARI/GP** 2.x — only for the correctness test suites, *not* for `oneshot`.
+- **gcc** 13+ and **GMP** 6+ (the build and `oneshotECPP` itself).
+- **PARI/GP** 2.x — only for the correctness test suites, *not* for `oneshotECPP`.
 - Modular polynomials: a **46 MB subset** is bundled (`phi_files/`, see
   [`INSTALL`](INSTALL)); it covers the class invariants and levels the CM method
   uses over the 128–384-bit range.
@@ -180,6 +180,6 @@ ff_poly_v2.0.0/   classpoly_v1.0.3/    (vendored: word-size F_p / class polynomi
                  including the zp_poly large-p F_p[x] code: fast gcd, invariant->j)
 phi_files/      (28 MB subset of modular polynomials; see INSTALL)
 ecpp/           (this project: discriminant search, smoothness, root-finding,
-                 invariant->j, curve assembly, oneshot)
+                 invariant->j, curve assembly, oneshotECPP)
 tests/          (classpoly correctness suites vs PARI)
 ```

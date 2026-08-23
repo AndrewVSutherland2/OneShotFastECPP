@@ -14,9 +14,9 @@ CPLIBS = -L../local/lib -lff_poly $(LIBS)
 # the zp_poly objects fproot's sub-quadratic gcd path needs (subset of CPOBJS)
 ZPOBJS = $(addprefix $(CPDIR)/, zp_poly_small.o zp_poly_util.o zp_poly_mul.o zp_poly_div.o zp_poly_gcd.o zp_poly_exp.o zp_poly_comp.o zp2.o zp_roots.o)
 
-PROGRAMS = cmsearch dscan smoothtest roottest hdroot cm_method oneshot
+PROGRAMS = cmsearch dscan smoothtest roottest hdroot cm_method oneshotECPP
 TESTPROGS = invjtest cmjtest asmtest zpbench
-GENERIC  = cmsearch dscan smoothtest roottest hdroot oneshot invjtest asmtest
+GENERIC  = cmsearch dscan smoothtest roottest hdroot oneshotECPP invjtest asmtest
 
 all: $(PROGRAMS)
 tests: $(TESTPROGS)
@@ -26,7 +26,7 @@ dscan:      dscan.o cornacchia.o smooth.o
 smoothtest: smoothtest.o smooth.o
 roottest:   roottest.o fproot.o
 hdroot:     hdroot.o fproot.o
-oneshot:    oneshot.o cornacchia.o smooth.o fproot.o curve.o
+oneshotECPP:    oneshotECPP.o cornacchia.o smooth.o fproot.o curve.o
 invjtest:   invjtest.o invj.o fproot.o
 asmtest:    asmtest.o curve.o fproot.o cornacchia.o smooth.o
 
@@ -49,7 +49,7 @@ fproot.o roottest.o hdroot.o:    fproot.h
 invj.o cminv.o invjtest.o cmjtest.o cm_method.o: invj.h fproot.h
 curve.o asmtest.o:               curve.h fproot.h cornacchia.h smooth.h
 cminv.o cm_method.o:             cminv.h
-oneshot.o:                       cornacchia.h smooth.h fproot.h curve.h
+oneshotECPP.o:                       cornacchia.h smooth.h fproot.h curve.h
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $<

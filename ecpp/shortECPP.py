@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""short_prove.py -- CM-method prover for short ECPP certificates
+"""shortECPP.py -- CM-method prover for short ECPP certificates
 (github.com/AndrewVSutherland/ShortPrimalityProofs format).
 
 At each level (modulus p, top-level n fixed for the whole chain, n2 = n^2):
@@ -18,12 +18,14 @@ At each level (modulus p, top-level n fixed for the whole chain, n2 = n^2):
      Montgomery A from the u-cubic, and the point of exact order o from the
      x-only ladder; the certificate stores (A, x, o) and descends to q.
 Levels below CM_MIN_BITS are finished by short.gp (SEA is cheap there), called
-with the top-level n2.  The chain is verified by vsmallECPP.verify and
-independently cross-checked level by level in PARI before it is written.
+with the top-level n2.  The chain is verified by vshort2.verify (v2=1, the
+revised format; vsmallECPP.verify for the original) and independently
+cross-checked level by level in PARI before it is written.
 
-usage: short_prove.py (p=<decimal> | c=<digits: p=nextprime(10^c)>)
+usage: shortECPP.py (p=<decimal> | c=<digits: p=nextprime(10^c)>)
                       [threads=N] [out=<file>] [tag=<name>] [B0=<dscan start>]
-                      [Bmax=<dscan cap>] [seed=1] [v=1]
+                      [Bmax=<dscan cap>] [maxfb=<factor-base cap>] [seed=1]
+                      [v=1] [v2=1] [resume=1]
 """
 
 import concurrent.futures
@@ -43,7 +45,8 @@ SPP_DIR = os.environ.get("SPP_DIR", "")
 if not SPP_DIR:
     for cand_dir in ("/home/claude/ShortPrimalityProofs",
                      os.path.expanduser("~/ShortPrimalityProofs")):
-        if os.path.exists(os.path.join(cand_dir, "vsmallECPP.py")):
+        if any(os.path.exists(os.path.join(cand_dir, v))
+               for v in ("vshortECPP.py", "vsmallECPP.py")):
             SPP_DIR = cand_dir
             break
 def _load_verifier():
@@ -54,6 +57,7 @@ def _load_verifier():
     names = ("ladder", "verify", "sieve_primes", "balanced_product", "remainder_tree")
     paths = []
     if SPP_DIR:
+        paths.append(os.path.join(SPP_DIR, "vshortECPP.py"))
         paths.append(os.path.join(SPP_DIR, "vsmallECPP.py"))
     paths.append(os.path.join(ECPP_DIR, "vsmallECPP.py"))
     for path in paths:

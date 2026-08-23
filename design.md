@@ -39,7 +39,7 @@ where the time goes (see below).
 - `work/` — scratch, class-poly output, and `pcache/` prime-product segments (gitignored).
 - `tests/` — classpoly correctness suite vs PARI/GP (Tests 1/2/3).
 - `ecpp/` — **the ECPP code**: dscan (a), smooth (b), fproot (c), cminv/cm_method + curve +
-  oneshot (d), plus validation drivers (roottest, invjtest, cmjtest, asmtest, zpbench).
+  oneshotECPP (d), plus validation drivers (roottest, invjtest, cmjtest, asmtest, zpbench).
 - `certs/` — voneshot-verified example certificates (2²⁵⁵−19, NIST P-256, secp256k1, 10⁸⁰/⁹⁰/¹⁰⁰+ε).
 - `Makefile` (top level) — `make -j`: ff_poly → classpoly → zp_poly → ecpp; `make test`.
 - `setenv.sh` — env vars to run everything in-tree (phi dir, PATH, `work/pcache`).
@@ -51,7 +51,7 @@ where the time goes (see below).
 make -j            # ff_poly -> classpoly -> zp_poly -> ecpp tools (~15 s)
 make test          # classpoly suite vs PARI over |D|<=1000 (Tests 1/2/3); ~2.5 min
 make test MAXD=200 # smaller/faster
-. ./setenv.sh && ./ecpp/oneshot p=<prime>      # the headline tool
+. ./setenv.sh && ./ecpp/oneshotECPP p=<prime>      # the headline tool
 python3 ecpp/test_dscan.py     # validate the discriminant scan vs brute force + PARI
 python3 ecpp/test_smooth.py    # validate the smoothness engine vs PARI
 ```
@@ -204,7 +204,7 @@ which the remainder tree handles anyway — so a sieve pre-pass buys little. (De
   thread count*: ~90 s/batch at 256 threads), one flat parallel job list over all
   (segment × chunk) pairs, per-segment remainders combined by a parallel product fold
   (valid: gcd-extraction against `∏ₛPₛ` = product of per-segment smooth parts), then one
-  descent + one leaf pass. `smooth_parts` = the `ns=1` wrapper. oneshot's widen tests all
+  descent + one leaf pass. `smooth_parts` = the `ns=1` wrapper. oneshotECPP's widen tests all
   rungs in a single call (was: 15 trees + 15 root reductions + 15 descents per widen).
 - `cert_bounds(p, …)` → `L`, Hasse, `n`, `n²`, `n⁴`. `factor_smooth` (trial + Brent-rho) and
   `build_m` (assemble `m∈(L,L·r)` largest-prime-first, list `q_i∈(n²,n⁴)`) for the rare winners.
@@ -359,10 +359,10 @@ Builds/runs entirely in-tree (no `/usr/local`). `make test` runs three suites (g
 - Fundamental discriminant `d=|D|`: `d≡3 mod4` squarefree, OR `d≡0 mod4` with `d/4≡1,2 mod4`
   squarefree. Prime-discriminant 2-part `∈ {1,−4,8,−8}`.
 
-## Component (d): best invariant, invariant→j, curve assembly, and `oneshot` — DONE
+## Component (d): best invariant, invariant→j, curve assembly, and `oneshotECPP` — DONE
 
 Code: `ecpp/cminv.{c,h}` (invariant→j) + `ecpp/cm_method.c` + `ecpp/curve.{c,h}` (assembly) +
-`ecpp/oneshot.c`; classpoly's `class_inv_mpz.c` (Sutherland) is used for the hardwired formulas.
+`ecpp/oneshotECPP.c`; classpoly's `class_inv_mpz.c` (Sutherland) is used for the hardwired formulas.
 
 **Best invariant, not j.** Forcing the Hilbert (j) class polynomial is wasteful: the best class
 invariant (Weber, Atkin, double-η) is **25–50× faster** to compute (measured: h=528, 1.53→0.06 s;
@@ -394,11 +394,11 @@ the ≤2 j-roots and self-checks). Every output verified to be a genuine Hilbert
 `A=√u`); Montgomery x-only ladder; determine which of `E_A`/twist has order `N`; find `x₀` = x-coord
 of `[N/m]·`(random point on that curve) with order exactly `m`. Produces the `(A, x₀)` voneshot wants.
 
-**`oneshot p`** ties it together (all C; shells to `dscan`, `cm_method`, `classpoly`): scan → keep
+**`oneshotECPP p`** ties it together (all C; shells to `dscan`, `cm_method`, `classpoly`): scan → keep
 `N≡0 mod 4` orders → batch n⁴-smoothness → for a winner, `cm_method` gives j₀ and `mont_assemble`
 builds `(A, x₀)`; emit `(p, A, x₀, m, q_i)`. Verified end-to-end by **`voneshot.py`** for 2²⁵⁵−19
 (~6 s with cached P) and fresh random primes. Montgomery needs `N≡0 mod 4` and `m|exponent(E)`;
-`oneshot` filters the former and skips winners failing the latter.
+`oneshotECPP` filters the former and skips winners failing the latter.
 
 ## Roadmap
 1. ~~Cornacchia + discriminant scan (a)~~ — DONE, parallel, validated.
@@ -407,13 +407,13 @@ builds `(A, x₀)`; emit `(p, A, x₀, m, q_i)`. Verified end-to-end by **`vones
 3. ~~Root-finding of large `H_D` over `F_p` (c)~~ — DONE: Montgomery + Kronecker + Barrett EDS
    (`fproot.{c,h}`), validated vs PARI, wired to classpoly end-to-end.
 4. ~~Wire it together (d)~~ — DONE: best invariant + invariant→j (`cm_method`) + Montgomery curve
-   assembly (`mont_assemble`) + `oneshot`; certificates verified by `voneshot.py`. `git clone && make
-   && . ./setenv.sh && ./ecpp/oneshot p=<prime>`.
+   assembly (`mont_assemble`) + `oneshotECPP`; certificates verified by `voneshot.py`. `git clone && make
+   && . ./setenv.sh && ./ecpp/oneshotECPP p=<prime>`.
 5. Deferred optimizations (do when obviously needed): bound the factor base; pack factor-base
    sqrts as contiguous limbs; hand-rolled 1-limb-quotient division; SIMD the per-D updates.
 
 ### Prime-product cache ladder + near-miss top-up (2026-07-01, post-merge)
-`oneshot` no longer builds one exact-n⁴ `P` per bit-length. Policy: use any cached power-of-2
+`oneshotECPP` no longer builds one exact-n⁴ `P` per bit-length. Policy: use any cached power-of-2
 product `2^j ≥ n⁴` (oversize primes are skipped by `build_m` when assembling `m`), else build and
 cache `y' = 2^⌊log₂ n⁴⌋ ≤ n⁴` — at most the exact cost, one file per octave of `n` (e.g. `P_2³²`
 serves every 227–304-bit prime). The gap `(y', n⁴]` is recovered by **near-miss top-up**: candidates
@@ -427,8 +427,8 @@ Motivation: P build was 89%/74%/22% of the fresh-bit-length 10⁸⁰/10⁹⁰/10
 amortized cost → 0. (10¹⁰⁰ breakdown, original run: P 247.5 s, dscan 597 s [~75% factor-base
 build/Tonelli, ~25% DFS scan], gate 26 s, H_D^f deg 35084 ≈ 80 s, root-find ≈ 170 s, assembly ~10 s.)
 
-### Adaptive smoothness ladder (2026-07-01, replaces the fixed-P flow in oneshot)
-Per Drew's proposal: instead of building `P = ∏_{q≤n⁴} q` up front, `oneshot` climbs a power-of-2
+### Adaptive smoothness ladder (2026-07-01, replaces the fixed-P flow in oneshotECPP)
+Per Drew's proposal: instead of building `P = ∏_{q≤n⁴} q` up front, `oneshotECPP` climbs a power-of-2
 ladder of prime-product **segments** `(y_{j-1}, y_j]` starting just above `n²` (final rung capped at
 `n⁴` exactly), keeping a running smooth part `S = ∏` per-segment parts for every candidate. The
 ladder deepens only when cumulative testing work ≥ `c`·(P bits so far + next segment), `c=1` default
@@ -437,7 +437,7 @@ ladder deepens only when cumulative testing work ≥ `c`·(P bits so far + next 
 winner at any rung stops the run — and certificates rarely need primes near `n⁴` (measured on a
 256-bit pool: y=2²⁸→3, 2³⁰→6, 2³²→13 winners), so runs stop octaves early. Segments are
 bit-length independent and cached individually (`oneshot_Pseg_<lo>_<hi>.bin`); legacy full-P caches
-are used as the ladder base when present. The near-miss rho top-up is no longer needed in oneshot
+are used as the ladder base when present. The near-miss rho top-up is no longer needed in oneshotECPP
 (the ladder reaches n⁴ exactly); `smooth_topup` remains available in smooth.{c,h}.
 **Measured cold runs** (no caches, loaded box): 256-bit 2.7 s (was ~65 s), 2²⁵⁵−19 quick-start 3.5 s,
 10⁸⁰+129 4.5 s (was 160 s), 10⁹⁰+289 23.6 s (was 269 s) — the 10⁹⁰ run stopped at y=2²⁸ with a
@@ -453,7 +453,7 @@ pure sums). We wired it up process-parallel: `CLASSPOLY_JOBS=W` + `CLASSPOLY_JOB
 run a worker (prime indices ≡ j−1 mod W, dumps partial coefficient sums to `$CLASSPOLY_ECRT_DIR`);
 `CLASSPOLY_JOBID=0` merges the dumps and writes the polynomial. `cm_method jobs=N` orchestrates
 workers+merge (gated on |D| ≥ 10⁸ — for small h the repeated per-worker setup outweighs the win);
-`oneshot` passes its thread count through. **h=35085: 158 s → 28.9 s (16 workers), byte-identical
+`oneshotECPP` passes its thread count through. **h=35085: 158 s → 28.9 s (16 workers), byte-identical
 output**; full `cm_method` on that winner 634 s → 188 s (both under external load). The residual gap
 to W× is the per-worker setup (class group, phi loads, ECRT precomputation), which is repeated.
 
@@ -489,20 +489,20 @@ Montgomery model, and representability turns out to be a **class-wide invariant*
 the individual curve). Empirically (27,843 CM classes, no exceptions) plus the parity argument
 (∏ᵢ f′(eᵢ) = −□ over the three 2-torsion shifts):
 > **A Montgomery model exists ⟺ 4 | N, and additionally 8 | N when p ≡ 3 (mod 4).**
-For p ≡ 3 (mod 4) this removes half the candidate pool at intake (`oneshot` now filters
+For p ≡ 3 (mod 4) this removes half the candidate pool at intake (`oneshotECPP` now filters
 `N ≡ 4 mod 8` immediately); for p ≡ 1 (mod 4) every 4 | N class is representable. Both traces
 ±t share the twist pair, so the other sign never rescues a filtered class.
 
 **Exponent-aware m.** A point of order m needs `m | exponent(E) = N/n₁` where
 E(F_p) ≅ Z/n₁ × Z/(N/n₁) and `n₁ = gcd(a−1, b)` for π−1 = a+bω (computable directly from
-(t, v, D); validated against PARI `ellgroup`, D < −4). `oneshot` now gates winners on (and builds m
+(t, v, D); validated against PARI `ellgroup`, D < −4). `oneshotECPP` now gates winners on (and builds m
 from) `S` with the n₁-supported part divided out, so `m | exponent` holds by construction and the
 assembly point-search cannot fail on torsion structure. (Previously such failures permanently
 discarded good winners — e.g. an h=645 winner was skipped for an h=6122 one.)
 
 **Winner polish.** Committing to a winner costs ~cm_method(h(D)), h ≈ √|D|·L(1,χ)/π, while one more
 ladder rung is often far cheaper — so when the best current winner is expensive and a rung is cheap,
-`oneshot` deepens first and re-collects (a smaller-|D| winner may gate at the next rung). Cost model:
+`oneshotECPP` deepens first and re-collects (a smaller-|D| winner may gate at the next rung). Cost model:
 t_cm ≈ (0.35√|D|/2000)^1.6·(n/256) vs t_rung ≈ 1.44(y′−y)/10⁸ s.
 
 Also: assembly failures no longer kill a candidate permanently (retry when S grows), and the
@@ -524,14 +524,14 @@ floor order). Consequences: (1) for ℓ=2 with 4 | N, the unique 2-torsion point
 order 4, hence is halvable, hence f′(e₁) = □ — **always Montgomery-representable**, killing the
 p ≡ 3 (mod 4), N ≡ 4 (mod 8) obstruction (PoC + production validated: the descended curves of the
 previously-failing classes all assemble); (2) for odd ℓ | n₁, the certificate m may use the full
-ℓ-power of N — `oneshot` now reduces S only by the part of n₁ at primes > 97 (no classical Φ_ℓ in
+ℓ-power of N — `oneshotECPP` now reduces S only by the part of n₁ at primes > 97 (no classical Φ_ℓ in
 the bundle; such n₁ parts are ~1/ℓ² rare anyway).
 
 Implementation: `invj_load_phi` parses the classical `phi_j_<ell>.txt` (symmetric `[a,b] c` format,
 all ℓ ≤ 97 committed); `volcano_floor` in `cm_method.c` reuses `invj_jroots` (bipoly eval at the
 current j + `fp_find_all_roots`) as the neighbor oracle; `cm_method ells=2,7` descends after the
 usual trace verification and re-verifies the floor curve (the k-formula model may land on the other
-twist, so only |trace| is checked). `oneshot` passes `ells=` = the primes ℓ ≤ 97 dividing n₁ at
+twist, so only |trace| is checked). `oneshotECPP` passes `ells=` = the primes ℓ ≤ 97 dividing n₁ at
 commit time and no longer filters at intake. Isogenous curves share N, so certificates are unchanged
 in form. Validated vs PARI: floor detection (1 rational Φ_ℓ-neighbor), H_D-root ancestry, trace,
 cyclic ℓ-Sylow (both twists), representability — for the single (ℓ=2) and double (ℓ=2,7) descents.
