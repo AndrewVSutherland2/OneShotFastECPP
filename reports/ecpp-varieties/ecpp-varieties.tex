@@ -1008,7 +1008,7 @@ raised floor makes the terminal prime free to certify.
 
 \subsection{Verification: Pomerance-order bit complexity}\label{sec:shortverif}
 
-The reference verifier \texttt{vsmallECPP.py} processes the levels in order, working modulo $p_i$ at
+The reference verifier \texttt{vshortECPP.py} processes the levels in order, working modulo $p_i$ at
 level $i$ (write $b_i = \lceil\log_2 p_i\rceil$, so $b_{i+1} \le \lceil b_i/2\rceil$ and
 $\sum_i b_i < 2n + O(\log n)$; one sieve to $n^2$ serves the whole chain since $n$ is fixed at the top):
 it recovers $m_i$ and $p_{i+1} = o_i/m_i$ by trial division of the carried product $o_i$ over the primes
@@ -1643,9 +1643,9 @@ verifier \texttt{voneshot.py}, finder \texttt{oneshot.gp}, exhaustive data to $2
 accessed August 19, 2026).  Part of the DARPA expMath program.
 
 \bibitem[Short]{Short} A.~V. Sutherland, \emph{ShortPrimalityProofs} (short ECPP: definition, verifier
-\texttt{vsmallECPP.py}, finders \texttt{short.gp}/\texttt{parallel\_short.py}, exhaustive data to
+\texttt{vshortECPP.py}, finders \texttt{short.gp}/\texttt{parallel\_short.py}, exhaustive data to
 $2^8$, challenge table), \url{https://github.com/AndrewVSutherland/ShortPrimalityProofs}, 2026
-(commit \texttt{cc2caf1}, accessed August 22, 2026).
+(commit \texttt{7e7412e}, accessed August 22, 2026).
 
 \bibitem[OSF]{OSF} A.~V. Sutherland and Claude Code, \emph{OneShotFastECPP} (the CM one-shot
 engine: \texttt{dscan}/\texttt{smooth}/\texttt{fproot}/\texttt{cm\_method}/\texttt{oneshot}; reports
