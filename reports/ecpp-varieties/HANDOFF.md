@@ -386,3 +386,29 @@ bits(10^180+313) 599 → 598 (pre-existing typo), captions say CPU/wall times
 are the original finds, level counts migrated.  Verified against upstream
 certs.csv @7e7412e (= fork, byte-identical).  vshortECPP.py keeps p_next in
 the exactness tree, so the §6.2 parenthetical stays true of both verifiers.
+
+## Recompute round (2026-08-23, Drew): honest timings for c=110..200
+
+Drew: parallel_short timings were winning-thread walls with the thread count
+unrecorded — recompute c=110..150 with SINGLE-CORE short.gp and c=160,180,
+190,200 with shortECPP (the renamed short_prove; c=170/210 already carry
+their v2 rebuild costs).  Format-impact question answered NO (caps bind only
+at n ≤ 333 per the compliance data; terminal prime strictly helps; variance
+dominates) — so c ≤ 100 and the spot records stand.  All nine ran on the
+local box (5 gp singles + shortECPP at threads=10 to keep them uncontended;
+utilization measured 95–99%, ecm "low CPU" was a top-refresh artifact on
+sub-second processes, per-process startup ~1 ms = 0.14–0.21% of CPU).
+RESULTS (total CPU): 110: 6268 s / 4 levels; 120: 1901 / 3; 130: 1817 / 3;
+140: 13681 / 3; 150: 11410 / 3; 160: 3506 s, 6.1 min wall / 4; 180: 5186,
+8.9 min / 4; 190: 15319, 26 min / 4; 200: 136935 s (38 core-h), 3.85 h / 4.
+All dual-verified; 31/31 triple-validated post-swap; still 108 levels
+(110: +1, 150: −1); size range 2.41n–4.72n unchanged.  GOTCHA FIXED: the
+new 10^160 chain has a terminal prime 146077 ∈ (B, n²] — legal, but
+first_bad_level (repair_short2.py) split at n² and false-flagged it; it now
+splits at B.  Fork PR #2 (stacked): annotation removal + new certs.csv +
+README table in Drew's convention (total CPU + "(wall on N cores)"; README
+spot hours = per-target campaign cost incl. restarts — reformatted, not
+re-derived; paper records table keeps per-final-run walls, a different
+quantity).  Paper (this branch): results table c=110..200 new times/levels
+(110: 3→4, 150: 4→3), caption + prose (SEA through c=150, CM from 160).
+Local certs/short2/certs.csv synced; assemble gate green.

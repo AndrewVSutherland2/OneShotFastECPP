@@ -1240,10 +1240,10 @@ sizes but are invisible on the $L$-scale.
 The challenge table \cite{Short} holds verified short ECPPs for the least prime above $10^c$,
 $c = 10, 20, \dots, 310$ --- the top entry at 1030 bits, more than twice the one-shot frontier
 (Table~\ref{tab:shortresults}; the largest entries are in Table~\ref{tab:shortrecords}).  Entries
-through $c = 200$ were found by SEA sampling (\texttt{short.gp} and its parallel driver); the August
-2026 records campaign, $c = 210, \dots, 310$, switched the order supply to CM --- the
-dscan/batched-smoothness pipeline of \S\ref{sec:cmoneshot} feeding a staged-ECM scheduler
-(\texttt{shortECPP.py} \osf) --- and spent ${\approx}3{,}500$ core-hours on 192-core machines
+through $c = 150$ were found by SEA sampling (\texttt{short.gp}); from $c = 160$ up the
+certificates are CM-supply finds --- the dscan/batched-smoothness pipeline of
+\S\ref{sec:cmoneshot} feeding a staged-ECM scheduler (\texttt{shortECPP.py} \osf) --- whose
+records campaign, $c = 210, \dots, 310$, spent ${\approx}3{,}500$ core-hours on 192-core machines
 across all targets, restarts, and preemptions; the SEA/CM crossover for this search criterion
 extrapolates to ${\approx}2000$ bits.
 
@@ -1253,23 +1253,25 @@ extrapolates to ${\approx}2000$ bits.
 \toprule
 $p$ & bits & levels & CPU time & $p$ & bits & levels & CPU time\\
 \midrule
-$10^{10}+19$  & 34  & 1 & ${<}$1 s        & $10^{110}+7$    & 366 & 3 & ${\approx}$850 s\\
-$10^{20}+39$  & 67  & 2 & ${\approx}$1 s  & $10^{120}+79$   & 399 & 3 & ${\approx}$1400 s\\
-$10^{30}+57$  & 100 & 2 & ${\approx}$1 s  & $10^{130}+1113$ & 432 & 3 & ${\approx}$55 s\\
-$10^{40}+121$ & 133 & 2 & ${\approx}$2 s  & $10^{140}+13$   & 466 & 3 & ${\approx}$800 s\\
-$10^{50}+151$ & 167 & 2 & ${\approx}$3 s  & $10^{150}+67$   & 499 & 4 & ${\approx}$1500 s\\
-$10^{60}+7$   & 200 & 3 & ${\approx}$3 s  & $10^{160}+303$  & 532 & 4 & ${\approx}$1200 s\\
-$10^{70}+33$  & 233 & 3 & ${\approx}$45 s & $10^{170}+63$   & 565 & 4 & ${\approx}$830 s\\
-$10^{80}+129$ & 266 & 3 & ${\approx}$180 s& $10^{180}+313$  & 598 & 4 & ${\approx}$850 s\\
-$10^{90}+289$ & 299 & 4 & ${\approx}$350 s& $10^{190}+253$  & 632 & 4 & ${\approx}$1400 s\\
-$10^{100}+267$& 333 & 3 & ${\approx}$800 s& $10^{200}+357$  & 665 & 4 & ${\approx}$4400 s\\
+$10^{10}+19$  & 34  & 1 & ${<}$1 s        & $10^{110}+7$    & 366 & 4 & ${\approx}$6300 s\\
+$10^{20}+39$  & 67  & 2 & ${\approx}$1 s  & $10^{120}+79$   & 399 & 3 & ${\approx}$1900 s\\
+$10^{30}+57$  & 100 & 2 & ${\approx}$1 s  & $10^{130}+1113$ & 432 & 3 & ${\approx}$1800 s\\
+$10^{40}+121$ & 133 & 2 & ${\approx}$2 s  & $10^{140}+13$   & 466 & 3 & ${\approx}$13{,}700 s\\
+$10^{50}+151$ & 167 & 2 & ${\approx}$3 s  & $10^{150}+67$   & 499 & 3 & ${\approx}$11{,}400 s\\
+$10^{60}+7$   & 200 & 3 & ${\approx}$3 s  & $10^{160}+303$  & 532 & 4 & ${\approx}$3500 s\\
+$10^{70}+33$  & 233 & 3 & ${\approx}$45 s & $10^{170}+63$   & 565 & 4 & ${\approx}$90{,}000 s\\
+$10^{80}+129$ & 266 & 3 & ${\approx}$180 s& $10^{180}+313$  & 598 & 4 & ${\approx}$5200 s\\
+$10^{90}+289$ & 299 & 4 & ${\approx}$350 s& $10^{190}+253$  & 632 & 4 & ${\approx}$15{,}300 s\\
+$10^{100}+267$& 333 & 3 & ${\approx}$800 s& $10^{200}+357$  & 665 & 4 & ${\approx}$137{,}000 s\\
 \bottomrule
 \end{tabular}
 \medskip
-\caption{The ShortPrimalityProofs challenge table \cite{Short} through $c = 200$.  Entries through
-$c = 100$ by \texttt{short.gp} on a single core (AVS and Claude Code, Fable 5); $c = 110, \dots, 200$
-by \texttt{parallel\_short.py} workers.  CPU times are those of the original finds; level counts
-refer to the current (migrated) table.}
+\caption{The ShortPrimalityProofs challenge table \cite{Short} through $c = 200$: total CPU time
+and level count of each current certificate.  Entries through $c = 100$ by \texttt{short.gp} on a
+single core (AVS and Claude Code, Fable 5); $c = 110$--$150$ likewise by single-core
+\texttt{short.gp}; $c = 160$--$200$ by the CM prover \texttt{shortECPP.py} \osf{} on 10 cores of a
+16-core desktop (wall times 6, 9, 26, and 231 minutes), except $c = 170$, rebuilt on 6 cores
+(4.2 hours wall).}
 \label{tab:shortresults}
 \end{table}
 

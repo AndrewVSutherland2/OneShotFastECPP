@@ -49,15 +49,28 @@ def v1_parse(ints):
 
 
 def first_bad_level(ints):
-    """first level violating the v2 data constraints, or None."""
+    """first level violating the revised-format data constraints, or None.
+
+    Splits each order at B (not n^2): the filler m is the B-smooth part, and
+    whatever remains is the B-rough p_{i+1} -- which may legally be a terminal
+    prime anywhere below B^2, including (B, n^2]."""
     from math import ceil
     n = ints[0].bit_length(); lg = log2(n)
     B = ceil(n * n / lg); radlim = ceil(n / lg)
-    for lev, (A, x, o, pnext, m, facs) in enumerate(v1_parse(ints)):
+    primes = sieve_primes(B)
+    for lev in range(0, (len(ints) - 1) // 3):
+        oo = ints[3 * lev + 3]
         rad = 1
-        for q in facs:
-            rad *= q
-        if (facs and max(facs) > B) or (rad > 1 and rad.bit_length() > radlim) or rad == 1:
+        for q in primes:
+            if q * q > oo:
+                break
+            if oo % q == 0:
+                rad *= q
+                while oo % q == 0:
+                    oo //= q
+        if 1 < oo <= B:                  # leftover prime <= B: still filler
+            rad *= oo; oo = 1
+        if rad == 1 or rad.bit_length() > radlim:
             return lev
     return None
 
