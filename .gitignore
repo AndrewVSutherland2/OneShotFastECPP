@@ -42,3 +42,7 @@ classinv.bbl
 
 # python
 __pycache__/
+
+# LaTeX scratch and the external challenge verifier (fetched, not shipped)
+texput.log
+/voneshot.py
