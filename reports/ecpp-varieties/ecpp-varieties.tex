@@ -1137,8 +1137,7 @@ completing the window.  The discarded cofactor $\#E/o$ is unconstrained --- this
 lacked.
 \end{enumerate}
 Unlucky sub-chains are abandoned by bounded backtracking (a descent gets a budget of 64 curves before
-the parent resamples), and \texttt{parallel\_short.py} races independent workers mixing complete- and
-partial-factorization strategies.  At small levels complete factorization is available and the finder
+the parent resamples).  At small levels complete factorization is available and the finder
 descends faster than square root (observed chains like $665 \to 333 \to 159 \to 47$ bits).
 
 \begin{proposition}[heuristic finding cost]\label{prop:shortfind}
@@ -1643,7 +1642,7 @@ verifier \texttt{voneshot.py}, finder \texttt{oneshot.gp}, exhaustive data to $2
 accessed August 19, 2026).  Part of the DARPA expMath program.
 
 \bibitem[Short]{Short} A.~V. Sutherland, \emph{ShortPrimalityProofs} (short ECPP: definition, verifier
-\texttt{vshortECPP.py}, finders \texttt{short.gp}/\texttt{parallel\_short.py}, exhaustive data to
+\texttt{vshortECPP.py}, finder \texttt{short.gp}, exhaustive data to
 $2^8$, challenge table), \url{https://github.com/AndrewVSutherland/ShortPrimalityProofs}, 2026
 (commit \texttt{7e7412e}, accessed August 22, 2026).
 
