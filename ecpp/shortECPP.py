@@ -792,10 +792,13 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
                     log("    tier B1=%d: admission boundary %.2f < fresh median %.2f; widening"
                         % (b1, index(live[-1]), fresh_med))
                     break
-            if len(live) < threads and live:
+            if method == "ecm" and len(live) < threads and live:
                 # conditional duplicates: pad idle slots with extra concurrent
                 # curve batches for the best candidates, each repeat valued as
-                # if its earlier in-flight batches fail (index - 0.01*curves)
+                # if its earlier in-flight batches fail (index - 0.01*curves).
+                # ECM only: a duplicate P-1 run on the same tail and B1 is the
+                # same computation -- success depends on q-1's smoothness, not
+                # on fresh randomness -- so P-1 tiers run once per candidate.
                 ranked = sorted(live, key=lambda c: -index(c, extra=curves))
                 pads = []
                 r = 1
