@@ -558,9 +558,9 @@ def ladder_rounds(nbits):
     per curve has diminishing returns on a fixed candidate.  P-1 tiers run
     once per candidate (repeating P-1 at the same B1 finds nothing new) and
     catch q with q-1 smooth, independently of the ECM group draws.  Measured
-    per-B1 cost vs one ECM curve (gmp-ecm 7.0.6, Ryzen AI Max+ 395, prime
-    semiprime inputs, 2026-08-25): 1/5.6 (900 bits, B1=5e5), 1/6.9 (900,
-    1e7), 1/8.2 (1330, 5e5), 1/10.5 (1330, 1e7); the b1//8 effort weight
+    per-B1 cost vs one ECM curve (bench_pm1_ratio.py, deterministic inputs;
+    gmp-ecm 7.0.6, Ryzen AI Max+ 395, 2026-08-25): 1/5.6 (900 bits, B1=5e5),
+    1/6.9 (900, 1e7), 1/8.2 (1330, 5e5), 1/10.5 (1330, 1e7); the b1//8 weight
     below is the central value, and only the strict monotonicity of the
     cumulative keys matters for scheduling (visit order), not the constant.
     SHORTECPP_PM1=0 disables the P-1 tiers."""
