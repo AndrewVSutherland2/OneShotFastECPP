@@ -68,7 +68,15 @@ def details_block(seq, meta):
     timing = ""
     if cpu:
         ch = cpu / 3600.0
-        cost = "~%d core-hours" % (round(ch / 10.0) * 10 if ch >= 100 else round(ch))
+        if ch >= 100:
+            cost = "~%d core-hours" % (round(ch / 10.0) * 10)
+        elif ch >= 10:
+            cost = "~%d core-hours" % round(ch)
+        elif ch >= 1:
+            cost = "~%.1f core-hours" % ch
+        else:                       # sub-hour runs: CPU seconds, table style
+            cost = "~%d CPU seconds" % (round(cpu / 10.0) * 10 if cpu >= 100
+                                        else round(cpu))
         if secs and threads:
             wall = ("%.1f hours" % (secs / 3600.0) if secs >= 5400
                     else "%.0f minutes" % (secs / 60.0))
@@ -76,8 +84,8 @@ def details_block(seq, meta):
         timing = cost + "; "
     hdr = ("$p=10^{%d}+%d$,&nbsp; <a href=\"https://math.mit.edu/~drew/\">AVS</a> and Claude Code "
            "(Fable 5) via <a href=\"https://github.com/AndrewVSutherland2/OneShotFastECPP\">"
-           "OneShotFastECPP/shortECPP.py</a> (%s%d levels)."
-           % (c, off, timing, levels))
+           "OneShotFastECPP/shortECPP.py</a> (%s%d level%s)."
+           % (c, off, timing, levels, "s" if levels != 1 else ""))
     return ("<details>\n<summary>%s</summary>\n\n```\n%s\n```\n</details>"
             % (hdr, " ".join(map(str, seq))))
 
