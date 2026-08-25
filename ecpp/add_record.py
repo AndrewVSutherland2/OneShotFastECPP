@@ -64,7 +64,9 @@ def details_block(seq, meta):
     levels = (len(seq) - 1) // 3
     secs = meta.get("seconds")
     threads = meta.get("threads")
-    cpu = meta.get("cpu_seconds") or (secs * threads if secs and threads else None)
+    # core-hours only from measured CPU (the sibling .time file): wall x
+    # threads is reserved-core accounting and can overstate consumption
+    cpu = meta.get("cpu_seconds")
     timing = ""
     if cpu:
         ch = cpu / 3600.0
@@ -82,6 +84,10 @@ def details_block(seq, meta):
                     else "%.0f minutes" % (secs / 60.0))
             cost += " (%s wall time on %s cores)" % (wall, threads)
         timing = cost + "; "
+    elif secs and threads:
+        wall = ("%.1f hours" % (secs / 3600.0) if secs >= 5400
+                else "%.0f minutes" % (secs / 60.0))
+        timing = "%s wall time on %s cores; " % (wall, threads)
     hdr = ("$p=10^{%d}+%d$,&nbsp; <a href=\"https://math.mit.edu/~drew/\">AVS</a> and Claude Code "
            "(Fable 5) via <a href=\"https://github.com/AndrewVSutherland2/OneShotFastECPP\">"
            "OneShotFastECPP/shortECPP.py</a> (%s%d level%s)."
