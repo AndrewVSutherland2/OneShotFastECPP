@@ -56,7 +56,7 @@ def load_cert(path):
     return seq, meta
 
 
-def details_block(seq, meta):
+def details_block(seq, meta, credit=None):
     p0 = seq[0]
     digits = len(str(p0))
     c = digits - 1
@@ -88,16 +88,24 @@ def details_block(seq, meta):
         wall = ("%.1f hours" % (secs / 3600.0) if secs >= 5400
                 else "%.0f minutes" % (secs / 60.0))
         timing = "%s wall time on %s cores; " % (wall, threads)
-    hdr = ("$p=10^{%d}+%d$,&nbsp; <a href=\"https://math.mit.edu/~drew/\">AVS</a> and Claude Code "
-           "(Fable 5) via <a href=\"https://github.com/AndrewVSutherland2/OneShotFastECPP\">"
+    # attribution only when supplied explicitly (--credit): the tool accepts
+    # any verified certificate and cannot infer who produced it
+    who = (credit + " via ") if credit else "via "
+    hdr = ("$p=10^{%d}+%d$,&nbsp; %s<a href=\"https://github.com/AndrewVSutherland2/OneShotFastECPP\">"
            "OneShotFastECPP/shortECPP.py</a> (%s%d level%s)."
-           % (c, off, timing, levels, "s" if levels != 1 else ""))
+           % (c, off, who, timing, levels, "s" if levels != 1 else ""))
     return ("<details>\n<summary>%s</summary>\n\n```\n%s\n```\n</details>"
             % (hdr, " ".join(map(str, seq))))
 
 
 def main():
-    if len(sys.argv) < 2:
+    args = sys.argv[1:]
+    credit = None
+    if "--credit" in args:
+        i = args.index("--credit")
+        credit = args[i + 1]
+        del args[i:i + 2]
+    if not args:
         print(__doc__)
         sys.exit(2)
     csv_path = os.path.join(HERE, "certs.csv")
@@ -107,7 +115,7 @@ def main():
                 for line in open(csv_path).read().splitlines() if line.strip()]
     have = {r[0] for r in rows}
     blocks = []
-    for path in sys.argv[1:]:
+    for path in args:
         seq, meta = load_cert(path)
         ok = verify(seq)
         print("%s: p0 has %d digits, %d levels, verify=%s"
@@ -119,7 +127,7 @@ def main():
             rows = [r for r in rows if r[0] != seq[0]]
         rows.append(seq)
         have.add(seq[0])
-        blocks.append(details_block(seq, meta))
+        blocks.append(details_block(seq, meta, credit))
     rows.sort(key=lambda r: r[0])
     with open(csv_path, "w") as f:
         for r in rows:
