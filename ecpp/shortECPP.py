@@ -338,10 +338,12 @@ def n2_parts(S_list, P2):
     return out
 
 
-def ecm_peel(n, b1, curves, timeout):
-    """One gmp-ecm run; returns (found_factors, cofactor)."""
+def ecm_peel(n, b1, curves, timeout, method="ecm"):
+    """One gmp-ecm run (ECM, or P-1 with method="pm1"); returns
+    (found_factors, cofactor)."""
     try:
-        r = subprocess.run([ECM_BIN, "-q", "-c", str(curves), str(b1)],
+        r = subprocess.run([ECM_BIN, "-q"] + (["-pm1"] if method == "pm1" else [])
+                           + ["-c", str(curves), str(b1)],
                            input=str(n) + "\n", capture_output=True, text=True,
                            timeout=timeout, env=ECM_ENV)
     except subprocess.TimeoutExpired:
@@ -549,39 +551,68 @@ def ecm_timeout(b1, curves, nbits):
 
 
 def ladder_rounds(nbits):
-    """(B1, sweeps, per-sweep cap): each tier's curve budget is split into
-    small sweeps so the pool is round-robined -- every candidate gets its
-    first visit at a tier before any candidate gets a second (admission
-    sorts by effort first), which beats batching because success per curve
-    has diminishing returns on a fixed candidate."""
-    if nbits >= 900:
-        tiers = [(2000, [12], 0), (11000, [20], 0), (50000, [16, 16], 12000),
-                 (250000, [12] * 4, 4000), (1000000, [12] * 6, 1200),
-                 (3000000, [12] * 8, 400)]
+    """(method, B1, sweeps, per-sweep cap): each ECM tier's curve budget is
+    split into small sweeps so the pool is round-robined -- every candidate
+    gets its first visit at a tier before any candidate gets a second
+    (admission sorts by effort first), which beats batching because success
+    per curve has diminishing returns on a fixed candidate.  P-1 tiers run
+    once per candidate (repeating P-1 at the same B1 finds nothing new) and
+    catch q with q-1 smooth, independently of the ECM group draws.  Measured
+    per-B1 cost vs one ECM curve (bench_pm1_ratio.py, deterministic inputs;
+    gmp-ecm 7.0.6, Ryzen AI Max+ 395, 2026-08-25): 1/5.6 (900 bits, B1=5e5),
+    1/6.9 (900, 1e7), 1/8.2 (1330, 5e5), 1/10.5 (1330, 1e7); the b1//8 weight
+    below is the central value, and only the strict monotonicity of the
+    cumulative keys matters for scheduling (visit order), not the constant.
+    SHORTECPP_PM1=0 disables the P-1 tiers."""
+    if nbits >= 1150:
+        tiers = [("ecm", 2000, [12], 0), ("ecm", 11000, [20], 0),
+                 ("pm1", 500000, [1], 20000),
+                 ("ecm", 50000, [16, 16], 20000), ("ecm", 250000, [12] * 4, 6000),
+                 ("pm1", 10000000, [1], 2000),
+                 ("ecm", 1000000, [12] * 6, 2000), ("ecm", 3000000, [12] * 8, 700),
+                 ("ecm", 10000000, [12] * 6, 200)]
+    elif nbits >= 900:
+        tiers = [("ecm", 2000, [12], 0), ("ecm", 11000, [20], 0),
+                 ("pm1", 500000, [1], 12000),
+                 ("ecm", 50000, [16, 16], 12000), ("ecm", 250000, [12] * 4, 4000),
+                 ("pm1", 10000000, [1], 1200),
+                 ("ecm", 1000000, [12] * 6, 1200), ("ecm", 3000000, [12] * 8, 400)]
     elif nbits >= 700:
-        tiers = [(2000, [12], 0), (11000, [20], 0), (50000, [16, 16], 15000),
-                 (250000, [12] * 4, 5000), (1000000, [12] * 6, 1500),
-                 (3000000, [12] * 8, 400)]
+        tiers = [("ecm", 2000, [12], 0), ("ecm", 11000, [20], 0),
+                 ("pm1", 500000, [1], 15000),
+                 ("ecm", 50000, [16, 16], 15000), ("ecm", 250000, [12] * 4, 5000),
+                 ("ecm", 1000000, [12] * 6, 1500), ("ecm", 3000000, [12] * 8, 400)]
     elif nbits >= 500:
-        tiers = [(2000, [12], 0), (11000, [20], 0), (50000, [16, 16], 0),
-                 (250000, [12] * 4, 12000), (1000000, [12] * 6, 4000),
-                 (3000000, [12] * 8, 1000)]
+        tiers = [("ecm", 2000, [12], 0), ("ecm", 11000, [20], 0),
+                 ("pm1", 500000, [1], 0),
+                 ("ecm", 50000, [16, 16], 0), ("ecm", 250000, [12] * 4, 12000),
+                 ("ecm", 1000000, [12] * 6, 4000), ("ecm", 3000000, [12] * 8, 1000)]
     else:
-        tiers = [(2000, [10], 0), (11000, [16], 0), (50000, [14, 14], 0),
-                 (250000, [10] * 4, 0), (1000000, [16] * 4, 0)]
+        tiers = [("ecm", 2000, [10], 0), ("ecm", 11000, [16], 0),
+                 ("pm1", 500000, [1], 0),
+                 ("ecm", 50000, [14, 14], 0), ("ecm", 250000, [10] * 4, 0),
+                 ("ecm", 1000000, [16] * 4, 0)]
+    if os.environ.get("SHORTECPP_PM1", "1") == "0":
+        tiers = [t for t in tiers if t[0] != "pm1"]
     out = []
-    for b1, sweeps, cap in tiers:
-        cum = 0
+    ecost = 0
+    for method, b1, sweeps, cap in tiers:
         for c in sweeps:
-            cum += c
-            out.append((b1, c, cap, b1 * cum))
+            # effort keys are cumulative estimated cost, strictly increasing
+            # through the ladder (a candidate visits each round once); the
+            # P-1 weight is the measured cost ratio above (only monotonicity
+            # is load-bearing)
+            ecost += b1 * c if method == "ecm" else b1 // 8
+            out.append((method, b1, c, cap, ecost))
     return out
 
 
 def b_schedule(nbits, B0=None, Bmax=None):
     if B0 is None:
-        B0 = {1: 30000000, 2: 60000000, 3: 120000000, 4: 400000000}[
-            1 if nbits < 700 else 2 if nbits < 800 else 3 if nbits < 950 else 4]
+        B0 = {1: 30000000, 2: 60000000, 3: 120000000, 4: 400000000,
+              5: 1000000000}[
+            1 if nbits < 700 else 2 if nbits < 800 else 3 if nbits < 950
+            else 4 if nbits < 1150 else 5]
     if Bmax is None:
         Bmax = 20000000000
     return B0, Bmax
@@ -732,7 +763,7 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
                 if lev:
                     return lev
         # ---- ECM ladder over the pool ----
-        for (b1, curves, cap, ekey) in rounds:
+        for (method, b1, curves, cap, ekey) in rounds:
             if winners:
                 break
             # breadth-first: before the deepest tiers, prefer widening the
@@ -768,10 +799,13 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
                     log("    tier B1=%d: admission boundary %.2f < fresh median %.2f; widening"
                         % (b1, index(live[-1]), fresh_med))
                     break
-            if len(live) < threads and live:
+            if method == "ecm" and len(live) < threads and live:
                 # conditional duplicates: pad idle slots with extra concurrent
                 # curve batches for the best candidates, each repeat valued as
-                # if its earlier in-flight batches fail (index - 0.01*curves)
+                # if its earlier in-flight batches fail (index - 0.01*curves).
+                # ECM only: a duplicate P-1 run on the same tail and B1 is the
+                # same computation -- success depends on q-1's smoothness, not
+                # on fresh randomness -- so P-1 tiers run once per candidate.
                 ranked = sorted(live, key=lambda c: -index(c, extra=curves))
                 pads = []
                 r = 1
@@ -788,7 +822,7 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
             tr = time.time()
             tmo = ecm_timeout(b1, curves, nb)
             with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as ex:
-                res = list(ex.map(lambda c: ecm_peel(c.tail, b1, curves, tmo), live))
+                res = list(ex.map(lambda c: ecm_peel(c.tail, b1, curves, tmo, method), live))
             nsplit = 0
             changed = []
             for c, (found, cof) in zip(live, res):
@@ -802,8 +836,8 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
             classify_tails(changed)
             dt = time.time() - tr
             stats["ecm_s"] = stats.get("ecm_s", 0.0) + dt * threads
-            log("    ecm B1=%d c=%d on %d tails: %d split, %d winners, %.1fs"
-                % (b1, curves, len(live), nsplit, len(winners), dt))
+            log("    %s B1=%d c=%d on %d tails: %d split, %d winners, %.1fs"
+                % (method, b1, curves, len(live), nsplit, len(winners), dt))
             if winners:
                 lev = try_build()
                 if lev:
