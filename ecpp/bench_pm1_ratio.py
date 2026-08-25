@@ -30,10 +30,21 @@ def randprime(bits, rng):
 
 
 def bench(n, args):
+    """Time one run and validate it: a successful no-factor run exits 0 and,
+    under -q, echoes exactly the input composite.  gmp-ecm exit codes are
+    semantic (e.g. 14 = factor found), so check=True would be wrong; any
+    deviation here -- an error, an unsupported option, or an (astronomically
+    unlikely) factor of the prime semiprime -- aborts loudly instead of
+    contaminating the ratio."""
     t = time.time()
-    subprocess.run([ECM_BIN, "-q"] + args, input=str(n) + "\n",
-                   capture_output=True, text=True, env=ECM_ENV)
-    return time.time() - t
+    r = subprocess.run([ECM_BIN, "-q"] + args, input=str(n) + "\n",
+                       capture_output=True, text=True, env=ECM_ENV)
+    dt = time.time() - t
+    if r.returncode != 0 or r.stdout.split() != [str(n)]:
+        sys.exit("bench: %r did not complete unfactored (exit %d, stdout %r, "
+                 "stderr %r)" % (args, r.returncode, r.stdout[:200],
+                                 r.stderr[:200]))
+    return dt
 
 
 def main():
