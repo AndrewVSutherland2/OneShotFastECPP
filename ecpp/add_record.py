@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """add_record.py -- fold newly proved short ECPPs into the repository.
 
-usage: add_record.py <cert1.txt> [<cert2.txt> ...]
+usage: add_record.py [--credit <html>] [--via <html>] <cert1.txt> [...]
+
+--credit and --via supply the (unverifiable from the certificate itself)
+provenance for the README summary: who produced it, and with which tool;
+both are omitted from the output unless given.
 
 Each cert file holds one flat short-ECPP sequence (whitespace-separated); a
 sibling <cert>.json (as written by OneShotFastECPP's shortECPP.py) supplies
@@ -56,7 +60,7 @@ def load_cert(path):
     return seq, meta
 
 
-def details_block(seq, meta, credit=None):
+def details_block(seq, meta, credit=None, via=None):
     p0 = seq[0]
     digits = len(str(p0))
     c = digits - 1
@@ -88,22 +92,30 @@ def details_block(seq, meta, credit=None):
         wall = ("%.1f hours" % (secs / 3600.0) if secs >= 5400
                 else "%.0f minutes" % (secs / 60.0))
         timing = "%s wall time on %s cores; " % (wall, threads)
-    # attribution only when supplied explicitly (--credit): the tool accepts
-    # any verified certificate and cannot infer who produced it
-    who = (credit + " via ") if credit else "via "
-    hdr = ("$p=10^{%d}+%d$,&nbsp; %s<a href=\"https://github.com/AndrewVSutherland2/OneShotFastECPP\">"
-           "OneShotFastECPP/shortECPP.py</a> (%s%d level%s)."
-           % (c, off, who, timing, levels, "s" if levels != 1 else ""))
+    # provenance only when supplied explicitly (--credit for people, --via
+    # for the producing tool): verify(seq) proves validity, not authorship
+    prov = ""
+    if credit:
+        prov += credit + " "
+    if via:
+        prov += "via " + via + " "
+    hdr = ("$p=10^{%d}+%d$%s (%s%d level%s)."
+           % (c, off, (",&nbsp; " + prov.rstrip()) if prov else "",
+              timing, levels, "s" if levels != 1 else ""))
     return ("<details>\n<summary>%s</summary>\n\n```\n%s\n```\n</details>"
             % (hdr, " ".join(map(str, seq))))
 
 
 def main():
     args = sys.argv[1:]
-    credit = None
+    credit = via = None
     if "--credit" in args:
         i = args.index("--credit")
         credit = args[i + 1]
+        del args[i:i + 2]
+    if "--via" in args:
+        i = args.index("--via")
+        via = args[i + 1]
         del args[i:i + 2]
     if not args:
         print(__doc__)
@@ -127,7 +139,7 @@ def main():
             rows = [r for r in rows if r[0] != seq[0]]
         rows.append(seq)
         have.add(seq[0])
-        blocks.append(details_block(seq, meta, credit))
+        blocks.append(details_block(seq, meta, credit, via))
     rows.sort(key=lambda r: r[0])
     with open(csv_path, "w") as f:
         for r in rows:
