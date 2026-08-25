@@ -557,8 +557,13 @@ def ladder_rounds(nbits):
     (admission sorts by effort first), which beats batching because success
     per curve has diminishing returns on a fixed candidate.  P-1 tiers run
     once per candidate (repeating P-1 at the same B1 finds nothing new) and
-    catch q with q-1 smooth, independently of the ECM group draws, at ~1/8
-    the per-B1 cost of an ECM curve; SHORTECPP_PM1=0 disables them."""
+    catch q with q-1 smooth, independently of the ECM group draws.  Measured
+    per-B1 cost vs one ECM curve (gmp-ecm 7.0.6, Ryzen AI Max+ 395, prime
+    semiprime inputs, 2026-08-25): 1/5.6 (900 bits, B1=5e5), 1/6.9 (900,
+    1e7), 1/8.2 (1330, 5e5), 1/10.5 (1330, 1e7); the b1//8 effort weight
+    below is the central value, and only the strict monotonicity of the
+    cumulative keys matters for scheduling (visit order), not the constant.
+    SHORTECPP_PM1=0 disables the P-1 tiers."""
     if nbits >= 1150:
         tiers = [("ecm", 2000, [12], 0), ("ecm", 11000, [20], 0),
                  ("pm1", 500000, [1], 20000),
@@ -594,7 +599,9 @@ def ladder_rounds(nbits):
     for method, b1, sweeps, cap in tiers:
         for c in sweeps:
             # effort keys are cumulative estimated cost, strictly increasing
-            # through the ladder (a candidate visits each round once)
+            # through the ladder (a candidate visits each round once); the
+            # P-1 weight is the measured cost ratio above (only monotonicity
+            # is load-bearing)
             ecost += b1 * c if method == "ecm" else b1 // 8
             out.append((method, b1, c, cap, ecost))
     return out
