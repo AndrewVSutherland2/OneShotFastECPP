@@ -104,10 +104,15 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   No SEA-side accelerations implemented (stage-1 gate/batch tail need ellsea internals).
   Report: `reports/sea-crossover/`; certs in `certs/sea/`; raw cands in `work/race-archive/`.
 
-- **Short ECPP records (2026-08-18)**: `ecpp/shortECPP.py` — CM prover for the
-  ShortPrimalityProofs *short ECPP* format; produced the table entries for nextprime(10^c),
-  c = 210..310 (largest: 1030 bits, beating Bernstein's 1025-bit AKS example) in one day on
-  spot instances (~3,500 core-h).  Per level: dscan (new `maxfb=` bounds the factor base —
+- **Short ECPP records (2026-08-18, frontier 2026-08-28)**: `ecpp/shortECPP.py` — CM prover
+  for the ShortPrimalityProofs *short ECPP* format; produced the table entries for
+  nextprime(10^c), c = 210..310 (~3,500 core-h, one day) and the frontier extension
+  c = 320..400 (largest: 10^400+69, 1329 bits; ~28,500 core-h, ~$420 of spot across six
+  preemptions; 10^390 was a ×6 outlier at ~13,700 core-h over five ladder passes).  Frontier
+  fixes: exact-order cofactor sampling needs the ℓ-volcano floor for EVERY ℓ | gcd(m, v) —
+  build_level now retries via cm_method ells=<those ℓ> (was: ells=2 only at p≡3 mod 4);
+  get_j retries rootless runs and logs cm_method failures; opt-in SHORTECPP_DEEP=1 adds a
+  B1=3e7 tail tier (unused insurance so far); ECM-only idle padding (P-1 is deterministic).  Per level: dscan (new `maxfb=` bounds the factor base —
   essential for 1e5-candidate pools at 1000+ bits) → `smoothtest parts` batch strip (2^32
   primorial, built on demand) → staged gmp-ecm under a Bayesian index scheduler (coverage
   ~ln s, failure discounts, round-robin sub-sweeps, economic widen trigger) → classpoly/

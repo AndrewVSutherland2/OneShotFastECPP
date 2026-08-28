@@ -970,7 +970,7 @@ counterexample of Remark~\ref{rem:crt}, which was found in the course of pinning
 \emph{Structure of the chain.}  $p_{i+1} < \sqrt{p_i}$ at least halves the bit length per level, and
 $p_{i+1} > n^2$ forces termination once $p_i \le n^4$: so $k = O(\log n) = O(\log\log p_0)$ levels, and
 the total size is $\sum_i (2+\tfrac12)\operatorname{bits}(p_i) \lesssim 5n$ bits (published chains
-measure $2.4n$--$4.7n$, the ratio rising with depth toward the halving-descent bound; the low end is the one-level terminal-prime chain of the revised format below) --- \emph{linear}
+measure $2.4n$--$4.8n$, the ratio rising with depth toward the halving-descent bound; the low end is the one-level terminal-prime chain of the revised format below) --- \emph{linear}
 in $\log p_0$, like a Pomerance triple, against the quadratic size of a classical chain.  Existence for
 every prime $p_0 \ge 5$ is again inherited from Pomerance triples (take $k = 0$,
 $m_0 = 2^{\kappa}$); the repository verifies it exhaustively below $2^8$ ($55{,}056$ short ECPPs under the revised caps of Definition~\ref{def:short2} below, $201{,}072$ under the original definition; either way every
@@ -1238,14 +1238,19 @@ sizes but are invisible on the $L$-scale.
 \subsection{Results to date}\label{sec:shortresults}
 
 The challenge table \cite{Short} holds verified short ECPPs for the least prime above $10^c$,
-$c = 10, 20, \dots, 310$ --- the top entry at 1030 bits, more than twice the one-shot frontier
+$c = 10, 20, \dots, 400$ --- the top entry at 1329 bits, four times the one-shot frontier
 (Table~\ref{tab:shortresults}; the largest entries are in Table~\ref{tab:shortrecords}).  Entries
 through $c = 150$ were found by SEA sampling (\texttt{short.gp}); from $c = 160$ up the
 certificates are CM-supply finds --- the dscan/batched-smoothness pipeline of
 \S\ref{sec:cmoneshot} feeding a staged-ECM scheduler (\texttt{shortECPP.py} \osf) --- whose
 records campaign, $c = 210, \dots, 310$, spent ${\approx}3{,}500$ core-hours on 192-core machines
 across all targets, restarts, and preemptions; the SEA/CM crossover for this search criterion
-extrapolates to ${\approx}2000$ bits.
+extrapolates to ${\approx}2000$ bits.  A second campaign (August 2026) extended the table from
+$c = 320$ to $c = 400$ for ${\approx}28{,}500$ further core-hours --- the per-target spread ran
+from 388 core-hours ($10^{320}$) to ${\approx}13{,}700$ ($10^{390}$, five ladder passes) --- and
+surfaced a prover repair along the way: exact-order cofactor sampling needs the $\ell$-volcano
+floor for every prime $\ell$ dividing both the filler and $v$, not only $\ell = 2$ at
+$p \equiv 3 \bmod 4$.
 
 \begin{table}[htbp]
 \centering\footnotesize
@@ -1281,23 +1286,28 @@ single core (AVS and Claude Code, Fable 5); $c = 110$--$150$ likewise by single-
 \toprule
 $p$ & bits & levels & wall & threads & $p$ & bits & levels & wall & threads\\
 \midrule
-$10^{210}+1129$ & 698 & 4 & 20 s & 32 & $10^{270}+361$ & 897 & 4 & 9{,}615 s & 192\\
-$10^{220}+427$  & 731 & 5 & 4{,}660 s & 32 & $10^{280}+13$ & 931 & 4 & 3{,}416 s & 192\\
-$10^{230}+753$  & 765 & 4 & 13{,}218 s & 32 & $10^{290}+279$ & 964 & 4 & 546 s & 192\\
-$10^{240}+1723$ & 798 & 4 & 5{,}759 s & 192 & $10^{300}+331$ & 997 & 5 & 5{,}466 s & 192\\
-$10^{250}+1227$ & 831 & 4 & 2{,}416 s & 192 & $10^{310}+733$ & 1030 & 5 & 158 s & 192\\
-$10^{260}+49$   & 864 & 4 & 3{,}291 s & 192 & & & & &\\
+$10^{210}+1129$ & 698 & 4 & 20 s & 32 & $10^{310}+733$ & 1030 & 5 & 158 s & 192\\
+$10^{220}+427$  & 731 & 5 & 4{,}660 s & 32 & $10^{320}+699$ & 1064 & 5 & 8{,}697 s & 192\\
+$10^{230}+753$  & 765 & 4 & 13{,}218 s & 32 & $10^{330}+583$ & 1097 & 5 & 25{,}134 s & 192\\
+$10^{240}+1723$ & 798 & 4 & 5{,}759 s & 192 & $10^{340}+1153$ & 1130 & 5 & 9{,}640 s & 192\\
+$10^{250}+1227$ & 831 & 4 & 2{,}416 s & 192 & $10^{350}+133$ & 1163 & 5 & 20{,}129 s & 192\\
+$10^{260}+49$   & 864 & 4 & 3{,}291 s & 192 & $10^{360}+513$ & 1196 & 5 & 21{,}590 s & 192\\
+$10^{270}+361$  & 897 & 4 & 9{,}615 s & 192 & $10^{370}+2781$ & 1230 & 5 & 37{,}778 s & 192\\
+$10^{280}+13$   & 931 & 4 & 3{,}416 s & 192 & $10^{380}+387$ & 1263 & 4 & 3{,}413 s$^{*}$ & 192\\
+$10^{290}+279$  & 964 & 4 & 546 s & 192 & $10^{390}+799$ & 1296 & 5 & 18{,}981 s & 192\\
+$10^{300}+331$  & 997 & 5 & 5{,}466 s & 192 & $10^{400}+69$ & 1329 & 5 & 2{,}535 s$^{*}$ & 192\\
 \bottomrule
 \end{tabular}
 \medskip
-\caption{The August 2026 records, $c = 210, \dots, 310$, by the CM-supply prover
-\texttt{shortECPP.py} \osf{} on AWS spot instances (wall times as logged per chain of the
-original campaign, level counts as migrated; the largest previously published AKS-style example was
-1025 bits).}
+\caption{The August 2026 records, $c = 210, \dots, 400$, by the CM-supply prover
+\texttt{shortECPP.py} \osf{} on AWS spot instances (wall times as logged per chain --- for
+$c \le 310$ the original campaign's, level counts as migrated; ${}^{*}$the $10^{380}$ and
+$10^{400}$ walls are the winner-replay build and descent, their searches having journaled the
+winner in earlier runs; the largest previously published AKS-style example was 1025 bits).}
 \label{tab:shortrecords}
 \end{table}
 
-The growth from 3 s at 200 bits to hours at 700--1030 bits --- with enormous per-draw variance
+The growth from 3 s at 200 bits to hours at 700--1329 bits --- with enormous per-draw variance
 ($10^{310}$ fell in 158 s of wall time while $10^{230}$ took 13{,}218 s on 32 threads) --- is
 consistent with the gentle $L(1/3)$ curve.
 
