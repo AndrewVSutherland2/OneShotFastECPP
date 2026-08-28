@@ -412,3 +412,29 @@ re-derived; paper records table keeps per-final-run walls, a different
 quantity).  Paper (this branch): results table c=110..200 new times/levels
 (110: 3→4, 150: 4→3), caption + prose (SEA through c=150, CM from 160).
 Local certs/short2/certs.csv synced; assemble gate green.
+
+## Frontier campaign wrap (2026-08-25..28): the table reaches nextprime(10^400)
+
+Nine records proved on AWS spot (c8a/c7a, 192 cores): 320: 388 core-h / 330:
+1,080 (+preempted attempt) / 340: 418 / 350: 900 / 360: ~1,450 / 370: ~2,100
+/ 380: ~4,300 / 390: ~13,700 (FIVE passes: two full dry ladders to B=2e11,
+a preempted third, a 26.5-h fourth, and the winning fresh-seed fifth) / 400:
+~3,700.  Total ≈28,500 core-h ≈ $420; six spot preemptions handled via
+journals + persistent disks + resume-anywhere.  THE BUG OF THE CAMPAIGN
+(c=400's winner failed to build 4×, c=380's once): exact-order cofactor
+sampling Q=[N/o]P needs a CYCLIC ℓ-Sylow for every ℓ | m — a split Sylow
+(possible iff ℓ | v) loses one ℓ-power to the cofactor regardless of
+exponent — but build_level's volcano fallback was gated to p≡3 mod 4,
+ells=[2].  Diagnosed via an annihilation-matrix driver (curves/sides all
+correct; find_point failing fast); fixed as ells = {ℓ | gcd(rad m, v),
+ℓ≤97} — validated on 10^400 (ℓ=2, 31 min to full cert after 4 failures)
+and 10^380 (ℓ=2,3, first try).  Also: get_j retries + stderr logging
+(root-find EDS can come back rootless), SHORTECPP_DEEP=1 opt-in B1=3e7 tier
+(Drew's revisit question; NOT yet load-bearing — 10^390's winner was a
+prime-tail classify at an ordinary tier), n2_parts single-core serialization
+at 100k+-candidate widens noted for a future fix (~19 min per widen at
+c=400).  Fork PR #6 = the five records (40-row certs.csv, README 40 blocks,
+campaign-total CPU convention); this branch = prover fixes + growth-aware
+assemble gate + paper (headline 10..400/1329 bits/4× one-shot, records
+table 20 rows + † winner-replay walls, size range 2.4n–4.8n, campaign
+sentence).  All 40 chains dual-verified; gates green.

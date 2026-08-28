@@ -17,6 +17,7 @@ import os, re, sys
 ROOT = os.path.join(os.path.dirname(__file__), "..")
 TEX = os.path.join(ROOT, "reports/ecpp-varieties/ecpp-varieties.tex")
 CSV = os.path.join(ROOT, "certs/short2/certs.csv")
+TIMCSV = os.path.join(ROOT, "certs/short2/timings.csv")
 
 truth = {}
 total_levels = 0
@@ -53,7 +54,43 @@ for m in ROW.finditer("\n".join(blocks)):
 for c in sorted(set(truth) - set(seen)):
     print(f"c={c}: chain in certs.csv but missing from the tables")
     bad += 1
+# the records table's wall/threads columns must match the tracked timing data
+tim = {}
+camp = {}
+for line in open(TIMCSV):
+    line = line.strip()
+    if not line or line.startswith("#") or line.startswith("c,"):
+        continue
+    f = line.split(",")
+    tim[int(f[0])] = (int(f[3]), int(f[4]))
+    if len(f) > 5 and f[5]:
+        camp[int(f[0])] = int(f[5])
+RREC = re.compile(r"\$10\^\{(\d+)\}\+\d+\$\s*&\s*\d+\s*&\s*\d+\s*&\s*([\d{},]+) s(?:\$[^$]*\$)?\s*&\s*(\d+)")
+rec_block = [b for b in blocks if "tab:shortrecords" in b][0]
+nrec = 0
+for m in RREC.finditer(rec_block):
+    c = int(m.group(1))
+    wall = int(m.group(2).replace("{,}", "").replace(",", ""))
+    thr = int(m.group(3))
+    nrec += 1
+    if c not in tim:
+        print(f"c={c}: records row has no entry in timings.csv"); bad += 1
+    elif tim[c] != (wall, thr):
+        print(f"c={c}: table wall/threads {wall}/{thr} vs timings.csv {tim[c]}"); bad += 1
+if nrec != len(tim):
+    print(f"records table has {nrec} timed rows, timings.csv has {len(tim)}"); bad += 1
+# the campaign-cost prose must match the tracked campaign_core_hours column:
+# total (rounded to the nearest 1000), and the quoted min/max per-target costs
+tex_src = tex
+tot = sum(camp.values())
+claims = [r"{\approx}%d{,}000" % (round(tot, -3) // 1000),
+          r"{\approx}%d$ core-hours ($10^{%d}" % (min(camp.values()), min(camp, key=camp.get)),
+          r"{\approx}%d{,}%03d$ ($10^{%d}" % (max(camp.values()) // 1000,
+                                              max(camp.values()) % 1000, max(camp, key=camp.get))]
+for cl in claims:
+    if cl not in tex_src:
+        print(f"campaign-cost claim not found/mismatched in tex: {cl!r}"); bad += 1
 if not bad:
     print(f"{len(seen)} table rows match certs.csv exactly "
-          f"({total_levels} levels in total)")
+          f"({total_levels} levels in total); {nrec} record walls match timings.csv")
 sys.exit(1 if bad else 0)

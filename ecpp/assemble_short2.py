@@ -33,11 +33,18 @@ def load_csv(path):
 def validate():
     bad = 0
     chains = load_csv(OUT)
-    expected = [c[0] for c in load_csv(V1CSV)]    # the authoritative prime list, in order
+    expected = [c[0] for c in load_csv(V1CSV)]    # the migration-era prime list, in order
     got = [c[0] for c in chains]
-    if got != expected:
-        print(f"table mismatch: {len(got)} chains present, expected the "
-              f"{len(expected)} primes of certs_v1.csv in the same order")
+    # the table may legitimately GROW beyond the migration set: the first
+    # len(expected) primes must match it exactly, and any newer records must
+    # continue in sorted order
+    ok = (got[:len(expected)] == expected
+          and got == sorted(got)
+          and len(set(got)) == len(got))
+    if not ok:
+        print(f"table mismatch: {len(got)} chains present; the first "
+              f"{len(expected)} must be the certs_v1.csv primes in order and "
+              f"any extensions must be sorted and duplicate-free")
         for p in expected:
             if p not in got:
                 print(f"  missing: 10^{len(str(p))-1} chain")

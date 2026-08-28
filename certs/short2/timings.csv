@@ -1,0 +1,26 @@
+# per-record timing data for the short-ECPP records table (tab:shortrecords)
+# c, bits, levels, wall_seconds (as logged per chain; for c=380/400 the
+# winner-replay build+descent), threads, campaign_core_hours (per-target
+# campaign total incl. all passes/preemptions; blank for the c<=310 campaign,
+# whose accounting lives in reports/short-ecpp-records/)
+c,bits,levels,wall_seconds,threads,campaign_core_hours
+210,698,4,20,32,
+220,731,5,4660,32,
+230,765,4,13218,32,
+240,798,4,5759,192,
+250,831,4,2416,192,
+260,864,4,3291,192,
+270,897,4,9615,192,
+280,931,4,3416,192,
+290,964,4,546,192,
+300,997,5,5466,192,
+310,1030,5,158,192,
+320,1064,5,8697,192,390
+330,1097,5,25134,192,1080
+340,1130,5,9640,192,420
+350,1163,5,20129,192,900
+360,1196,5,21590,192,1450
+370,1230,5,37778,192,2100
+380,1263,4,4055,192,4300
+390,1296,5,18981,192,13700
+400,1329,5,46109,192,3700

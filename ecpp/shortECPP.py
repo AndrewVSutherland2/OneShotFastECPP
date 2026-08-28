@@ -411,23 +411,39 @@ def accept_q(cand, q, p, L, n2, small_primes):
     if not cand.sfac:
         return None
     hits = window_hits(cand.sfac, q, L)
+    # a filler prime ell > 97 that also divides v is unusable: exact-order
+    # sampling needs the ell-volcano floor and cm_method walks only ell <= 97,
+    # so such hits would burn an expensive j computation and then fail
+    hits = [(o, m) for o, m in hits
+            if not any(m % pr == 0 and cand.v % pr == 0
+                       for pr in cand.sfac if pr > 97)]
     return hits or None
 
 
 # ------------------------------------------------------------ winner -> level
-def get_j(p, d, ells=None, jobs=0):
-    """j-invariant of a curve with CM by -d over F_p (cm_method, polclass fallback)."""
+def get_j(p, d, ells=None, jobs=0, attempts=3):
+    """j-invariant of a curve with CM by -d over F_p (cm_method, polclass
+    fallback).  The root-find's equal-degree splitting is randomized and an
+    attempt can come back rootless (exit 0, no j line), so retry a few times
+    before giving up on the discriminant."""
     cmd = [os.path.join(ECPP_DIR, "cm_method"), "D=-%d" % d, "p=%d" % p]
     if ells:
         cmd.append("ells=" + ",".join(str(e) for e in ells))
     if jobs > 1 and d >= 20000000:
         cmd.append("jobs=%d" % min(jobs, 64))
-    r = subprocess.run(cmd, capture_output=True, text=True, env=ECM_ENV, timeout=3600)
-    if r.returncode == 0:
-        for line in r.stdout.splitlines():
-            w = line.split()
-            if len(w) == 2 and w[0] == "j":
-                return int(w[1])
+    for att in range(attempts):
+        # distinct seed per attempt: cm_method's root-find is deterministically
+        # seeded, so an identical rerun would repeat a rootless result exactly
+        r = subprocess.run(cmd + ["seed=%d" % (att + 1)],
+                           capture_output=True, text=True, env=ECM_ENV, timeout=3600)
+        if r.returncode == 0:
+            for line in r.stdout.splitlines():
+                w = line.split()
+                if len(w) == 2 and w[0] == "j":
+                    return int(w[1])
+        log("    cm_method D=-%d attempt %d/%d: exit %d, no j; tail: %s" % (
+            d, att + 1, attempts, r.returncode,
+            (r.stderr or r.stdout)[-260:].replace("\n", " | ")))
     if ells is None and d <= 3 * 10 ** 6:
         out = gp("r=polrootsmod(polclass(-%d),%d);\n"
                  "if(#r==0,print(\"NOROOT\"),print(lift(r[1])));\n" % (d, p), timeout=1800)
@@ -516,9 +532,17 @@ def build_level(p, cand, q, hits, rng, jobs=0):
     For p = 3 mod 4 with N = 4 mod 8, a Montgomery model needs a cyclic
     2-Sylow; when v is even the H_D surface roots generically fail, so descend
     the 2-volcano to its floor first (cm_method ells=2)."""
+    # primes shared between any hit's filler and v: their Sylow may sit split
+    # above the ell-volcano floor, and exact-order cofactor sampling needs it
+    # cyclic, so any descent must cover ALL of them
+    need = sorted({pr for _, m_ in hits[:12]
+                   for pr in cand.sfac
+                   if m_ % pr == 0 and cand.v % pr == 0 and pr <= 97})
     volcano_first = (p % 4 == 3 and cand.N % 8 == 4 and cand.v % 2 == 0)
     tried_ells = volcano_first
-    j = get_j(p, cand.d, ells=[2], jobs=jobs) if volcano_first else get_j(p, cand.d, jobs=jobs)
+    first_ells = sorted(set(need) | {2}) if volcano_first else None
+    j = (get_j(p, cand.d, ells=first_ells, jobs=jobs) if volcano_first
+         else get_j(p, cand.d, jobs=jobs))
     if volcano_first and j is None:
         tried_ells = False              # volcano failed: fall back to direct
         j = get_j(p, cand.d, jobs=jobs)
@@ -537,11 +561,20 @@ def build_level(p, cand, q, hits, rng, jobs=0):
                     x = find_point(p, A, cand.N, o, odiv, chi_target, rng)
                     if x is not None:
                         return (A, x, o)
-        # Montgomery obstruction or no usable point: one retry via the 2-volcano floor
-        if not tried_ells and cand.v % 2 == 0 and p % 4 == 3:
+        # No usable point.  Cofactor sampling Q = [N/o]P yields exact order o
+        # only when the ell-Sylow is CYCLIC for every ell | m: a split Sylow
+        # (possible exactly when ell | v, i.e. the H_D curve sits above the
+        # ell-volcano floor) loses one ell-power to the cofactor no matter the
+        # exponent.  So retry once from the floor of every volcano that any
+        # hit's filler shares with v -- the same walk the one-shot engine does
+        # for each ell | m.
+        if not tried_ells:
             tried_ells = True
-            j = get_j(p, cand.d, ells=[2], jobs=jobs)
-            continue
+            if need:
+                log("    D=-%d: retrying via volcano floors ells=%s"
+                    % (cand.d, ",".join(map(str, need))))
+                j = get_j(p, cand.d, ells=need, jobs=jobs)
+                continue
         return None
 
 
@@ -571,6 +604,10 @@ def ladder_rounds(nbits):
                  ("pm1", 10000000, [1], 2000),
                  ("ecm", 1000000, [12] * 6, 2000), ("ecm", 3000000, [12] * 8, 700),
                  ("ecm", 10000000, [12] * 6, 200)]
+        if os.environ.get("SHORTECPP_DEEP", "0") == "1":
+            # opt-in deep tail: full-ladder veterans get one more escalation
+            # (the 35-42 digit factor band is thinly covered by B1=1e7 x 72)
+            tiers.append(("ecm", 30000000, [12] * 6, 100))
     elif nbits >= 900:
         tiers = [("ecm", 2000, [12], 0), ("ecm", 11000, [20], 0),
                  ("pm1", 500000, [1], 12000),
