@@ -1293,17 +1293,18 @@ $10^{240}+1723$ & 798 & 4 & 5{,}759 s & 192 & $10^{340}+1153$ & 1130 & 5 & 9{,}6
 $10^{250}+1227$ & 831 & 4 & 2{,}416 s & 192 & $10^{350}+133$ & 1163 & 5 & 20{,}129 s & 192\\
 $10^{260}+49$   & 864 & 4 & 3{,}291 s & 192 & $10^{360}+513$ & 1196 & 5 & 21{,}590 s & 192\\
 $10^{270}+361$  & 897 & 4 & 9{,}615 s & 192 & $10^{370}+2781$ & 1230 & 5 & 37{,}778 s & 192\\
-$10^{280}+13$   & 931 & 4 & 3{,}416 s & 192 & $10^{380}+387$ & 1263 & 4 & 3{,}413 s$^{*}$ & 192\\
+$10^{280}+13$   & 931 & 4 & 3{,}416 s & 192 & $10^{380}+387$ & 1263 & 4 & 4{,}055 s$^{*}$ & 192\\
 $10^{290}+279$  & 964 & 4 & 546 s & 192 & $10^{390}+799$ & 1296 & 5 & 18{,}981 s & 192\\
-$10^{300}+331$  & 997 & 5 & 5{,}466 s & 192 & $10^{400}+69$ & 1329 & 5 & 2{,}535 s$^{*}$ & 192\\
+$10^{300}+331$  & 997 & 5 & 5{,}466 s & 192 & $10^{400}+69$ & 1329 & 5 & 46{,}109 s$^{*}$ & 192\\
 \bottomrule
 \end{tabular}
 \medskip
 \caption{The August 2026 records, $c = 210, \dots, 400$, by the CM-supply prover
 \texttt{shortECPP.py} \osf{} on AWS spot instances (wall times as logged per chain --- for
 $c \le 310$ the original campaign's, level counts as migrated; ${}^{*}$the $10^{380}$ and
-$10^{400}$ walls are the winner-replay build and descent, their searches having journaled the
-winner in earlier runs; the largest previously published AKS-style example was 1025 bits).}
+$10^{400}$ walls are from-scratch equivalents --- search-to-winner plus winner build --- their
+original runs having discarded the winner to the (since fixed) volcano gate, so they estimate what
+a rerun under the final code costs; the largest previously published AKS-style example was 1025 bits).}
 \label{tab:shortrecords}
 \end{table}
 
