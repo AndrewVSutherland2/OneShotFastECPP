@@ -426,7 +426,10 @@ def get_j(p, d, ells=None, jobs=0, attempts=3):
     if jobs > 1 and d >= 20000000:
         cmd.append("jobs=%d" % min(jobs, 64))
     for att in range(attempts):
-        r = subprocess.run(cmd, capture_output=True, text=True, env=ECM_ENV, timeout=3600)
+        # distinct seed per attempt: cm_method's root-find is deterministically
+        # seeded, so an identical rerun would repeat a rootless result exactly
+        r = subprocess.run(cmd + ["seed=%d" % (att + 1)],
+                           capture_output=True, text=True, env=ECM_ENV, timeout=3600)
         if r.returncode == 0:
             for line in r.stdout.splitlines():
                 w = line.split()
