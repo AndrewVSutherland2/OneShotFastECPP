@@ -523,9 +523,17 @@ def build_level(p, cand, q, hits, rng, jobs=0):
     For p = 3 mod 4 with N = 4 mod 8, a Montgomery model needs a cyclic
     2-Sylow; when v is even the H_D surface roots generically fail, so descend
     the 2-volcano to its floor first (cm_method ells=2)."""
+    # primes shared between any hit's filler and v: their Sylow may sit split
+    # above the ell-volcano floor, and exact-order cofactor sampling needs it
+    # cyclic, so any descent must cover ALL of them
+    need = sorted({pr for _, m_ in hits[:12]
+                   for pr in cand.sfac
+                   if m_ % pr == 0 and cand.v % pr == 0 and pr <= 97})
     volcano_first = (p % 4 == 3 and cand.N % 8 == 4 and cand.v % 2 == 0)
     tried_ells = volcano_first
-    j = get_j(p, cand.d, ells=[2], jobs=jobs) if volcano_first else get_j(p, cand.d, jobs=jobs)
+    first_ells = sorted(set(need) | {2}) if volcano_first else None
+    j = (get_j(p, cand.d, ells=first_ells, jobs=jobs) if volcano_first
+         else get_j(p, cand.d, jobs=jobs))
     if volcano_first and j is None:
         tried_ells = False              # volcano failed: fall back to direct
         j = get_j(p, cand.d, jobs=jobs)
@@ -553,9 +561,6 @@ def build_level(p, cand, q, hits, rng, jobs=0):
         # for each ell | m.
         if not tried_ells:
             tried_ells = True
-            need = sorted({pr for _, m_ in hits[:12]
-                           for pr in cand.sfac
-                           if m_ % pr == 0 and cand.v % pr == 0 and pr <= 97})
             if need:
                 log("    D=-%d: retrying via volcano floors ells=%s"
                     % (cand.d, ",".join(map(str, need))))
