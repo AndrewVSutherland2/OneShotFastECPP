@@ -411,6 +411,12 @@ def accept_q(cand, q, p, L, n2, small_primes):
     if not cand.sfac:
         return None
     hits = window_hits(cand.sfac, q, L)
+    # a filler prime ell > 97 that also divides v is unusable: exact-order
+    # sampling needs the ell-volcano floor and cm_method walks only ell <= 97,
+    # so such hits would burn an expensive j computation and then fail
+    hits = [(o, m) for o, m in hits
+            if not any(m % pr == 0 and cand.v % pr == 0
+                       for pr in cand.sfac if pr > 97)]
     return hits or None
 
 
