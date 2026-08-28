@@ -107,7 +107,7 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
 - **Short ECPP records (2026-08-18, frontier 2026-08-28)**: `ecpp/shortECPP.py` — CM prover
   for the ShortPrimalityProofs *short ECPP* format; produced the table entries for
   nextprime(10^c), c = 210..310 (~3,500 core-h, one day) and the frontier extension
-  c = 320..400 (largest: 10^400+69, 1329 bits; ~28,500 core-h, ~$420 of spot across six
+  c = 320..400 (largest: 10^400+69, 1329 bits; ~28,000 core-h, ~$420 of spot across six
   preemptions; 10^390 was a ×6 outlier at ~13,700 core-h over five ladder passes).  Frontier
   fixes: exact-order cofactor sampling needs the ℓ-volcano floor for EVERY ℓ | gcd(m, v) —
   build_level now retries via cm_method ells=<those ℓ> (was: ells=2 only at p≡3 mod 4);
