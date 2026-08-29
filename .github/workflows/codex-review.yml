@@ -13,13 +13,16 @@
 #     is not possible with this action -- its write-access check needs
 #     github.token -- and shipping the workspace between jobs as an
 #     artifact is prohibitive for multi-GB research repos.)
-#   - the job that posts holds issues:write ONLY -- the narrowest scope
-#     that can create a PR comment (PR comments are issue comments). That
-#     token cannot merge, approve, or touch reviews; repo settings ("Allow
-#     Actions to create and approve pull requests" = off) block PR
-#     creation/approval besides. Residual, accepted, documented: the
-#     issues API can still edit/label/close a PR-as-issue -- the job's
-#     fixed shell never does, and model output stays data (see below)
+#   - the job that posts holds pull-requests:write. An issues:write-only
+#     narrowing was tried and REFUTED BY SMOKE TEST (2026-08-29, test
+#     PR #3 run 4: HTTP 403 "Resource not accessible by integration") --
+#     for the Actions installation token, comments on an issue that IS a
+#     pull request are governed by the pull-requests permission,
+#     regardless of what the fine-grained-PAT reference table suggests.
+#     Stated honestly rather than as "comment-only": this scope could
+#     also edit/label/close/merge-adjacent the PR -- the job's fixed
+#     shell never does, model output stays data (see below), and repo
+#     settings block Actions PR creation/approval besides
 #   - trigger is pull_request (never pull_request_target): fork PRs get no
 #     secrets, so an untrusted diff cannot reach the API key
 #
@@ -131,10 +134,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
-      issues: write           # posts the PR comment via the issues API (PR
-                              # comments ARE issue comments); deliberately not
-                              # pull-requests:write, so merge/review/review-
-                              # request operations are out of scope entirely
+      pull-requests: write    # the scope that ACTUALLY authorizes commenting
+                              # on a PR with the installation token: an
+                              # issues:write-only attempt 403'd in the live
+                              # smoke test (see header). Do not re-narrow
+                              # without re-running that smoke test.
     steps:
       - name: Post review comment
         env:
@@ -147,9 +151,9 @@ jobs:
         # comment bodies at 65536 characters; truncate to keep a too-long
         # review postable rather than lost (iconv drops a UTF-8 sequence
         # cut in half by the byte-level truncation). The comment is posted
-        # via the REST issues endpoint directly: 'gh pr comment' would
-        # first resolve the PR through the pulls API, which the
-        # issues:write-only token deliberately cannot read.
+        # via the REST issues endpoint directly, pinning the exact API
+        # surface (no extra PR-resolution round trip as with
+        # 'gh pr comment').
         run: |
           printf '### Codex review\n\n%s\n' "$BODY" > body-full.md
           if [ "$(wc -c < body-full.md)" -le 60000 ]; then
@@ -165,8 +169,9 @@ jobs:
       # github-actions[bot]):
       #   1. Settings -> Developer settings -> GitHub Apps -> New GitHub App.
       #      Repository permissions ONLY: Contents: Read,
-      #      Issues: Read and write, Metadata: Read (the posting call uses
-      #      the REST issues endpoint, so the App needs no PR scope).
+      #      Pull requests: Read and write, Metadata: Read (PR comments are
+      #      governed by the Pull requests permission for app tokens --
+      #      empirically, an Issues-only token 403s; see header).
       #      No webhook. Install on selected repositories.
       #   2. Store the App ID as variable CODEX_REVIEW_APP_ID and the
       #      private key as secret CODEX_REVIEW_APP_KEY.
