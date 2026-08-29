@@ -30,11 +30,14 @@
 # (PR number, SHAs, repo name) appear in shell/prompt context. Never
 # interpolate PR titles/bodies/branch names into run: blocks.
 #
-# MASTER-COPY RULE: this file is the fleet's source of truth, and the deploy
-# script overwrites every repo's copy with it. When Dependabot bumps a pinned
-# SHA in any repo, refresh the master FIRST (./deploy.sh sync-master <repo>,
-# then review and commit) -- a stale master downgrades every repo it touches,
-# which is why deploy.sh shows any pin-line change and requires confirmation.
+# MASTER-COPY RULE: the fleet's source of truth for this file is the master
+# copy at the ROOT of the private code-review repository; the deploy
+# overwrites every repo's live .github/workflows/ copy (including the one
+# you may be reading) with it. When Dependabot bumps a pinned SHA in any
+# repo, refresh the master FIRST (codex-fleet deploy sync-master <repo>,
+# then review and commit in code-review) -- a stale master downgrades every
+# repo it touches, which is why the deploy shows any pin-line change and
+# requires confirmation.
 
 name: codex-review
 
