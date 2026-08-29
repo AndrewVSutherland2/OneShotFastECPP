@@ -13,6 +13,12 @@
 # Interpolation rule observed throughout: only trusted payload fields
 # (PR number, SHAs, repo name) appear in shell/prompt context. Never
 # interpolate PR titles/bodies/branch names into run: blocks.
+#
+# MASTER-COPY RULE: this file is the fleet's source of truth, and the deploy
+# script overwrites every repo's copy with it. When Dependabot bumps a pinned
+# SHA in any repo, refresh the matching line HERE (or cp a bumped repo's copy
+# over this file) before the next deploy -- a stale master silently
+# downgrades every repo it touches.
 
 name: codex-review
 
@@ -40,9 +46,7 @@ jobs:
     outputs:
       final_message: ${{ steps.codex.outputs.final-message }}
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
-        # PIN before rollout (uniform rule -- no mutable refs):
-        #   gh api repos/actions/checkout/commits/v5 --jq .sha
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
         with:
           ref: refs/pull/${{ github.event.pull_request.number }}/merge
           fetch-depth: 0
@@ -56,10 +60,7 @@ jobs:
 
       - name: Run Codex review (no GitHub token in this job)
         id: codex
-        uses: openai/codex-action@86365089eb2b84e0a8fb0717b304f8bdcb13b20e
-        # PIN before rollout: replace v1 above with the full commit SHA from
-        #   gh api repos/openai/codex-action/commits/v1 --jq .sha
-        # keeping "# v1" as a trailing comment for readability.
+        uses: openai/codex-action@86365089eb2b84e0a8fb0717b304f8bdcb13b20e  # v1
         with:
           openai-api-key: ${{ secrets.OPENAI_API_KEY }}
           sandbox: read-only
