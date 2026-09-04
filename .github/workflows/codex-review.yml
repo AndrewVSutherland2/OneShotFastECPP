@@ -99,8 +99,13 @@ jobs:
           sandbox: read-only        # marked legacy at this pin (still supported); the
                                     # replacement input is permission-profile: ":read-only".
                                     # Revisit when Dependabot bumps the action pin.
-          model: gpt-5.6-sol        # continuity: the connector-era reviewer was Sol at
-                                    # medium (default) effort; leaving effort unset matches it.
+          model: gpt-6-astra        # GPT-6 Astra (released 2026-09-03), enabled for the
+                                    # fleet's OpenAI project on 2026-09-04; replaced
+                                    # gpt-5.6-sol. Effort stays unset (model default), as
+                                    # it was for Sol; Astra accepts low|medium|high|xhigh|max.
+                                    # CLI support: codex-version is unset, so the action
+                                    # installs npm 'latest' every run, and Astra entered the
+                                    # Codex model catalog in 0.153.1 (2026-09-03, #42605).
           # effort: high            # escalation knob for heavy PRs (input name verified
                                     # in action.yml at the pinned SHA).
           prompt: |
