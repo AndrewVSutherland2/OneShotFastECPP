@@ -54,10 +54,8 @@ concurrency:
 
 jobs:
   review:
-    # Only review PRs opened by the Claude Code account. Everything else
-    # (including your own hand-made PRs, unless you add yourself) is skipped
-    # and burns neither minutes nor tokens.
-    if: github.event.pull_request.user.login == 'AndrewVSutherland2'
+    # Only review PRs opened by the Claude Code account AndrewVSutherland2 or the Codex account AVScodex.
+    if: github.event.pull_request.user.login == 'AndrewVSutherland2' || github.event.pull_request.user.login == 'AVScodex'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
