@@ -106,14 +106,32 @@ jobs:
                                     # Codex model catalog in 0.153.1 (2026-09-03, #42605).
           # effort: high            # escalation knob for heavy PRs (input name verified
                                     # in action.yml at the pinned SHA).
+          # The diff is THREE-DOT (merge base...head). On a synchronize event
+          # base.sha is the base branch's CURRENT tip, not the commit the PR
+          # branched from, so once the base has moved a two-dot diff also
+          # shows every newer base commit reversed, and the model reports
+          # "this PR deletes X; restore it" about files the PR never touched
+          # (zulip-agent-bridge #319, 2026-10-15: eight such findings, one
+          # per PR merged into main meanwhile; the suggested rebase cures it
+          # only until the base moves again -- issue #5). The merge base
+          # always resolves: fetch-depth 0 plus the verify step above. The
+          # Round protocol's git log BASE..HEAD is reachability-defined and
+          # lists only the PR's commits either way; AGENTS.md rules are still
+          # read at base.sha, i.e. the current rules on the base branch.
           prompt: |
             You are reviewing pull request #${{ github.event.pull_request.number }}
             in ${{ github.repository }}.
             Base SHA: ${{ github.event.pull_request.base.sha }}
             Head SHA: ${{ github.event.pull_request.head.sha }}
             Inspect the change with:
-              git diff ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }}
-            reading surrounding files as needed for context.
+              git diff ${{ github.event.pull_request.base.sha }}...${{ github.event.pull_request.head.sha }}
+            reading surrounding files as needed for context. The base SHA is
+            the base branch's current tip, which may have moved since this PR
+            branched; the three-dot diff above, from the merge base, is this
+            PR's change. Anything in the base's newer commits was made by
+            other, already-merged PRs: do not attribute it to this PR. The
+            working tree is this PR merged into that base tip, so files you
+            read may contain base changes that are not in the head SHA.
 
             Report only actionable issues INTRODUCED BY THIS PR affecting
             correctness (including mathematical correctness of algorithms,
