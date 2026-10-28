@@ -146,6 +146,8 @@ make test [MAXD=1000]        # classpoly vs PARI (Tests 1/2/3); ~2.5 min
 ./ecpp/oneshotECPP pbits=256 seed=1 threads=16 c=1 B0=4000000 B=20000000000  # all knobs
 python3 ecpp/test_dscan.py   # validate the discriminant scan vs PARI + brute force
 python3 ecpp/test_smooth.py  # validate smoothness engine vs PARI (Test A + end-to-end gate)
+make -C ecpp voneshot && python3 ecpp/test_voneshot.py  # C one-shot verifier vs voneshot.py (differential)
+ecpp/voneshot $(cat certs/25519.txt)   # C verifier, same CLI as voneshot.py; --bench <certfile> times it
 ./ecpp/roottest pari 256 200 # validate F_p root-finder vs PARI polrootsmod
 ./ecpp/cm_method D=-24447 pbits=256 seed=1   # j-invariant with CM by D (needs env)
 ./ecpp/dscan pbits=256 B=1e8 threads=32 dump # scan alone (Bmin=|verify|dumpscan|sd=|seed=)
