@@ -14,7 +14,7 @@ CPLIBS = -L../local/lib -lff_poly $(LIBS)
 # the zp_poly objects fproot's sub-quadratic gcd path needs (subset of CPOBJS)
 ZPOBJS = $(addprefix $(CPDIR)/, zp_poly_small.o zp_poly_util.o zp_poly_mul.o zp_poly_div.o zp_poly_gcd.o zp_poly_exp.o zp_poly_comp.o zp2.o zp_roots.o)
 
-PROGRAMS = cmsearch dscan smoothtest roottest hdroot cm_method oneshotECPP voneshot
+PROGRAMS = cmsearch dscan smoothtest roottest hdroot cm_method oneshotECPP voneshot vshort2
 TESTPROGS = invjtest cmjtest asmtest zpbench
 GENERIC  = cmsearch dscan smoothtest roottest hdroot oneshotECPP invjtest asmtest
 
@@ -45,6 +45,9 @@ zpbench:    zpbench.o fproot.o
 voneshot:   voneshot.o
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
+vshort2:    vshort2.o
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
+
 # header dependencies
 cornacchia.o cmsearch.o dscan.o: cornacchia.h
 smooth.o smoothtest.o dscan.o:   smooth.h
@@ -53,6 +56,7 @@ invj.o cminv.o invjtest.o cmjtest.o cm_method.o: invj.h fproot.h
 curve.o asmtest.o:               curve.h fproot.h cornacchia.h smooth.h
 cminv.o cm_method.o:             cminv.h
 oneshotECPP.o:                       cornacchia.h smooth.h fproot.h curve.h
+voneshot.o vshort2.o:            xladder.h
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $<

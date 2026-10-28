@@ -15,6 +15,7 @@ ecpp/hdroot
 ecpp/cm_method
 ecpp/oneshotECPP
 ecpp/voneshot
+ecpp/vshort2
 ecpp/descent_bench
 ecpp/invjtest
 ecpp/cmjtest

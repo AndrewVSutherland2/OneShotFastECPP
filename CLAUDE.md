@@ -148,6 +148,8 @@ python3 ecpp/test_dscan.py   # validate the discriminant scan vs PARI + brute fo
 python3 ecpp/test_smooth.py  # validate smoothness engine vs PARI (Test A + end-to-end gate)
 make -C ecpp voneshot && python3 ecpp/test_voneshot.py  # C one-shot verifier vs voneshot.py (differential)
 ecpp/voneshot $(cat certs/25519.txt)   # C verifier, same CLI as voneshot.py; --bench <certfile> times it
+make -C ecpp vshort2 && python3 ecpp/test_vshort2.py  # C short-ECPP verifier (faithful + --fast) vs vshort2.py
+ecpp/vshort2 --bench certs/short2/certs.csv 1329   # faithful vs one-ladder-per-level, in MR rounds
 ./ecpp/roottest pari 256 200 # validate F_p root-finder vs PARI polrootsmod
 ./ecpp/cm_method D=-24447 pbits=256 seed=1   # j-invariant with CM by D (needs env)
 ./ecpp/dscan pbits=256 B=1e8 threads=32 dump # scan alone (Bmin=|verify|dumpscan|sd=|seed=)
