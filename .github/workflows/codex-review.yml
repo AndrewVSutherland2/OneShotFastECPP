@@ -56,7 +56,15 @@ jobs:
   review:
     # Only review PRs opened by the Claude Code account AndrewVSutherland2 or the Codex account AVScodex.
     if: github.event.pull_request.user.login == 'AndrewVSutherland2' || github.event.pull_request.user.login == 'AVScodex'
-    runs-on: ubuntu-latest
+    # Pinned to 24.04, not ubuntu-latest: on the ubuntu-26.04 image that
+    # ubuntu-latest now resolves to (fleet runs failing on it since
+    # 2026-11-01, image 20261025.179.1), codex-action's drop-sudo dies
+    # before the model runs ("Could not restrict access to
+    # /run/dbus/system_bus_socket": the deny ACL setfacl applies no longer
+    # takes effect), openai/codex-action#188. Return both jobs to
+    # ubuntu-latest once a codex-action release fixes #188 and its pin is
+    # bumped here; Dependabot bumps the pin but never this line.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read          # checkout only; no write capability of any kind
@@ -155,7 +163,7 @@ jobs:
   post:
     needs: review
     if: needs.review.outputs.final_message != ''
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04     # with the review job: see codex-action#188 above
     timeout-minutes: 5
     permissions:
       pull-requests: write    # the scope that ACTUALLY authorizes commenting
