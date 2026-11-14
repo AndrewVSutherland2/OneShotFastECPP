@@ -9,10 +9,15 @@ Two independent checks, for a prime of each residue class mod 4:
   (B) SOLVABILITY: for each scanned D, dscan's solvable/not (via `dump`) must
       agree with PARI's principal-form oracle, and every reported (t,v) must
       satisfy 4p = t^2 + |D| v^2.
+  (C) CAPPED FACTOR BASE: with maxfb=c the scanned set must be exactly the
+      brute-force set restricted to |D| whose odd prime factors are <= c; a scan
+      to B1 at cap c1 followed by Bmin=B1 maxfb=c2 fbmin=c1 must tile the scan to
+      B2 at cap c2 with no repeats; and roots=<file> (cold, warm, extended,
+      corrupted) must never change the output.
 
 Usage: python3 test_dscan.py [--pbits 192] [--B 20000]
 """
-import argparse, subprocess, sys
+import argparse, os, subprocess, sys, tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -120,6 +125,33 @@ def check_one(p, B):
     if mism: print("    mism:", [(d, d in solv, oracle.get(d)) for d in mism[:20]])
 
     ok = not missingA and not extraA and not arith_bad and not mism
+
+    # (C) capped factor base, tiling across a growing cap, root cache
+    def run(*args):
+        return subprocess.run([str(DSCAN), f"p={p}"] + list(args), capture_output=True, text=True, timeout=600).stdout
+    c1, c2, B1 = max(7, B // 400), max(31, B // 40), B // 5
+    def oddmax(d):
+        while d % 2 == 0: d //= 2
+        return max(factor(d)) if d > 1 else 0
+    capped = set(int(x) for x in run(f"B={B}", f"maxfb={c2}", "dumpscan").split())
+    want = set(d for d in expected if oddmax(d) <= c2)
+    full = sorted(run(f"B={B}", f"maxfb={c2}", "dump").splitlines())
+    first = run(f"B={B1}", f"maxfb={c1}", "dump").splitlines()
+    second = run(f"B={B}", f"Bmin={B1}", f"maxfb={c2}", f"fbmin={c1}", "dump").splitlines()
+    tiled = sorted(first + second)
+    with tempfile.TemporaryDirectory() as td:
+        rf = os.path.join(td, "roots.bin")
+        cold = sorted(run(f"B={B1}", f"maxfb={c1}", f"roots={rf}", "dump").splitlines())
+        ext = sorted(run(f"B={B}", f"maxfb={c2}", f"roots={rf}", "dump").splitlines())
+        warm = sorted(run(f"B={B}", f"maxfb={c2}", f"roots={rf}", "dump").splitlines())
+        with open(rf, "r+b") as fh:                     # damage a root in the middle of the file
+            fh.seek(os.path.getsize(rf) // 2); fh.write(b"\x5a\xa5\x5a")
+        hurt = sorted(run(f"B={B}", f"maxfb={c2}", f"roots={rf}", "dump").splitlines())
+    okC = (capped == want and tiled == full and len(set(first) & set(second)) == 0
+           and cold == sorted(first) and ext == full and warm == full and hurt == full)
+    print(f"  capped (maxfb={c2}): dscan {len(capped)} vs brute {len(want)}; tiling {len(first)}+{len(second)} "
+          f"vs {len(full)}; root cache cold/extended/warm/damaged {'identical' if okC else 'MISMATCH'}")
+    ok = ok and okC
     print("  " + ("OK" if ok else "FAIL"))
     return ok
 

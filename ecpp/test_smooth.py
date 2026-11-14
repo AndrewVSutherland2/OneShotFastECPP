@@ -73,8 +73,25 @@ def test_A():
                 bad += 1
                 if bad <= 5:
                     print(f"  MISMATCH y={y} N={x}: ours=({os},{oc}) pari=({ps},{pc})")
-        print(f"  y={y:>10} batch={count}: {'OK' if bad==0 else f'{bad} MISMATCHES'}")
-        ok = ok and bad == 0
+        # extra columns: the y2-smooth part of N (n2=) and the base-2 Fermat verdict
+        # on the cofactor (prp=1), which shortECPP reads straight from smoothtest
+        y2 = min(y, 5000)
+        ext = subprocess.run([str(SMOOTH), "parts", f"y={y}", f"n2={y2}", "prp=1"],
+                             input="\n".join(map(str, nums)) + "\n",
+                             capture_output=True, text=True).stdout.split("\n")
+        ext = [l.split() for l in ext if l.strip()]
+        pari2 = pari_smooth_part(nums, y2)
+        bad2 = 0
+        for i, x in enumerate(nums):
+            cof = int(ext[i][2])
+            flag = (cof == 2) or (cof > 2 and pow(2, cof - 1, cof) == 1)
+            if ext[i][:3] != ours[i][:3] or int(ext[i][3]) != pari2[i][0] or (ext[i][4] == "1") != flag:
+                bad2 += 1
+                if bad2 <= 5:
+                    print(f"  EXTRA-COLUMN MISMATCH y={y} y2={y2} N={x}: {ext[i][3:]} vs ({pari2[i][0]},{int(flag)})")
+        print(f"  y={y:>10} batch={count}: {'OK' if bad==0 else f'{bad} MISMATCHES'};  "
+              f"n2={y2} and prp columns: {'OK' if bad2==0 else f'{bad2} MISMATCHES'}")
+        ok = ok and bad == 0 and bad2 == 0
     return ok
 
 

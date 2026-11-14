@@ -5,7 +5,7 @@
 At each level (modulus p, top-level n fixed for the whole chain, n2 = n^2):
   1. dscan enumerates (D,t,v) with 4p = t^2 + |D| v^2; candidate curve orders
      are N = p+1-t and p+1+t with 4 | N (Montgomery-representable side pairs).
-  2. smoothtest strips every candidate's y0-smooth part S (y0 = 2^32, batched
+  2. smoothtest strips every candidate's y0-smooth part S (y0 = 2^26, batched
      Bernstein remainder trees against a cached prime product); the n2-smooth
      part s | S supplies the certificate cofactor m, the rest of S is discarded
      into the untracked cofactor c (which never needs factoring), and the rough
@@ -26,6 +26,10 @@ usage: shortECPP.py (p=<decimal> | c=<digits: p=nextprime(10^c)>)
                       [threads=N] [out=<file>] [tag=<name>] [B0=<dscan start>]
                       [Bmax=<dscan cap>] [maxfb=<factor-base cap>] [seed=1]
                       [v=1] [v2=1] [resume=1]
+
+The scan's factor base is always capped: at maxfb if given (top level only),
+otherwise at fb_cap(B), which grows with the scan bound.  Its square roots are
+cached per modulus under work/rootcache/ for the life of the level.
 """
 
 import concurrent.futures
@@ -33,9 +37,12 @@ import json
 import math
 import os
 import random
+import hashlib
+import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from math import gcd, isqrt
 
@@ -94,8 +101,15 @@ if not ECM_BIN:
 ECM_ENV = dict(os.environ)
 _ecm_lib = os.path.join(os.path.dirname(os.path.dirname(ECM_BIN)), "lib", "x86_64-linux-gnu") if ECM_BIN else ""
 ECM_ENV["LD_LIBRARY_PATH"] = _ecm_lib + ":" + ECM_ENV.get("LD_LIBRARY_PATH", "")
-PCACHE = os.path.join(REPO_DIR, "work/pcache/oneshot_P_4294967296.bin")   # y0 = 2^32
-Y0 = 4294967296
+# Strip bound y0 = 2^26.  The strip only has to be exact up to n^2 (the
+# certificate cofactor m is n^2-smooth); everything between n^2 and y0 is junk
+# that ECM would remove anyway.  The batch cost is one reduction of the prime
+# product modulo the product of the batch, so it scales with y0: 2^26 strips
+# 27,000 orders at 1030 bits ten times faster than 2^32 did (6 s against 62 s),
+# with identical n^2-smooth parts, and the primes it leaves, 27 to 32 bits, are
+# found by the first ECM tier.
+Y0 = 1 << 26
+PCACHE = os.path.join(REPO_DIR, "work/pcache/oneshot_P_%d.bin" % Y0)
 CM_MIN_BITS = 135                 # below this, short.gp (SEA) finishes the chain
 
 # Revised (August 2026) format support: when V2_BCAP > 0, fillers are restricted
@@ -172,20 +186,6 @@ def is_prp(n, rounds=24):
     return True
 
 
-def fermat2(n):
-    """Base-2 Fermat test: True = probably prime.  Used only as a cheap pool
-    screen; acceptance always re-tests with is_prp (and the final certificate
-    is verified independently), so a 2-pseudoprime costs at most a dead branch."""
-    return pow(2, n - 1, n) == 1
-
-
-def parallel_map(fn, items, threads):
-    if len(items) < 4:
-        return [fn(x) for x in items]
-    with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as ex:
-        return list(ex.map(fn, items, chunksize=max(1, len(items) // (4 * threads))))
-
-
 def sqrt_mod(a, p):
     a %= p
     if a == 0:
@@ -255,12 +255,36 @@ class Cand:
 
 
 # ------------------------------------------------------------ pool components
-def run_dscan(p, B, Bmin, threads, maxfb=0):
+def fb_cap(B):
+    """Factor-base cap for a scan to B.  A square root mod p costs about 60
+    Cornacchia tests and a prime q is in about B/(30 q) of the discriminants
+    scanned, so roots of primes far above B/1000 never pay for themselves; the
+    count of solvable D is flat in the cap (measured at 1030 bits, B = 2e10:
+    a cap of B/4000 keeps 81% of what B/400 finds, with a ninth of the roots)."""
+    return max(10 ** 6, min(10 ** 8, B // 1000))
+
+
+def roots_path(p):
+    """Per-modulus cache of the scan's factor-base square roots (dscan roots=)."""
+    d = os.path.join(REPO_DIR, "work", "rootcache")
+    os.makedirs(d, exist_ok=True)
+    return os.path.join(d, "roots_%s.bin" % hashlib.sha256(str(p).encode()).hexdigest()[:20])
+
+
+def run_dscan(p, B, Bmin, threads, maxfb=0, fbmin=0, roots=None):
+    """Solvable (d, t, v) with Bmin <= d < B over the factor base capped at maxfb.
+    With fbmin set (the cap of the scans already done below Bmin) the d < Bmin
+    that need a prime in (fbmin, maxfb] are included too, so successive calls
+    with a growing cap tile [0, B) at the latest cap without repeats."""
     cmd = [os.path.join(ECPP_DIR, "dscan"), "p=%d" % p, "B=%d" % B, "threads=%d" % threads, "dump"]
     if Bmin:
         cmd.append("Bmin=%d" % Bmin)
     if maxfb:
         cmd.append("maxfb=%d" % maxfb)
+    if fbmin and Bmin:
+        cmd.append("fbmin=%d" % fbmin)
+    if roots:
+        cmd.append("roots=" + roots)
     r = subprocess.run(cmd, capture_output=True, text=True, env=ECM_ENV)
     if r.returncode != 0:
         raise RuntimeError("dscan failed: %s" % r.stderr[:500])
@@ -276,8 +300,8 @@ def run_dscan(p, B, Bmin, threads, maxfb=0):
 
 
 def ensure_pcache(threads):
-    """Build the primorial cache on first use (fresh checkouts do not ship
-    the 775 MB file); smoothtest pbuild writes it once and load= reuses it."""
+    """Build the primorial cache on first use (about a second for y0 = 2^26);
+    smoothtest pbuild writes it once and load= reuses it."""
     if os.path.exists(PCACHE):
         return
     os.makedirs(os.path.dirname(PCACHE), exist_ok=True)
@@ -293,68 +317,129 @@ def ensure_pcache(threads):
     os.replace(tmp, PCACHE)   # atomic; racing builders publish identical content
 
 
-def smooth_strip(Ns, threads):
-    """Batched y0-smooth-part extraction: N -> (S, T) with N = S*T, S the
-    2^32-smooth part.  Uses the cached prime product via smoothtest parts."""
+def smooth_strip(Ns, threads, n2):
+    """Batched strip: N -> (S, T, s, prp) with N = S*T, S the y0-smooth part
+    (cached prime product, smoothtest parts), s the n2-smooth part of S with
+    multiplicity, and prp the base-2 Fermat verdict on T.  The last two are
+    computed inside smoothtest, in parallel, so nothing per-candidate is left
+    for the interpreter."""
     if not Ns:
         return {}
     ensure_pcache(threads)
     inp = "\n".join(str(N) for N in Ns) + "\n"
     r = subprocess.run([os.path.join(ECPP_DIR, "smoothtest"), "parts", "load=" + PCACHE,
-                        "threads=%d" % threads],
+                        "threads=%d" % threads, "n2=%d" % n2, "prp=1"],
                        input=inp, capture_output=True, text=True, env=ECM_ENV)
     if r.returncode != 0:
         raise RuntimeError("smoothtest failed: %s" % r.stderr[:500])
     res = {}
     for line in r.stdout.splitlines():
         w = line.split()
-        if len(w) == 3:
-            N, S, T = int(w[0]), int(w[1]), int(w[2])
-            if S * T != N:
+        if len(w) == 5:
+            N, S, T, s2 = int(w[0]), int(w[1]), int(w[2]), int(w[3])
+            if S * T != N or S % s2 != 0:
                 raise RuntimeError("smoothtest self-inconsistency")
-            res[N] = (S, T)
+            res[N] = (S, T, s2, w[4] == "1")
     for N in Ns:
         if N not in res:
             raise RuntimeError("smoothtest missed an input")
     return res
 
 
-def n2_parts(S_list, P2):
-    """For each y0-smooth S, its n2-smooth part (with multiplicity), via one
-    remainder tree against the primorial P2 = prod(primes <= n2)."""
-    reduced = remainder_tree(P2, [S if S > 1 else 2 for S in S_list])
-    out = []
-    for S, r in zip(S_list, reduced):
-        if S <= 1:
-            out.append(1)
+_ECM_INPUT = re.compile(r"^Input number is (\d+)")
+_ECM_FACTOR = re.compile(r"^Found (?:prime|composite) factor of +\d+ digits: (\d+)")
+_ECM_COF = re.compile(r"^(Prime|Composite) cofactor (\d+) has")
+
+
+def parse_ecm(out, nums):
+    """gmp-ecm's normal (not -q) report for a list of inputs -> {n: (factors,
+    cofactor, cofactor_is_prp)} for the inputs it split.  The cofactor verdict is
+    gmp-ecm's own probable-prime test; a split is kept only if the factors and
+    the cofactor multiply back to the input."""
+    want = set(nums)
+    res = {}
+    cur, facs, cof, cprp = None, [], None, False
+
+    def flush():
+        if cur in want and facs and cof is not None and math.prod(facs) * cof == cur:
+            res[cur] = (facs, cof, cprp)
+    for line in out.splitlines():
+        m = _ECM_INPUT.match(line)
+        if m:
+            flush()
+            cur, facs, cof, cprp = int(m.group(1)), [], None, False
             continue
-        s, rest = 1, S
-        g = gcd(r % rest if rest > 1 else 1, rest)
-        while g > 1:
-            s *= g
-            rest //= g
-            g = gcd(g, rest)
-        out.append(s)
-    return out
+        m = _ECM_FACTOR.match(line)
+        if m:
+            facs.append(int(m.group(1)))
+            continue
+        m = _ECM_COF.match(line)
+        if m:
+            cof, cprp = int(m.group(2)), m.group(1) == "Prime"
+    flush()
+    return res
+
+
+class EcmRunner:
+    """Runs gmp-ecm processes for one round and can stop them all at once.
+
+    Each call handles a list of numbers in one process (gmp-ecm takes one input
+    per line), which keeps the launch rate down at the shallow tiers where a
+    tail needs a fraction of a second.  abort() kills every running process and
+    makes pending calls return None, so a round ends as soon as a winner is in
+    hand instead of when its slowest tail finishes."""
+
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.procs = set()
+        self.stopped = False
+
+    def run(self, nums, b1, curves, timeout, method="ecm"):
+        if self.stopped:
+            return None
+        cmd = [ECM_BIN] + (["-pm1"] if method == "pm1" else []) + ["-c", str(curves), str(b1)]
+        p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.DEVNULL, text=True, env=ECM_ENV)
+        with self.lock:
+            if self.stopped:
+                p.kill()
+            else:
+                self.procs.add(p)
+        try:
+            out, _ = p.communicate("\n".join(str(n) for n in nums) + "\n", timeout=timeout)
+        except subprocess.TimeoutExpired:
+            p.kill()
+            out, _ = p.communicate()          # keep whatever it had finished
+        finally:
+            with self.lock:
+                self.procs.discard(p)
+        if self.stopped:
+            return None
+        return parse_ecm(out, nums)
+
+    def abort(self):
+        with self.lock:
+            self.stopped = True
+            for p in self.procs:
+                p.kill()
 
 
 def ecm_peel(n, b1, curves, timeout, method="ecm"):
-    """One gmp-ecm run (ECM, or P-1 with method="pm1"); returns
+    """One gmp-ecm run (ECM, or P-1 with method="pm1") on one number; returns
     (found_factors, cofactor)."""
-    try:
-        r = subprocess.run([ECM_BIN, "-q"] + (["-pm1"] if method == "pm1" else [])
-                           + ["-c", str(curves), str(b1)],
-                           input=str(n) + "\n", capture_output=True, text=True,
-                           timeout=timeout, env=ECM_ENV)
-    except subprocess.TimeoutExpired:
-        return [], n
-    try:
-        toks = [int(x) for x in r.stdout.split()]
-    except ValueError:
-        return [], n
-    if toks and math.prod(toks) == n:
-        return toks[:-1], toks[-1]
+    res = EcmRunner().run([n], b1, curves, timeout, method) or {}
+    if n in res:
+        return res[n][0], res[n][1]
     return [], n
+
+
+def ecm_chunk(b1, curves, nbits, method, ntails, threads):
+    """Tails per gmp-ecm process: enough that a process runs for about 1.5 s
+    (a curve costs about 1e-5*B1 s at 1030 bits, P-1 an eighth of that), but
+    never so many that fewer than `threads` processes are running."""
+    per_tail = 1e-5 * b1 * curves * (nbits / 1030.0) ** 2 / (8 if method == "pm1" else 1)
+    k = max(1, min(32, int(1.5 / max(per_tail, 1e-4))))
+    return max(1, min(k, ntails // max(1, threads)))
 
 
 # ------------------------------------------------------------ window matching
@@ -651,7 +736,7 @@ def b_schedule(nbits, B0=None, Bmax=None):
             1 if nbits < 700 else 2 if nbits < 800 else 3 if nbits < 950
             else 4 if nbits < 1150 else 5]
     if Bmax is None:
-        Bmax = 20000000000
+        Bmax = 200000000000
     return B0, Bmax
 
 
@@ -661,9 +746,12 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
     L = rt + 1 + isqrt(4 * rt)
     rng = random.Random(seed * 1000003 + nb)
     B0, Bmax = b_schedule(nb, B0, Bmax)
-    if Bmax > 3 * 10 ** 10 and not maxfb:
-        maxfb = 10 ** 8          # keep the Tonelli/memory wall bounded
-        log("  level %d bits: auto maxfb=%d for Bmax=%g" % (nb, maxfb, Bmax))
+    # The factor base is capped from the first scan (maxfb= fixes the cap,
+    # otherwise it follows B) and its square roots are kept on disk for the
+    # level, so a widening pays only for the primes the larger cap adds.
+    fixed_cap = maxfb
+    roots = roots_path(p)
+    cap_prev = 0
     rounds = ladder_rounds(nb)
     t0 = time.time()
     pool = []
@@ -709,18 +797,23 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
         if c.tail == 1 or c.s * c.tail <= L:
             c.dead = True
 
-    def classify_tails(cands):
-        """Fermat-screen the given candidates' tails in parallel; primes are
-        dead ends unless they are an acceptable q."""
-        todo = [c for c in cands if not c.dead and not c.prp_checked and c.tail > 1]
-        if not todo:
+    def settle_tail(c, prp):
+        """Record the probable-prime verdict on c's current tail (from smoothtest
+        or gmp-ecm); a prime tail is a dead end unless it is an acceptable q.
+        Only a tail below sqrt p can be a q, so only those get the full
+        Miller-Rabin test: 24 rounds in the interpreter on every prime tail was
+        what the old classify phase spent its time on (about 1,500 prime tails
+        per 27,000 orders, 60 ms each at 1030 bits).  A probable prime above
+        sqrt p is dropped on the Fermat verdict alone; a base-2 pseudoprime
+        there costs one dead branch."""
+        c.prp_checked = True
+        if c.dead or c.tail <= 1 or not prp:
             return
-        flags = parallel_map(fermat2, [c.tail for c in todo], threads)
-        for c, f in zip(todo, flags):
-            c.prp_checked = True
-            if f and is_prp(c.tail, 24):
-                c.dead = True
-                note_prime_factor(c, c.tail)
+        if c.tail * c.tail >= p:
+            c.dead = True
+        elif is_prp(c.tail, 24):
+            c.dead = True
+            note_prime_factor(c, c.tail)
 
     def try_build():
         winners.sort(key=lambda w: w[1].d)
@@ -733,6 +826,10 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
                 log("  level %d bits: built D=-%d h~%d in %.1fs; o has %d bits, q %d bits (total %.1fs, %d cands, %.0f ecm-s)"
                     % (nb, c.d, isqrt(c.d), time.time() - t1, o.bit_length(), q.bit_length(),
                        time.time() - t0, stats.get("cands", 0), stats.get("ecm_s", 0.0)))
+                try:
+                    os.remove(roots)          # the level is done with its scan
+                except OSError:
+                    pass
                 return (A, x, o, q, {"D": -c.d, "t": c.t, "v": c.v, "N": str(c.N),
                                      "m": str(o // q), "bits": nb,
                                      "seconds": round(time.time() - t0, 1)})
@@ -763,24 +860,22 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
         # ---- widen the candidate pool ----
         if Bmin < B:
             tds = time.time()
-            recs = run_dscan(p, B, Bmin, threads, maxfb)
+            fbc = fixed_cap if fixed_cap else fb_cap(B)
+            recs = run_dscan(p, B, Bmin, threads, fbc, cap_prev if fbc > cap_prev else 0, roots)
+            cap_prev = max(fbc, cap_prev)
             fresh = []
             for (d, t, v) in recs:
                 for N in (p + 1 - t, p + 1 + t):
                     if N % 4 == 0:          # Montgomery model needs 4 | #E
                         fresh.append(Cand(d, t, v, N))
             tstrip = time.time()
-            strip = smooth_strip(sorted(set(c.N for c in fresh)), threads)
-            S_list = [strip[c.N][0] for c in fresh]
-            s_list = n2_parts(S_list, P2)
-            for c, S, s in zip(fresh, S_list, s_list):
-                c.s = s
-                c.mid = S // s
-                c.tail = strip[c.N][1]
+            strip = smooth_strip(sorted(set(c.N for c in fresh)), threads, n2)
+            for c in fresh:
+                S, c.tail, c.s, prp = strip[c.N]
+                c.mid = S // c.s
                 if c.tail == 1 or c.s * c.tail <= L:
                     c.dead = True
-            tcls = time.time()
-            classify_tails(fresh)
+                settle_tail(c, prp)
             live_new = [c for c in fresh if not c.dead]
             pool += live_new
             if live_new:
@@ -790,17 +885,19 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
                               for c in live_new)
                 fresh_med = idxs[len(idxs) // 2]
             stats["cands"] = stats.get("cands", 0) + len(fresh)
-            log("  level %d bits: dscan[%g,%g) +%d D -> +%d orders (%d live) in %.1fs"
-                " (strip %.1fs, classify %.1fs), %d winners"
-                % (nb, Bmin, B, len(recs), len(fresh), len(live_new),
-                   time.time() - tds, tcls - tstrip, time.time() - tcls, len(winners)))
+            log("  level %d bits: dscan[%g,%g) maxfb=%g +%d D -> +%d orders (%d live) in %.1fs"
+                " (strip %.1fs), %d winners"
+                % (nb, Bmin, B, fbc, len(recs), len(fresh), len(live_new),
+                   time.time() - tds, time.time() - tstrip, len(winners)))
             Bmin = B
             if winners:
                 lev = try_build()
                 if lev:
                     return lev
         # ---- ECM ladder over the pool ----
-        for (method, b1, curves, cap, ekey) in rounds:
+        ri = 0
+        while ri < len(rounds):
+            (method, b1, curves, cap, ekey) = rounds[ri]
             if winners:
                 break
             # breadth-first: before the deepest tiers, prefer widening the
@@ -855,45 +952,61 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
                     r += 1
                 live = live + pads
             if not live:
+                ri += 1
                 continue
+            # Results are handled as each gmp-ecm process finishes, and the
+            # round stops at the first winner: the tails still running are
+            # killed and keep their old effort key, so if the build fails the
+            # same tier is simply resumed for them.
             tr = time.time()
             tmo = ecm_timeout(b1, curves, nb)
+            k = ecm_chunk(b1, curves, nb, method, len(live), threads)
+            units = [[(c, c.tail) for c in live[i:i + k]] for i in range(0, len(live), k)]
+            runner = EcmRunner()
+            nsplit = ndone = 0
             with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as ex:
-                res = list(ex.map(lambda c: ecm_peel(c.tail, b1, curves, tmo, method), live))
-            nsplit = 0
-            changed = []
-            for c, (found, cof) in zip(live, res):
-                c.effort = ekey
-                c.tcurves += curves
-                if found:
-                    nsplit += 1
-                    process_result(c, found, cof)
-                    if c not in changed:
-                        changed.append(c)
-            classify_tails(changed)
+                futs = {ex.submit(runner.run, [t for (_, t) in u], b1, curves, tmo * len(u), method): u
+                        for u in units}
+                for fut in concurrent.futures.as_completed(futs):
+                    res = None if fut.cancelled() else fut.result()
+                    if res is None:
+                        continue                    # stopped before it ran or finished
+                    for (c, t) in futs[fut]:
+                        ndone += 1
+                        c.effort = ekey
+                        c.tcurves += curves
+                        if t not in res:
+                            continue
+                        found, cof, cprp = res[t]
+                        nsplit += 1
+                        process_result(c, found, cof)
+                        if c.tail == cof:           # gmp-ecm already tested this cofactor
+                            settle_tail(c, cprp)
+                        elif not c.dead and c.tail > 1:   # a concurrent duplicate got there first
+                            settle_tail(c, pow(2, c.tail - 1, c.tail) == 1)
+                    if winners and not runner.stopped:
+                        runner.abort()
+                        for g in futs:
+                            g.cancel()
             dt = time.time() - tr
             stats["ecm_s"] = stats.get("ecm_s", 0.0) + dt * threads
-            log("    %s B1=%d c=%d on %d tails: %d split, %d winners, %.1fs"
-                % (method, b1, curves, len(live), nsplit, len(winners), dt))
+            log("    %s B1=%d c=%d on %d tails: %d split, %d winners, %.1fs%s"
+                % (method, b1, curves, len(live), nsplit, len(winners), dt,
+                   " (stopped at the first winner, %d tails done)" % ndone if runner.stopped else ""))
             if winners:
                 lev = try_build()
                 if lev:
                     return lev
+                if runner.stopped:
+                    continue                        # build failed: finish this tier
+            ri += 1
         if winners:
             lev = try_build()
             if lev:
                 return lev
         pool = [c for c in pool if not c.dead]
         if B >= Bmax:
-            if not maxfb:
-                # engage the bounded factor base and keep going: Tonelli/memory
-                # stay flat while the discriminant supply extends 10x
-                maxfb = 10 ** 8
-                Bmax = Bmax * 10
-                log("  level %d bits: engaging maxfb=%d, extending Bmax to %g"
-                    % (nb, maxfb, Bmax))
-            else:
-                raise RuntimeError("level %d bits: exhausted dscan budget B=%d" % (nb, B))
+            raise RuntimeError("level %d bits: exhausted dscan budget B=%d" % (nb, B))
         Bmin, B = B, min(B * 6, Bmax)
         log("  level %d bits: widening to B=%g (%d live)" % (nb, B, len(pool)))
 
@@ -1067,6 +1180,12 @@ def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, res
 
 def main():
     global VERBOSE
+    try:                                  # one gmp-ecm process and two pipes per worker thread
+        import resource
+        soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (min(hard, 65536) if hard > 0 else 65536, hard))
+    except (ImportError, ValueError, OSError):
+        pass
     args = dict(kv.split("=", 1) for kv in sys.argv[1:] if "=" in kv)
     if "p" in args:
         p0 = int(args["p"])

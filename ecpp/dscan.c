@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <time.h>
+#include <unistd.h>
 #include <math.h>
 #include <omp.h>
 #include <gmp.h>
@@ -83,6 +84,10 @@ static unsigned long Bminb;         // emit only d >= Bminb (incremental rescans
 static unsigned long Fbmax;         // 0 = off; else cap factor-base primes at Fbmax
                                     // (enumerates only Fbmax-smooth D: trades ~rho(ln B/ln Fbmax)
                                     // of the usable density for a pi(Fbmax)-sized factor base)
+static unsigned long Fbprev;        // 0 = off; else the cap of the previous (narrower) scan: a
+                                    // d < Bminb is emitted iff its largest prime exceeds Fbprev,
+                                    // so [0,Bmin) at cap Fbprev plus this run is exactly [0,B) at
+                                    // cap Fbmax -- the cap can grow with B across widenings
 static int do_dump, do_verify, no_corn, do_dumpscan;
 
 // Per-thread scan state.  The DFS partitions cleanly by the smallest prime factor
@@ -106,7 +111,9 @@ static void obuf_add (scanstate *S, const char *s, int n)
     memcpy (S->obuf + S->olen, s, n);  S->olen += n;
 }
 
-static void try_D (scanstate *S, unsigned long absprod, int sign, const mpz_t xprod)
+// maxq = largest odd prime dividing absprod (0 if none); the DFS adds primes in
+// ascending order, so it is always the one added last.
+static void try_D (scanstate *S, unsigned long absprod, int sign, const mpz_t xprod, unsigned long maxq)
 {
     for ( int j = 0 ; j < n_tp ; j++ ) {
         unsigned long tabs = tp_val[j] < 0 ? (unsigned long)(-tp_val[j]) : (unsigned long) tp_val[j];
@@ -115,7 +122,7 @@ static void try_D (scanstate *S, unsigned long absprod, int sign, const mpz_t xp
         int dsign = sign * (tp_val[j] < 0 ? -1 : 1);
         if ( dsign >= 0 ) continue;                          // need D = -dabs < 0
         S->n_scan++;
-        if ( dabs < Bminb ) continue;                        // below the incremental lower bound
+        if ( dabs < Bminb && ! ( Fbprev && maxq > Fbprev ) ) continue;   // already covered by the earlier scan
         if ( do_dumpscan ) { char b[24]; int n = snprintf (b, sizeof b, "%lu\n", dabs); obuf_add (S, b, n); }
         if ( no_corn ) continue;
         mpz_mul (S->x0, xprod, tp_sq[j]);  mpz_mod (S->x0, S->x0, S->cc.p);   // sqrt(D mod p)
@@ -137,13 +144,13 @@ static void try_D (scanstate *S, unsigned long absprod, int sign, const mpz_t xp
 }
 
 // serial DFS over a subtree: process the D's at this node then recurse into children.
-static void dfs_serial (scanstate *S, int depth, size_t start, unsigned long absprod, int sign, const mpz_t xprod)
+static void dfs_serial (scanstate *S, int depth, size_t start, unsigned long absprod, int sign, const mpz_t xprod, unsigned long maxq)
 {
-    try_D (S, absprod, sign, xprod);
+    try_D (S, absprod, sign, xprod, maxq);
     for ( size_t i = start ; i < oddfb.n ; i++ ) {
         if ( absprod > (Bbound - 1) / oddfb.aval[i] ) break;
         mpz_mul (S->xstk[depth + 1], xprod, oddfb.sq[i]);  mpz_mod (S->xstk[depth + 1], S->xstk[depth + 1], S->cc.p);
-        dfs_serial (S, depth + 1, i + 1, absprod * oddfb.aval[i], sign * oddfb.sgn[i], S->xstk[depth + 1]);
+        dfs_serial (S, depth + 1, i + 1, absprod * oddfb.aval[i], sign * oddfb.sgn[i], S->xstk[depth + 1], oddfb.aval[i]);
     }
 }
 
@@ -165,16 +172,16 @@ static void emit_seed (unsigned long absprod, int sign, const mpz_t xprod, size_
 
 // Serial pass: process the D's at "upper" nodes (few) and emit seeds covering all
 // the small subtrees (the bulk).  Recurses only into big subtrees (est. size >= SEED_D).
-static void gen_seeds (scanstate *S0, int depth, size_t start, unsigned long absprod, int sign, const mpz_t xprod)
+static void gen_seeds (scanstate *S0, int depth, size_t start, unsigned long absprod, int sign, const mpz_t xprod, unsigned long maxq)
 {
-    try_D (S0, absprod, sign, xprod);
+    try_D (S0, absprod, sign, xprod, maxq);
     size_t i = start;
     while ( i < oddfb.n ) {                                   // big children: recurse to break them up
         if ( absprod > (Bbound - 1) / oddfb.aval[i] ) return;
         unsigned long ca = absprod * oddfb.aval[i];
         if ( Bbound / ca < SEED_D ) break;                   // this and all later children are small
         mpz_mul (S0->xstk[depth + 1], xprod, oddfb.sq[i]);  mpz_mod (S0->xstk[depth + 1], S0->xstk[depth + 1], S0->cc.p);
-        gen_seeds (S0, depth + 1, i + 1, ca, sign * oddfb.sgn[i], S0->xstk[depth + 1]);
+        gen_seeds (S0, depth + 1, i + 1, ca, sign * oddfb.sgn[i], S0->xstk[depth + 1], oddfb.aval[i]);
         i++;
     }
     while ( i < oddfb.n && absprod <= (Bbound - 1) / oddfb.aval[i] ) {   // small children: batch into seeds
@@ -186,11 +193,76 @@ static void gen_seeds (scanstate *S0, int depth, size_t start, unsigned long abs
     }
 }
 
+// ---- root cache (roots=<file>) ----
+// File: magic, limb count n of p, p (n limbs), record count K, then K records of
+// (int64 q*, n limbs of sqrt(q* mod p)), in factor-base order.  Nothing in the
+// file is trusted: p must match, each q* must equal the factor-base entry in the
+// same position, and every root is squared and compared before it is used.
+#define ROOTS_MAGIC 0x3154525343534400UL        // "\0DSCSRT1"
+
+static size_t roots_load (char *fname, mpz_t p, fbase *fb)
+{
+    FILE *fp = fopen (fname, "rb");
+    if ( ! fp ) return 0;
+    uint64_t hdr[2], K = 0;
+    size_t n = mpz_size (p), ok = 0;
+    mp_limb_t *pl = malloc (n * sizeof(mp_limb_t));
+    if ( fread (hdr, 8, 2, fp) != 2 || hdr[0] != ROOTS_MAGIC || hdr[1] != n
+         || fread (pl, sizeof(mp_limb_t), n, fp) != n || mpn_cmp (pl, mpz_limbs_read (p), n) != 0
+         || fread (&K, 8, 1, fp) != 1 ) { free (pl); fclose (fp); return 0; }
+    free (pl);
+    if ( K > fb->n ) K = fb->n;
+    size_t rec = 8 + n * sizeof(mp_limb_t);
+    char *buf = malloc (K * rec + 1);
+    K = fread (buf, rec, K, fp);
+    fclose (fp);
+    uint8_t *good = calloc (K + 1, 1);
+    #pragma omp parallel
+    {
+        mpz_t t, a; mpz_init (t); mpz_init (a);
+        #pragma omp for schedule(static)
+        for ( size_t i = 0 ; i < K ; i++ ) {
+            int64_t sv; memcpy (&sv, buf + i * rec, 8);
+            if ( sv != (int64_t) fb->sval[i] ) continue;
+            mpz_import (fb->sq[i], n, -1, sizeof(mp_limb_t), 0, 0, buf + i * rec + 8);
+            if ( mpz_cmp (fb->sq[i], p) >= 0 ) continue;
+            mpz_mul (t, fb->sq[i], fb->sq[i]);  mpz_set_si (a, fb->sval[i]);  mpz_sub (t, t, a);
+            good[i] = (uint8_t) mpz_divisible_p (t, p);
+        }
+        mpz_clear (t); mpz_clear (a);
+    }
+    while ( ok < K && good[ok] ) ok++;                       // longest verified prefix
+    free (good); free (buf);
+    return ok;
+}
+
+static void roots_save (char *fname, mpz_t p, fbase *fb)
+{
+    size_t n = mpz_size (p), rec = 8 + n * sizeof(mp_limb_t), len = strlen (fname);
+    char *tmp = malloc (len + 32);
+    snprintf (tmp, len + 32, "%s.tmp.%d", fname, (int) getpid ());
+    FILE *fp = fopen (tmp, "wb");
+    if ( ! fp ) { free (tmp); return; }                      // the cache is only an optimization
+    uint64_t hdr[2] = { ROOTS_MAGIC, n }, K = fb->n;
+    char *buf = calloc (fb->n ? fb->n : 1, rec);
+    #pragma omp parallel for schedule(static)
+    for ( size_t i = 0 ; i < fb->n ; i++ ) {
+        int64_t sv = fb->sval[i]; memcpy (buf + i * rec, &sv, 8);
+        mpz_export (buf + i * rec + 8, 0, -1, sizeof(mp_limb_t), 0, 0, fb->sq[i]);   // zero-padded by calloc
+    }
+    int good = fwrite (hdr, 8, 2, fp) == 2 && fwrite (mpz_limbs_read (p), sizeof(mp_limb_t), n, fp) == n
+               && fwrite (&K, 8, 1, fp) == 1 && fwrite (buf, rec, fb->n, fp) == fb->n;
+    good = ( fclose (fp) == 0 ) && good;
+    if ( good ) rename (tmp, fname); else remove (tmp);      // atomic publish; racing writers hold the same data
+    free (buf); free (tmp);
+}
+
 int main (int argc, char *argv[])
 {
     mpz_t p;  mpz_init (p);  mpz_set_ui (p, 0);
     unsigned long pbits = 0, seed = 1;
     int n_threads = 0;
+    char *roots_file = 0;
     Bbound = 1000000;
     for ( int i = 1 ; i < argc ; i++ ) {
         if ( ! strncmp (argv[i], "p=", 2) ) mpz_set_str (p, argv[i] + 2, 10);
@@ -198,6 +270,8 @@ int main (int argc, char *argv[])
         else if ( ! strncmp (argv[i], "B=", 2) ) Bbound = strtoul (argv[i] + 2, 0, 10);
         else if ( ! strncmp (argv[i], "Bmin=", 5) ) Bminb = strtoul (argv[i] + 5, 0, 10);
         else if ( ! strncmp (argv[i], "maxfb=", 6) ) Fbmax = strtoul (argv[i] + 6, 0, 10);
+        else if ( ! strncmp (argv[i], "fbmin=", 6) ) Fbprev = strtoul (argv[i] + 6, 0, 10);
+        else if ( ! strncmp (argv[i], "roots=", 6) ) roots_file = argv[i] + 6;
         else if ( ! strncmp (argv[i], "seed=", 5) ) seed = strtoul (argv[i] + 5, 0, 10);
         else if ( ! strncmp (argv[i], "threads=", 8) ) n_threads = atoi (argv[i] + 8);
         else if ( ! strncmp (argv[i], "sd=", 3) ) SEED_D = strtoul (argv[i] + 3, 0, 10);
@@ -276,8 +350,12 @@ int main (int argc, char *argv[])
     }
     free (boff);
 
-    // PASS 2 (parallel, Tonelli): square roots of the factor-base elements
+    // PASS 2 (parallel, Tonelli): square roots of the factor-base elements.  With
+    // roots=<file> the roots are kept on disk between runs: the factor base for a
+    // given p is the same ascending list whatever the cap, so a cached prefix is
+    // reused (after checking every root) and only the new primes pay for Tonelli.
     double t_sqrt = wall ();
+    size_t n_cached = roots_file ? roots_load (roots_file, p, &oddfb) : 0;
     cornacchia_ctx *tctx = malloc (nth * sizeof(*tctx));
     for ( int k = 0 ; k < nth ; k++ ) cornacchia_init (&tctx[k], p);
     #pragma omp parallel
@@ -285,12 +363,13 @@ int main (int argc, char *argv[])
         cornacchia_ctx *lc = &tctx[omp_get_thread_num ()];
         mpz_t a; mpz_init (a);
         #pragma omp for schedule(dynamic, 256)
-        for ( size_t i = 0 ; i < oddfb.n ; i++ ) {
+        for ( size_t i = n_cached ; i < oddfb.n ; i++ ) {
             mpz_set_si (a, oddfb.sval[i]);  mpz_mod (a, a, p);
             cornacchia_sqrtmodp (lc, oddfb.sq[i], a);
         }
         mpz_clear (a);
     }
+    if ( roots_file && oddfb.n > n_cached ) roots_save (roots_file, p, &oddfb);
     t_sqrt = wall () - t_sqrt;
     for ( int k = 0 ; k < nth ; k++ ) cornacchia_clear (&tctx[k]);
     free (tctx); free (primes); free (qr);
@@ -309,7 +388,7 @@ int main (int argc, char *argv[])
     // serial pass: emit balanced seeds (and process the few "upper" nodes' D's on states[0])
     double t_gen = wall ();
     mpz_t ONE; mpz_init_set_ui (ONE, 1);
-    gen_seeds (&states[0], 0, 0, 1, 1, ONE);
+    gen_seeds (&states[0], 0, 0, 1, 1, ONE, 0);
     mpz_clear (ONE);
     t_gen = wall () - t_gen;
     // parallel pass: each seed is an independent chunk of ~SEED_D discriminants
@@ -320,7 +399,7 @@ int main (int argc, char *argv[])
         seed_t *sd = &seeds[s];
         for ( size_t k = sd->ilo ; k < sd->ihi ; k++ ) {
             mpz_mul (S->xstk[1], sd->xprod, oddfb.sq[k]);  mpz_mod (S->xstk[1], S->xstk[1], S->cc.p);
-            dfs_serial (S, 1, k + 1, sd->absprod * oddfb.aval[k], sd->sign * oddfb.sgn[k], S->xstk[1]);
+            dfs_serial (S, 1, k + 1, sd->absprod * oddfb.aval[k], sd->sign * oddfb.sgn[k], S->xstk[1], oddfb.aval[k]);
         }
     }
     t_par = wall () - t_par;
@@ -341,13 +420,13 @@ int main (int argc, char *argv[])
     free (states);
 
     if ( do_dump || do_dumpscan )                            // one-line summary for pipeline callers
-        fprintf (stderr, "dscan B=%lu Bmin=%lu: fb %.1fs (sieve %.1f, legendre %.1f, tonelli %.1f), scan %.1fs, %lu/%lu solvable, %d threads\n",
-                 Bbound, Bminb, tfb, t_sieve, t_det, t_sqrt, tsc, n_solv, n_scan, nth);
+        fprintf (stderr, "dscan B=%lu Bmin=%lu: fb %.1fs (sieve %.1f, legendre %.1f, tonelli %.1f; %zu roots, %zu cached), scan %.1fs, %lu/%lu solvable, %d threads\n",
+                 Bbound, Bminb, tfb, t_sieve, t_det, t_sqrt, oddfb.n, n_cached, tsc, n_solv, n_scan, nth);
     if ( ! do_dump && ! do_dumpscan ) {
         gmp_fprintf (stderr, "p (%lu bits, %lu mod 4) = %Zd\n", (unsigned long) mpz_sizeinbase (p, 2), mpz_fdiv_ui (p, 4), p);
         fprintf (stderr, "B = %lu   factor base: %zu odd prime discriminants + %d two-part%s\n", Bbound, oddfb.n, n_tp - 1, Fbmax ? " (maxfb-capped)" : "");
-        fprintf (stderr, "factor-base build: %.3f s  [sieve %.3f + determine %.3f (Legendre) + %zu roots %.3f (Tonelli)]\n",
-                 tfb, t_sieve, t_det, oddfb.n, t_sqrt);
+        fprintf (stderr, "factor-base build: %.3f s  [sieve %.3f + determine %.3f (Legendre) + %zu roots (%zu cached) %.3f (Tonelli)]\n",
+                 tfb, t_sieve, t_det, oddfb.n, n_cached, t_sqrt);
         fprintf (stderr, "scan: %.3f s   D scanned: %lu (%.3f us/D, %.0f D/s, %d threads)\n",
                  tsc, n_scan, n_scan ? 1e6 * tsc / n_scan : 0, n_scan ? n_scan / tsc : 0, nth);
         fprintf (stderr, "  seeds: %zu (SEED_D=%lu)   gen_seeds(serial): %.3f s   parallel: %.3f s\n",

@@ -137,6 +137,26 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   AndrewVSutherland2 fork main (verifier renamed vshortECPP.py), upstream PR pending (Drew).
   Spec note: `reports/short2-spec/`; paper: Def 6.2 + Prop 6.4 in `reports/ecpp-varieties/`.
 
+- **Short ECPP prover revisit (2026-11-14, branch `shortecpp-improve`)**: supply and round
+  handling reworked, scheduler untouched.  dscan's factor base is capped from the first scan
+  (`fb_cap(B)` = B/1000 in [1e6, 1e8]; `fbmin=` lets the cap grow across widenings without
+  repeats; `roots=` caches the square roots per modulus, self-checking) — 1030 bits, B = 2e10:
+  61,315 D for 1.9 core-h vs 85,954 for ~210 uncapped.  Strip bound 2^32 -> 2^26 (10x faster,
+  same n²-smooth parts); `smoothtest parts n2= prp=1` returns the n²-smooth part and the tail's
+  Fermat verdict, so the Python classify pool and `n2_parts` are gone; ECM rounds handle
+  results as they complete and stop at the first winner (`EcmRunner`), several tails per
+  gmp-ecm process at shallow tiers.  `ecpp/shortsim.py` = parameter-free model of one level
+  (Poisson medium primes + Buchstab cofactor + measured/Dickman ECM success, exact
+  compound-Poisson DP); it reproduces the 1030-bit campaign log tier by tier and says a
+  per-candidate stopping policy (most orders get no ECM, the best few go to B1 = 3e6+) cuts
+  ECM cost per winner several-fold.  Tested with real gmp-ecm on 249,648 orders of
+  nextprime(2^768): 17 winners for 26.9 core-h of ECM (model: 24 for 32) — 1.6 core-h per
+  winner vs 148 core-h for the 765-bit campaign prime.  NOT yet in the prover's scheduler.
+  Engine benchmark (c8a.48xlarge): Zen-targeted GMP + tuned gmp-ecm gains <= 3% with all
+  cores busy (GMP 6.3 configure falls back to k8 on Zen 5); standalone avx-ecm's IFMA path
+  gives wrong results, its non-IFMA build is correct and 1.8x faster in stage 1 (1.35-1.5x per
+  curve with gmp-ecm stage 2); yafu's IFMA ECM not built.  Report: `reports/shortecpp-improve/`.
+
 ## Build & test
 ```sh
 make -j                      # ff_poly -> classpoly (incl. zp_poly) -> ecpp (all in-tree, ~15 s)
@@ -170,9 +190,10 @@ challenge repo, github.com/AndrewVSutherland/OneShotPrimalityProofs).
 - **P caches**: native-limb format (`mpz_out_raw`'s 4-byte size field overflows > 2³¹ bytes).
   Segment files carry `lo` (v2 header); v1 full-product files still load. Self-check on load.
 - Compile new C with **`-Wall -Wextra`** (found real bugs in the vendored code this way).
-- Deferred optimizations (don't do until obviously needed, per user): **bounding the factor base**
-  (dscan's Tonelli wall — ~75% of large-B scans), packing factor-base sqrts as contiguous limbs,
-  hand-rolled 1-limb-quotient division.
+- Deferred optimizations (don't do until obviously needed, per user): packing factor-base sqrts
+  as contiguous limbs, hand-rolled 1-limb-quotient division.  (Bounding the factor base is done
+  for shortECPP — capped from the first scan, see the 2026-11-14 entry; `oneshotECPP` still
+  scans uncapped.)
 - Half-gcd/Lehmer does **not** help our (short, small-`p`) Cornacchia descent — don't reach for it.
 
 ## Conventions
