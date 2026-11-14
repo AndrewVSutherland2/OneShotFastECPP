@@ -1,0 +1,25 @@
+[21:57:29] 249648 orders, 34 tiers, 192 cores
+[22:02:29] strip: 234053 composite tails, 0 winners at the strip
+[22:05:36] tier  0 ecm B1=2000 c=12: run 106338, split 48321, wins 0, cpu 12068s, wall 186s (par 1, chunk 14); total wins 0
+[22:06:55] tier  1 ecm B1=11000 c=20: run 19491, split 5131, wins 0, cpu 12645s, wall 79s (par 1, chunk 1); total wins 0
+[22:07:42] tier  2 ecm B1=50000 c=16: run 4853, split 736, wins 1, cpu 8578s, wall 48s (par 1, chunk 1); total wins 1
+[22:08:13] tier  3 ecm B1=50000 c=16: run 3221, split 231, wins 0, cpu 5634s, wall 31s (par 1, chunk 1); total wins 1
+[22:08:45] tier  4 ecm B1=250000 c=12: run 1097, split 119, wins 1, cpu 5631s, wall 32s (par 1, chunk 1); total wins 2
+[22:09:12] tier  5 ecm B1=250000 c=12: run 914, split 48, wins 1, cpu 4641s, wall 26s (par 1, chunk 1); total wins 3
+[22:09:35] tier  6 ecm B1=250000 c=12: run 781, split 32, wins 0, cpu 3994s, wall 23s (par 1, chunk 1); total wins 3
+[22:09:54] tier  7 ecm B1=250000 c=12: run 635, split 22, wins 0, cpu 3188s, wall 19s (par 1, chunk 1); total wins 3
+[22:10:30] tier  8 ecm B1=1000000 c=12: run 239, split 23, wins 4, cpu 4270s, wall 35s (par 1, chunk 1); total wins 7
+[22:10:48] tier  9 ecm B1=1000000 c=12: run 152, split 7, wins 2, cpu 2509s, wall 18s (par 1, chunk 1); total wins 9
+[22:11:06] tier 10 ecm B1=1000000 c=12: run 141, split 6, wins 3, cpu 2301s, wall 18s (par 1, chunk 1); total wins 12
+[22:11:25] tier 11 ecm B1=1000000 c=12: run 130, split 3, wins 0, cpu 2141s, wall 18s (par 1, chunk 1); total wins 12
+[22:11:43] tier 12 ecm B1=1000000 c=12: run 123, split 2, wins 0, cpu 2053s, wall 19s (par 1, chunk 1); total wins 12
+[22:12:02] tier 13 ecm B1=1000000 c=12: run 116, split 3, wins 0, cpu 1995s, wall 19s (par 1, chunk 1); total wins 12
+[22:12:50] tier 14 ecm B1=3000000 c=12: run 103, split 4, wins 2, cpu 4571s, wall 48s (par 1, chunk 1); total wins 14
+[22:13:15] tier 15 ecm B1=3000000 c=12: run 92, split 2, wins 0, cpu 4522s, wall 25s (par 2, chunk 1); total wins 14
+[22:13:40] tier 16 ecm B1=3000000 c=12: run 84, split 2, wins 1, cpu 4007s, wall 25s (par 2, chunk 1); total wins 15
+[22:14:05] tier 17 ecm B1=3000000 c=12: run 76, split 2, wins 1, cpu 3532s, wall 25s (par 2, chunk 1); total wins 16
+[22:14:31] tier 18 ecm B1=3000000 c=12: run 65, split 0, wins 0, cpu 3001s, wall 26s (par 2, chunk 1); total wins 16
+[22:14:47] tier 19 ecm B1=3000000 c=12: run 52, split 0, wins 0, cpu 2444s, wall 17s (par 3, chunk 1); total wins 16
+[22:15:00] tier 20 ecm B1=3000000 c=12: run 42, split 1, wins 1, cpu 2017s, wall 13s (par 4, chunk 1); total wins 17
+[22:15:08] tier 21 ecm B1=3000000 c=12: run 21, split 0, wins 0, cpu 995s, wall 8s (par 9, chunk 1); total wins 17
+[22:15:08] RUN_DONE: 17 winners, 96737 cpu-s of ECM, 759s wall

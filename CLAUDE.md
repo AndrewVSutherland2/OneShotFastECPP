@@ -150,8 +150,17 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   compound-Poisson DP); it reproduces the 1030-bit campaign log tier by tier and says a
   per-candidate stopping policy (most orders get no ECM, the best few go to B1 = 3e6+) cuts
   ECM cost per winner several-fold.  Tested with real gmp-ecm on 249,648 orders of
-  nextprime(2^768): 17 winners for 26.9 core-h of ECM (model: 24 for 32) — 1.6 core-h per
-  winner vs 148 core-h for the 765-bit campaign prime.  NOT yet in the prover's scheduler.
+  nextprime(2^768): 17 winners for 26.9 core-h of ECM (model: 24 for 32; 20.9 with the
+  measured ECM success table `reports/shortecpp-improve/data/pi_calib.json`) — 1.6 core-h per
+  winner; the prover with its old scheduler, same prime and box, needed 59 core-h of search
+  for its first winner (148 for the 765-bit campaign prime).  NOT yet in the prover's
+  scheduler.  Consequence: construction is now the bottleneck, and it is root-finding —
+  `cm_method` at 769 bits, 192 cores: h = 11,364 (inv 159) class poly 0.5 s + root 110 s;
+  degree 58,520: 3.4 s + 364 s; h = 149,392 (inv 26): 525 s + 816 s.  The class-group
+  decomposition of arXiv:1009.1082 is not in the tree (classpoly has only the word-size
+  consumer `ff_classpoly_root` / `tower_split`); it is the next thing to build.  Gotcha found
+  on the way: the old "classify" phase was 24-round Miller-Rabin in Python on every prime
+  tail, not the process pool — now only tails below sqrt p get it.
   Engine benchmark (c8a.48xlarge): Zen-targeted GMP + tuned gmp-ecm gains <= 3% with all
   cores busy (GMP 6.3 configure falls back to k8 on Zen 5); standalone avx-ecm's IFMA path
   gives wrong results, its non-IFMA build is correct and 1.8x faster in stage 1 (1.35-1.5x per

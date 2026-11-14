@@ -1,0 +1,101 @@
+== host
+aws-spot-1
+INSTANCE_NAME=aws-spot-1
+INSTANCE_ID=(removed)
+INSTANCE_AZ=us-east-1d
+CPU(s):                                  192
+Model name:                              AMD EPYC 9R45
+Thread(s) per core:                      1
+Flags:                                   fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ht syscall nx mmxext fxsr_opt pdpe1gb rdtscp lm constant_tsc rep_good nopl xtopology nonstop_tsc cpuid extd_apicid aperfmperf tsc_known_freq pni pclmulqdq monitor ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt aes xsave avx f16c rdrand hypervisor lahf_lm
+gcc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0
+Python 3.12.3
+gmp-k8: path= x86_64/k8 x86_64 generic
+gmp-zen: path= x86_64/zen3 x86_64/zen2 x86_64/zen x86_64 generic
+-rw-r--r-- 1 ubuntu ubuntu 1350538 Nov 14 21:03 inst/gmp-k8/lib/libgmp.a
+-rw-r--r-- 1 ubuntu ubuntu 1358106 Nov 14 21:03 inst/gmp-zen/lib/libgmp.a
+-rwxrwxr-x 1 ubuntu ubuntu 3260632 Nov 14 21:04 ecm
+-rwxrwxr-x 1 ubuntu ubuntu 3253288 Nov 14 21:04 ecm
+-rwxrwxr-x 1 ubuntu ubuntu 3260624 Nov 14 21:04 ecm
+Compilation options:
+Included GMP header files version 6.3.0
+GMP_NUMB_BITS = 64
+Tuning parameters from x86_64/k8/params.h
+-rwxrwxr-x 1 ubuntu ubuntu 1846760 Nov 14 21:04 avx-ecm
+-rwxrwxr-x 1 ubuntu ubuntu 1881120 Nov 14 21:04 avx-ecm
+tune exit 0
+/* 0:mulredc 1:mul+redc_1 2:mul+redc_2 3:mul+redc_n */
+#define TUNE_MULREDC_TABLE {0,0,0,0,0,0,0,1,1,1,1,2,2,1,1,1,1,1,1,1,1}
+/* 0:mulredc 1:sqr+redc_1 2:sqr+redc_2 3:sqr+redc_n */
+#define TUNE_SQRREDC_TABLE {0,0,0,0,0,1,1,1,1,2,2,2,1,1,1,1,1,1,1,1,1}
+#define LIST_MUL_TABLE {0,0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
+#define MPZMOD_THRESHOLD 57
+#define REDC_THRESHOLD 512
+#define MPN_MUL_LO_THRESHOLD_TABLE {0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
+#define NTT_GFP_TWIDDLE_DIF_BREAKOVER 17
+#define NTT_GFP_TWIDDLE_DIT_BREAKOVER 17
+#define MUL_NTT_THRESHOLD 16384
+#define PREREVERTDIVISION_NTT_THRESHOLD 32
+#define POLYINVERT_NTT_THRESHOLD 512
+#define POLYEVALT_NTT_THRESHOLD 256
+#define MPZSPV_NORMALISE_STRIDE 128
+total 13620
+drwxrwxr-x 5 ubuntu ubuntu    4096 Nov 14 21:12 .
+drwxrwxr-x 8 ubuntu ubuntu    4096 Nov 14 21:03 ..
+-rwxrwxr-x 1 ubuntu ubuntu 1846760 Nov 14 21:04 avx-icl
+-rwxrwxr-x 1 ubuntu ubuntu 1881120 Nov 14 21:04 avx-native
+drwxr-xr-x 3 ubuntu ubuntu    4096 Apr 22  2024 deb
+-rwxrwxr-x 1 ubuntu ubuntu 3253288 Nov 14 21:04 ecm-k8
+-rwxrwxr-x 1 ubuntu ubuntu 3260624 Nov 14 21:04 ecm-zen
+-rwxrwxr-x 1 ubuntu ubuntu 3256376 Nov 14 21:12 ecm-zentuned
+drwxrwxr-x 5 ubuntu ubuntu    4096 Nov 14 21:03 gmp-k8
+drwxrwxr-x 5 ubuntu ubuntu    4096 Nov 14 21:03 gmp-zen
+-rwxrwxr-x 1 ubuntu ubuntu  192128 Nov 14 21:12 mb-k8
+-rwxrwxr-x 1 ubuntu ubuntu   16440 Nov 14 21:12 mb-sys
+-rwxrwxr-x 1 ubuntu ubuntu  200424 Nov 14 21:12 mb-zen
+BUILD_DONE
+[21:12:45] micro sys 
+gmp 6.3.0
+limbs 12: mul_n 50.6 ns  sqr 34.1 ns
+limbs 13: mul_n 59.8 ns  sqr 39.6 ns
+limbs 15: mul_n 80.4 ns  sqr 51.4 ns
+limbs 16: mul_n 90.9 ns  sqr 57.2 ns
+limbs 17: mul_n 102.3 ns  sqr 64.9 ns
+limbs 20: mul_n 144.2 ns  sqr 86.6 ns
+limbs 23: mul_n 193.7 ns  sqr 113.8 ns
+powm 768 bits: 0.0885 ms
+powm 1030 bits: 0.2273 ms
+powm 1263 bits: 0.3776 ms
+
+[21:13:00] micro k8 
+gmp 6.3.0
+limbs 12: mul_n 50.5 ns  sqr 34.0 ns
+limbs 13: mul_n 59.7 ns  sqr 39.4 ns
+limbs 15: mul_n 80.3 ns  sqr 51.2 ns
+limbs 16: mul_n 90.7 ns  sqr 57.0 ns
+limbs 17: mul_n 101.9 ns  sqr 64.8 ns
+limbs 20: mul_n 144.1 ns  sqr 86.6 ns
+limbs 23: mul_n 193.4 ns  sqr 113.7 ns
+powm 768 bits: 0.0882 ms
+powm 1030 bits: 0.2265 ms
+powm 1263 bits: 0.3790 ms
+
+[21:13:14] micro zen 
+gmp 6.3.0
+limbs 12: mul_n 51.8 ns  sqr 31.7 ns
+limbs 13: mul_n 59.9 ns  sqr 36.1 ns
+limbs 15: mul_n 79.3 ns  sqr 45.8 ns
+limbs 16: mul_n 89.1 ns  sqr 51.1 ns
+limbs 17: mul_n 99.6 ns  sqr 56.8 ns
+limbs 20: mul_n 128.5 ns  sqr 75.1 ns
+limbs 23: mul_n 167.8 ns  sqr 96.6 ns
+powm 768 bits: 0.0901 ms
+powm 1030 bits: 0.2081 ms
+powm 1263 bits: 0.3404 ms
+
+[21:13:14] === phase A
+[21:13:19] A {"eng": "ecm-zen", "bits": 768, "b1": 1000000, "curves": 2, "s1_ms": 1517, "s2_ms": 807, "s1_mean": 1516.0, "s2_mean": 805.5, "n": 2, "b2": 1045563762, "wall_per_curve": 2.3343056440353394, "rc": 0}
+--
+[21:14:29] D avx-icl {"curves": 256, "stage1_result_lines": 0, "resume_step1_hits": 0, "resume_step2_hits": 0, "resume_curves": 256, "rc": 0, "resume_rc": 0}
+[21:14:49] D avx-native {"curves": 256, "stage1_result_lines": 0, "resume_step1_hits": 0, "resume_step2_hits": 0, "resume_curves": 256, "rc": 0, "resume_rc": 0}
+[21:14:50] D gmp-ecm {"curves": 256, "step1_hits": 1, "step2_hits": 10}
+[21:14:50] === phase B

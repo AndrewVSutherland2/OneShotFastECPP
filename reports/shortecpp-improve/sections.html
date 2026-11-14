@@ -1,0 +1,120 @@
+#### SUMMARY
+<li><b>Prover.</b> Supply and round handling are reworked and tested: the scan's factor base is capped
+from the first scan and its square roots are cached, the strip uses a 2<sup>26</sup> prime product,
+classification no longer runs Miller&ndash;Rabin in Python on every prime tail, and a round stops at its
+first winner.  At 1030 bits a scan to 6&middot;10<sup>10</sup> (99,338 discriminants) costs 4.5 core-hours;
+in August the scan to 2&middot;10<sup>10</sup> (85,954) cost about 210.</li>
+<li><b>Engine.</b> Re-tuning GMP and gmp-ecm for Zen&nbsp;5 gains at most 3% with all cores busy.
+avx-ecm's stage 1 is 1.8 times faster than gmp-ecm's (1.35&ndash;1.5 times per whole curve), but only
+in its non-IFMA build: the IFMA build of the standalone repository computes wrong residues.</li>
+<li><b>Model.</b> A model of one level with no fitted parameter reproduces the 1030-bit campaign log
+tier by tier.  It says the schedule, not the engine, is where the time goes: a per-candidate stopping
+rule that gives most orders no ECM and takes the best few much deeper costs several times less per
+winner than fixed tiers with admission caps.</li>
+<li><b>Experiment.</b> That rule, run with real gmp-ecm on @@EXP_N@@ orders of nextprime(2<sup>768</sup>),
+found <b>@@EXP_WINS@@ winners for @@EXP_COREH@@ core-hours of ECM</b> (@@EXP_PER_WIN@@ per winner) plus about
+10 core-hours of supply.  The model had predicted @@EXP_MODEL_WINS@@ winners for @@EXP_MODEL_COREH@@
+core-hours.  @@BASELINE_SUMMARY@@</li>
+<li><b>Construction.</b> With winners this cheap, building the curve costs more than finding it, and at
+768 bits 61&ndash;99.6% of a build is root-finding on the full-degree class polynomial (section 6).  The
+class-group decomposition of <a href="https://arxiv.org/abs/1009.1082">arXiv:1009.1082</a> removes most of
+that and is not implemented in this tree.</li>
+<li><b>Not done.</b> The prover's scheduler still uses the old tiers and caps; putting the stopping rule
+into it, and the decomposition into <code>cm_method</code>, are the next two steps.  yafu's IFMA ECM was
+not built.</li>
+
+#### EXPERIMENT
+<p>The model's stopping rule was computed for the real orders of p = nextprime(2<sup>768</sup>)
+(scan to 2&middot;10<sup>11</sup> with the cap at 10<sup>8</sup>, revised-format coverage, supply priced
+at 0.3 core-seconds per order, sweeps up to B1&nbsp;=&nbsp;3&middot;10<sup>7</sup> on offer) and then
+executed with gmp-ecm 7.0.5 on the 192-core box by <code>data/policy_run.py</code>: each composite tail
+runs the next sweep exactly when the table says so for its coverage class and current size, a tail that
+becomes prime is tested against the format's window, and nothing else is consulted.  The prediction was
+written down before the run (<code>data/exp768_policy.json</code>).</p>
+@@EXP_TABLE@@
+<p>The prediction in the fifth column used the theoretical &pi;, because the measurement of &pi;
+finished after the run.  @@EXP_WINS@@ winners against @@EXP_MODEL_WINS@@ is about 1.5 standard deviations
+low for a Poisson count.  @@EXP_CALIB_SENTENCE@@  The model still sends 15&ndash;20% more tails to the deep
+sweeps than actually arrived, so some optimism is real, but it is right about the structure: 14 of the
+17 winners came from the 10<sup>6</sup> and 3&middot;10<sup>6</sup> sweeps on a few hundred tails, and the
+policy never asked for B1&nbsp;&ge;&nbsp;10<sup>7</sup> at this size.</p>
+<p>Cost of a top-level winner at 768 bits, all in: 9.1 core-hours of scan and under 1 of strip for the
+whole pool, @@EXP_COREH@@ of ECM, so about <b>2.2 core-hours per winner</b>; the run took @@EXP_WALL@@
+seconds of wall time, about a fifth of it single-threaded Python in my driver.  For comparison:</p>
+<ul>
+<li>The August campaign's 765-bit prime (10<sup>230</sup>+753) took 148 core-hours and 83,506 orders for
+its one winner; 698 and 731 bits took 183 and 41.</li>
+<li>The model's expectation for the reference scheduler's order of work on these same orders, at today's
+supply cost, is 33&ndash;37 core-hours of ECM before the first winner: it spends 25&ndash;60 core-hours on
+B1&nbsp;&le;&nbsp;250,000 across the pool before it reaches the sweeps where the winners are.</li>
+@@BASELINE_ITEM@@
+</ul>
+<p>The winners have |D| between 5.2&middot;10<sup>9</sup> and 1.7&middot;10<sup>11</sup>: with a pool this
+wide, winners are spread over the whole scan range and curve construction, not the search, becomes the
+expensive part of a level.  @@CERT_SENTENCE@@</p>
+
+#### CONSTRUCTION
+<p>A wide pool spreads winners over the whole scan range, so their discriminants are large: the 17
+winners of section 5 have class numbers from 11,364 to 489,056.  <code>cm_method</code> on four of
+them, alone on the 192-core box, p = nextprime(2<sup>768</sup>):</p>
+<table>
+<tr><th>D</th><th>h(D)</th><th>invariant, degree</th><th>class polynomial mod p</th><th>root of it</th><th>total</th><th>core-s</th></tr>
+<tr><td>&minus;5,201,738,755</td><td>11,364</td><td>159, 11,364</td><td>0.5 s</td><td>109.7 s</td><td>110 s</td><td>6,490</td></tr>
+<tr><td>&minus;18,960,475,695</td><td>74,912</td><td>535, 37,456</td><td>4.9 s</td><td>245.8 s</td><td>251 s</td><td>16,192</td></tr>
+<tr><td>&minus;43,980,816,779</td><td>58,520</td><td>171, 58,520</td><td>3.4 s</td><td>364.4 s</td><td>368 s</td><td>18,396</td></tr>
+<tr><td>&minus;115,333,393,863</td><td>149,392</td><td>26, 149,392</td><td>524.7 s</td><td>816.4 s</td><td>1,342 s</td><td>135,161</td></tr>
+</table>
+<p>Three things follow.</p>
+<ul>
+<li><b>Construction now costs more than the search.</b> The cheapest build, 110&nbsp;s on the box, is 5.9
+core-hours of box time (1.8 of actual CPU); a winner costs about 2.2 to find.</li>
+<li><b>It is almost all root-finding.</b> With a good class invariant the polynomial itself arrives in
+seconds from parallel <code>classpoly</code>; the root of the full-degree polynomial by equal-degree
+splitting takes 61&ndash;99.6% of the time, and keeps only 40&ndash;65 of the 192 cores busy.</li>
+<li><b>The invariant matters as much as h.</b> The fourth discriminant only admits invariant 26 and
+its polynomial takes a hundred times longer than the others.</li>
+</ul>
+<p>This is the case for the decomposition of
+<a href="https://arxiv.org/abs/1009.1082">Sutherland, <i>Accelerating the CM method</i></a>: with a
+subgroup of order n and m = h/n cosets, one finds a root of a polynomial V of degree m, forms from it a
+polynomial of degree n, and finds a root of that, so the degrees in the root-finding drop from h to m and
+n.  How much that buys depends on the divisors of h.  For the first row h = 2<sup>2</sup>&middot;3&middot;947, so
+the best split is degrees 947 and 12 in place of 11,364; for the third, 266 and 220 in place of 58,520.
+Of the 17 winners, 12 have a split with both degrees at most 600, and with winners this cheap one can
+choose among them.
+The vendored <code>classpoly_v1.0.3</code> already has the consuming half for word-size primes
+(<code>ff_classpoly_root</code>, the F/G file format, <code>tower_split</code>), but nothing in the tree
+produces a decomposed polynomial, and <code>cm_method</code> always takes the full-degree route.</p>
+
+#### NEXT
+<li><b>Put the stopping rule into <code>prove_level_cm</code>.</b> Replace the caps, the index and the
+widen rule by a table lookup (coverage class, sweep, tail bits) computed once per level by
+<code>shortsim.py</code>, feed orders as a stream priced at the scan's marginal cost, and spread the
+curves of a deep sweep over idle cores when few tails are left.  Validate on nextprime(2<sup>768</sup>)
+against today's numbers, then at 1030 bits, where the model expects 30&ndash;50 core-hours per top-level
+winner against 330&ndash;410 for the reference.</li>
+<li><b>Root-finding through the class group (section 6).</b> Implement the two-level decomposition
+for the big prime: a decomposed output mode in the CRT code and a <code>cm_method</code> path that finds a
+root of V with <code>fproot</code>, evaluates the degree-n polynomial at it and finds a root of that.
+Then the paper's second algorithm if the CRT data for the interpolants becomes the limit.  The 17
+journalled winners (<code>data/exp768_winners.jsonl</code>) are ready-made test cases.</li>
+<li><b>Price construction into the stopping rule.</b> A winner's value should be net of its build
+cost, which depends on h, on the invariant available and, after the previous item, on the shape of the
+class group.  Until the decomposition exists it pays to wait for a winner with a small class number.</li>
+<li><b>Stage 1.</b> Either wire the non-IFMA avx-ecm in as a stage-1 engine with gmp-ecm
+<code>-resume</code> for stage 2 (1.35&ndash;1.5 times per curve, measured), or build yafu's IFMA ECM and
+repeat section 3.2 on it (up to 2 times if it is correct).  Both need the 208-bit rounding and the
+start-up sieve handled at the shallow tiers.</li>
+<li><b>Tighten the model.</b> Measure &pi; and the cost per curve at B1&nbsp;=&nbsp;10<sup>7</sup> and
+3&middot;10<sup>7</sup>, which the 1030-bit policy uses and which are extrapolated here; find where the
+15&ndash;25% optimism comes from (the run counts at the deep sweeps are the place to look); extend it
+below 640 bits, where the rough-cofactor approximation stops being valid, for the lower levels.</li>
+<li><b>For the paper.</b> The model is a heuristic analysis of the search in closed form (the cost per
+winner is the fixed point of the stopping problem), with a direct experimental check.</li>
+
+#### EXP_FILES
+; inputs and outputs <code>data/exp768_orders.tgz</code> (tail sizes and smooth parts of the 249,648
+orders), <code>data/exp768_policy.json</code>, <code>data/exp768_policy_run.json</code>,
+<code>data/exp768_run.log</code>, <code>data/exp768_prep.log</code>, the 17 winners
+<code>data/exp768_winners.jsonl</code>, the certificate <code>data/p768_cert.txt</code>, the baseline run
+<code>data/p768_baseline.log</code> and the construction timings <code>data/p768_cm_timing.log</code>

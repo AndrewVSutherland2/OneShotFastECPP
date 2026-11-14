@@ -1,0 +1,16 @@
+[22:47:42] revised format: B = 61685, log2 rad <= 81, recursion floor B^2 = 3805039225
+[22:47:42] proving p0 (769 bits), n2 = 591361
+[22:47:42]   level 769 bits: 17 journaled winner(s) replayed
+[22:49:29]   level 769 bits: built D=-5201738755 h~72123 in 107.2s; o has 389 bits, q 379 bits (total 107.3s, 0 cands, 0 ecm-s)
+[22:49:30] building primorial cache /home/ubuntu/OneShotFastECPP/work/pcache/oneshot_P_67108864.bin (one-time, y=67108864)
+[22:49:31]   level 379 bits: dscan[0,3e+07) maxfb=1e+06 +1661 D -> +1302 orders (1124 live) in 1.6s (strip 1.5s), 0 winners
+[22:49:32]     ecm B1=2000 c=10 on 1124 tails: 426 split, 1 winners, 0.7s (stopped at the first winner, 865 tails done)
+[22:49:32]   level 379 bits: built D=-4820563 h~2195 in 0.4s; o has 190 bits, q 185 bits (total 2.7s, 1302 cands, 143 ecm-s)
+[22:49:33]   level 185 bits: dscan[0,3e+07) maxfb=1e+06 +4689 D -> +3660 orders (2559 live) in 1.0s (strip 0.9s), 5 winners
+[22:49:33]   level 185 bits: built D=-176135 h~419 in 0.3s; o has 93 bits, q 81 bits (total 1.3s, 4962 cands, 143 ecm-s)
+[22:49:33] finishing below 135 bits with short2.gp (p has 81 bits)
+[22:49:34]   gp tail: 1 levels in 0.3s
+[22:49:34] chain complete: 4 levels, 111.6s; verifying...
+[22:49:34] vshort2.verify = True   PARI cross-check = True
+[22:49:34] certificate written to /home/ubuntu/exp768/p768exp.txt (verified twice)
+CERT_DONE

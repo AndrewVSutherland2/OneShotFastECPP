@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shortECPP revisited: prover changes, ECM engine benchmark, search model</title>
+<style>
+:root { --fg:#1a1a1a; --bg:#fefefe; --rule:#ccc; --th:#f0ede4; --code:#f4f2ea; --hl:#fdf6d8; --hlb:#c9a227; --bd:#bbb; --mut:#555; }
+@media (prefers-color-scheme: dark) {
+  :root { --fg:#e6e3da; --bg:#16171a; --rule:#444; --th:#26282d; --code:#24262b; --hl:#2a2718; --hlb:#c9a227; --bd:#4a4c52; --mut:#a8a59c; }
+  a { color:#8fb8ff; }
+}
+body { font: 16px/1.55 Georgia, serif; max-width: 62em; margin: 2em auto; padding: 0 1em; color: var(--fg); background: var(--bg); }
+h1 { font-size: 1.6em; } h2 { font-size: 1.25em; margin-top: 1.8em; border-bottom: 1px solid var(--rule); }
+h3 { font-size: 1.05em; margin-top: 1.4em; }
+table { border-collapse: collapse; margin: 1em 0; font-size: 0.92em; }
+th, td { border: 1px solid var(--bd); padding: 0.3em 0.6em; text-align: right; vertical-align: top; }
+th { background: var(--th); } td:first-child, th:first-child { text-align: left; }
+td.l, th.l { text-align: left; }
+code { background: var(--code); padding: 0.1em 0.3em; font-size: 0.92em; }
+.hl { background: var(--hl); padding: 0.8em 1em; border-left: 4px solid var(--hlb); }
+.hl ul { margin: 0.4em 0 0 0; }
+div.wide { overflow-x: auto; }
+.mut { color: var(--mut); font-size: 0.92em; }
+</style></head><body>
+
+<h1>shortECPP revisited: prover changes, ECM engine benchmark, and a model of the search</h1>
+<p class="mut">2026-11-14 &middot; branch <code>shortecpp-improve</code> &middot; follows the review of the
+"Short ECPP prover: recommended improvements" note.  Hardware: one <code>c8a.48xlarge</code>
+spot box (AMD EPYC 9R45, Zen&nbsp;5, 192 cores, no SMT) and the 16-core driver box, which was
+shared with another job all day, so local timings are CPU times and may be up to twice the idle figures.</p>
+
+<div class="hl"><b>Summary.</b>
+<ul>
+<li><b>Prover.</b> Supply and round handling are reworked and tested: the scan's factor base is capped
+from the first scan and its square roots are cached, the strip uses a 2<sup>26</sup> prime product,
+classification no longer runs Miller&ndash;Rabin in Python on every prime tail, and a round stops at its
+first winner.  At 1030 bits a scan to 6&middot;10<sup>10</sup> (99,338 discriminants) costs 4.5 core-hours;
+in August the scan to 2&middot;10<sup>10</sup> (85,954) cost about 210.</li>
+<li><b>Engine.</b> Re-tuning GMP and gmp-ecm for Zen&nbsp;5 gains at most 3% with all cores busy.
+avx-ecm's stage 1 is 1.8 times faster than gmp-ecm's (1.35&ndash;1.5 times per whole curve), but only
+in its non-IFMA build: the IFMA build of the standalone repository computes wrong residues.</li>
+<li><b>Model.</b> A model of one level with no fitted parameter reproduces the 1030-bit campaign log
+tier by tier.  It says the schedule, not the engine, is where the time goes: a per-candidate stopping
+rule that gives most orders no ECM and takes the best few much deeper costs several times less per
+winner than fixed tiers with admission caps.</li>
+<li><b>Experiment.</b> That rule, run with real gmp-ecm on 249,648 orders of nextprime(2<sup>768</sup>),
+found <b>17 winners for 26.9 core-hours of ECM</b> (1.6 per winner) plus about
+10 core-hours of supply.  The model had predicted 24.2 winners for 31.8
+core-hours.  On the same prime and box, the prover with its old scheduler needed 59 core-hours of search to reach its first winner; the August campaign's 765-bit prime took 148.</li>
+<li><b>Construction.</b> With winners this cheap, building the curve costs more than finding it, and at
+768 bits 61&ndash;99.6% of a build is root-finding on the full-degree class polynomial (section 6).  The
+class-group decomposition of <a href="https://arxiv.org/abs/1009.1082">arXiv:1009.1082</a> removes most of
+that and is not implemented in this tree.</li>
+<li><b>Not done.</b> The prover's scheduler still uses the old tiers and caps; putting the stopping rule
+into it, and the decomposition into <code>cm_method</code>, are the next two steps.  yafu's IFMA ECM was
+not built.</li>
+
+</ul></div>
+
+<h2>1. What changed in the prover</h2>
+<p>All of this is in <code>ecpp/shortECPP.py</code>, <code>ecpp/dscan.c</code> and
+<code>ecpp/smoothtest.c</code>.  The scheduler (tiers, admission caps, ranking, widen rule) is
+<b>unchanged</b>: these are the changes that needed no model.</p>
+<div class="wide"><table>
+<tr><th>Change</th><th class="l">What it does</th><th class="l">Measured effect</th></tr>
+<tr><td>Factor-base cap from the first scan</td>
+<td class="l"><code>fb_cap(B)</code> = B/1000, clamped to [10<sup>6</sup>, 10<sup>8</sup>]; the cap grows with B.
+New <code>dscan fbmin=</code>: with the previous cap given, a discriminant below <code>Bmin</code> is emitted
+exactly when its largest prime exceeds that cap, so successive scans tile [0,&nbsp;B) at the latest cap
+with no repeats.  <code>Bmax</code> default raised to 2&middot;10<sup>11</sup>.</td>
+<td class="l">1030 bits, B = 2&middot;10<sup>10</sup>: 61,315 solvable D for 1.9 core-h
+(cap 5&middot;10<sup>7</sup>), against 85,954 for about 210 core-h uncapped in the August campaign.
+B = 6&middot;10<sup>10</sup>: 99,338 D for 4.5 core-h.  768 bits, B = 2&middot;10<sup>11</sup>,
+cap 10<sup>8</sup>, idle 192-core box: 319,371 D in 257&nbsp;s (9.1 core-h).</td></tr>
+<tr><td>Root cache</td>
+<td class="l"><code>dscan roots=&lt;file&gt;</code> keeps the factor-base square roots on disk, keyed by p.
+A cached prefix is reused only after every root in it has been squared and compared; a damaged file
+falls back to its longest good prefix.</td>
+<td class="l">A widening pays Tonelli only for the primes the larger cap adds
+(1.5 M roots at 1030 bits &asymp; 1,550 core-s otherwise repeated per widening).</td></tr>
+<tr><td>Strip bound 2<sup>26</sup></td>
+<td class="l">The strip only has to be exact up to n&sup2;.  The prime product now stops at
+2<sup>26</sup> (12&nbsp;MB) instead of 2<sup>32</sup> (775&nbsp;MB).</td>
+<td class="l">27,000 orders at 1030 bits: 6.4&nbsp;s against 62.2&nbsp;s on 12 threads, identical
+n&sup2;-smooth parts.  249,648 orders at 768 bits: 11.9&nbsp;s on 192 cores.  The primes it leaves
+(27&ndash;32 bits) go at the first ECM tier.</td></tr>
+<tr><td>Classification</td>
+<td class="l"><code>smoothtest parts n2=&lt;bound&gt; prp=1</code> returns the n&sup2;-smooth part and a base-2
+Fermat verdict on the tail; after ECM the verdict is read from gmp-ecm's own report.  The Python
+process pool and the single-core <code>n2_parts</code> are gone.  Only a probable-prime tail below
+&radic;p, which could be a q, still gets the 24-round Miller&ndash;Rabin test in the interpreter.</td>
+<td class="l">The campaign's classify phase (95&ndash;136&nbsp;s per widening at 1030 bits) was not the process
+pool, as the earlier note and my review both said: it was that Miller&ndash;Rabin test, run on every prime
+tail (about 1,500 per 27,000 orders, 60&nbsp;ms each).  I found this only when the baseline run in section 5
+showed 53&nbsp;s of "strip" for 38,582 orders that <code>smoothtest</code> alone handles in 2&nbsp;s; that run
+predates the fix.  With it, the phase is gone.</td></tr>
+<tr><td>Results as they complete</td>
+<td class="l">Each round is a set of futures; results are processed as processes finish, and the first
+winner kills the rest of the round.  Tails that did not finish keep their effort key, so a failed
+build resumes the same tier.</td>
+<td class="l">532-bit test: the winning round stopped after 106 of 1,665 tails.  In the campaign the
+last round was 2,107&ndash;2,392&nbsp;s of a 16,500&nbsp;s proof at 1030 bits; on average half of it is saved.</td></tr>
+<tr><td>Several tails per gmp-ecm process</td>
+<td class="l">At tiers where a tail needs a fraction of a second, a process takes up to 32 tails
+(never so many that cores idle).</td>
+<td class="l">Insurance, not a measured gain: see the launch test in section 3.</td></tr>
+</table></div>
+<p>Validation: <code>test_dscan.py</code> gained a section (capped scan against brute force, tiling
+across a growing cap, root cache cold / extended / warm / damaged) and <code>test_smooth.py</code>
+checks the two new columns against PARI; both pass.  The modified prover produced verified
+revised-format certificates for nextprime(10<sup>100</sup>), nextprime(10<sup>120</sup>) and
+nextprime(10<sup>160</sup>) on the driver box and, on the spot box, for nextprime(2<sup>768</sup>) (section 5).</p>
+
+<h2>2. Where supply stands now</h2>
+<p>With the cap, the scan costs about 0.1 core-seconds per solvable discriminant at
+B&nbsp;=&nbsp;2&middot;10<sup>10</sup> and 0.25 at the margin near 6&middot;10<sup>10</sup>: the count of
+solvable D grows like &radic;B while tests grow like B, so supply is cheap but its price rises with
+the pool.  The count is flat in the cap: on the 1030-bit dump, a cap of B/4000 keeps 81% of what B/400
+finds, with a ninth of the roots.</p>
+<table>
+<tr><th>1030 bits, D below</th><th>cap 5&middot;10<sup>7</sup></th><th>2&middot;10<sup>7</sup></th><th>10<sup>7</sup></th><th>5&middot;10<sup>6</sup></th><th>10<sup>6</sup></th><th>2&middot;10<sup>5</sup></th></tr>
+<tr><td>2&middot;10<sup>10</sup></td><td>61,315</td><td>56,756</td><td>53,240</td><td>49,394</td><td>40,202</td><td>29,494</td></tr>
+<tr><td>6&middot;10<sup>10</sup></td><td>99,338</td><td>91,546</td><td>85,402</td><td>78,898</td><td>62,675</td><td>44,154</td></tr>
+<tr><td>square roots needed</td><td>1.41 M</td><td>0.59 M</td><td>0.31 M</td><td>0.16 M</td><td>36,000</td><td>8,200</td></tr>
+</table>
+
+<h2>3. ECM engine benchmark</h2>
+<p>Built on the box: GMP 6.3.0 twice (as configured by default, and with
+<code>--build=zen3-pc-linux-gnu</code>), gmp-ecm 7.0.6 against each, a third gmp-ecm with its own
+<code>make ecm-params</code> tuning, Ubuntu's gmp-ecm 7.0.5 package (the campaign binary), and
+<code>bbuhrow/avx-ecm</code> (commit 118e015, March 2021).  Inputs are products of two primes of half
+the size, so every curve runs to the end.</p>
+
+<h3>3.1 Re-tuning gmp-ecm is not worth doing</h3>
+<p>GMP 6.3's <code>configure</code> does not recognise Zen&nbsp;5 and silently selects the generic
+<code>x86_64/k8</code> code; forcing the Zen&nbsp;3 code paths gives 2% on a 17-limb multiplication and
+12% on a squaring.  On an otherwise idle box the Zen build with tuned gmp-ecm parameters is 7% faster
+in stage 1 and 12% in stage 2 at 1030 bits.  With every core busy, which is how the prover runs, the
+difference is 3% or nothing:</p>
+<table>
+<tr><th>1030 bits, all 192 cores busy</th><th>B1 = 50,000</th><th>250,000</th><th>10<sup>6</sup></th></tr>
+<tr><td>gmp-ecm 7.0.5 (Ubuntu), core-s per curve</td><td>0.263</td><td>1.215</td><td>4.95</td></tr>
+<tr><td>gmp-ecm 7.0.6, Zen&nbsp;3 GMP, tuned</td><td>0.273</td><td>1.178</td><td>4.81</td></tr>
+<tr><td>the same curve on an idle box (7.0.5)</td><td>0.201</td><td>0.908</td><td>3.66</td></tr>
+</table>
+<p>Every engine is about 1.33 times slower per core when all cores are busy than when the box is idle,
+so idle single-process timings overstate throughput by that factor.</p>
+
+<h3>3.2 avx-ecm: stage 1 is 1.8 times faster, but only its non-IFMA build is correct</h3>
+<p>The standalone avx-ecm repository has two AVX-512 code paths.  The IFMA path (built with
+<code>ICELAKE=1</code>) is wrong on this machine at every optimisation level I tried: it never found a
+10-digit factor that the other path finds at once, and none of its saved stage-1 residues agreed with an
+independent computation modulo a known factor (<code>data/chk_avx.py</code>: 0 of 3; the non-IFMA
+build: 6 of 6).  The repository's own to-do list still says "IFMA and benchmarking".  The non-IFMA
+build (<code>SKYLAKEX=1</code>) is correct, and gmp-ecm's <code>-resume</code> accepts its residues and finds
+factors in stage 2.</p>
+<table>
+<tr><th>1030 bits, all cores busy, core-s per curve</th><th>B1 = 50,000</th><th>250,000</th><th>10<sup>6</sup></th></tr>
+<tr><td>gmp-ecm stage 1</td><td>0.165</td><td>0.832</td><td>3.32</td></tr>
+<tr><td>avx-ecm stage 1, non-IFMA (correct)</td><td>0.092</td><td>0.462</td><td>1.88</td></tr>
+<tr><td>avx-ecm stage 1, IFMA (wrong results; timing only)</td><td>0.052</td><td>0.262</td><td>1.05</td></tr>
+<tr><td>gmp-ecm stage 2 on avx-ecm residues</td><td>0.103</td><td>0.360</td><td>1.53</td></tr>
+<tr><td>whole curve: gmp-ecm alone</td><td>0.263</td><td>1.215</td><td>4.95</td></tr>
+<tr><td>whole curve: avx-ecm (non-IFMA) + gmp-ecm stage 2</td><td>0.195 (1.35&times;)</td><td>0.822 (1.48&times;)</td><td>3.41 (1.45&times;)</td></tr>
+<tr><td>whole curve if a correct IFMA stage 1 ran at the IFMA timing</td><td>0.155 (1.7&times;)</td><td>0.622 (2.0&times;)</td><td>2.58 (1.9&times;)</td></tr>
+</table>
+<p>avx-ecm rounds the modulus up to a multiple of 208 bits, so the stage-1 ratio depends on the size:
+on an idle box it is 1.73 at 768 bits (832), 2.0 at 1030 (1040) and 1.6 at 1263 (1456).  It also sieves
+primes to 10<sup>8</sup> at start-up (0.1&nbsp;s on one core, 0.8&nbsp;s with 32 threads), which matters
+at the shallow tiers.  The maintained descendant of this code is inside
+<code>yafu</code> (<code>USE_AVX512IFMA=1</code>, last commit 2026-11-13); I cloned it on the box, but the
+session's permission classifier blocked building it, so the last row is a projection, not a measurement.</p>
+
+<h3>3.3 The shallow tier is not launch-bound</h3>
+<p>24,000 calls of <code>ecm -q -c 12 2000</code> on 1030-bit inputs through a 192-thread Python pool
+ran at 716 calls a second and 93% utilisation; eight tails per process and a process pool made no
+difference (92% and 94%).  So one interpreter can launch far more than the 335 calls a second seen in
+the campaign's 1030-bit round, where utilisation was about 44%.  The difference in the campaign is
+unexplained (the prover passes a timeout, which puts <code>communicate()</code> on a slower path, and
+its heap is much larger); the tier is 2% of the run either way.</p>
+
+<h2>4. A model of the search</h2>
+<p><code>ecpp/shortsim.py</code>.  After the strip, an order's tail T wins exactly when
+T&nbsp;=&nbsp;(primes ECM removes)&nbsp;&middot;&nbsp;q with q a prime in the candidate's <i>coverage</i>:
+the set of q for which some divisor m of the n&sup2;-smooth part s gives L&nbsp;&lt;&nbsp;mq&nbsp;&lt;&nbsp;r(m)L.
+On the real 1030-bit orders the coverage measures log<sub>2</sub>&nbsp;s bits almost exactly (mean 21.4
+bits; 18.0 under the revised format's limits).  The model has three ingredients and no fitted
+parameter:</p>
+<ol>
+<li>Prime factors of T between the strip bound and 2<sup>160</sup> form a Poisson process with intensity
+db/b in the bit size b; what is left after them is a 2<sup>160</sup>-rough number, prime with the density
+Buchstab's function gives.</li>
+<li>A prime of b bits survives c curves at a tier with probability (1&nbsp;&minus;&nbsp;&pi;(b))<sup>c</sup>,
+with &pi; measured for gmp-ecm on the box (section 8, <code>data/pi_calib.json</code>) where the measurement has at least 8 successes, and otherwise the two-stage Dickman function for orders near 2<sup>b</sup>/24, rescaled to join the measured cells.</li>
+<li>Sums of prime sizes are then compound-Poisson laws, computed exactly on a 1-bit grid by FFT.  This
+gives, for a tail of t bits known to be composite after j tiers, the probability of every outcome of
+tier j+1: nothing found, a smaller composite tail, or a prime tail (a win if it lies in the coverage).</li>
+</ol>
+
+<h3>4.1 It reproduces the campaign log</h3>
+<p>The first pass of the August 1030-bit run, emulated on the real orders of the same prime with the
+campaign's tiers, ranking and caps (mean of 8 Monte Carlo runs; the log is one run):</p>
+<table><tr><th>Tier (B1, curves)</th><th>tails run: model</th><th>log</th><th>tails split: model</th><th>log</th><th>expected winners</th><th>core-h in the log</th></tr>
+<tr><td>2,000, 12</td><td>25,429</td><td>25,411</td><td>7,860</td><td>7,792</td><td>0.000</td><td>4</td></tr>
+<tr><td>11,000, 20</td><td>24,755</td><td>24,761</td><td>6,082</td><td>6,271</td><td>0.000</td><td>14</td></tr>
+<tr><td>50,000, 32</td><td>12,000</td><td>12,000</td><td>2,348</td><td>2,326</td><td>0.001</td><td>36</td></tr>
+<tr><td>250,000, 48</td><td>4,000</td><td>4,000</td><td>755</td><td>683</td><td>0.021</td><td>74</td></tr>
+<tr><td>1,000,000, 72</td><td>1,200</td><td>1,200</td><td>211</td><td>189</td><td>0.222</td><td>112</td></tr>
+<tr><td>3,000,000, 96</td><td>400</td><td>400</td><td>57</td><td>59</td><td>0.568</td><td>128</td></tr>
+</table>
+<p>Share of tails that are prime straight after the strip: model 5.8&ndash;6.1%, data 5.7%.  Expected
+winners per such pass: 0.81, at 367 core-hours of ECM; the campaign found two winners in three passes plus the two deep
+rounds.</p>
+
+<h3>4.2 What it says about the schedule</h3>
+<p>If fresh orders can always be bought at a fixed price, the best policy is a stopping rule per
+candidate: run the next sweep on a composite tail exactly when its expected value is positive.  The
+model computes it by dynamic programming over (sweep, tail size) for each coverage class, with the value
+of a win found by bisection.  Cost per winner at 1030 bits, in core-hours of supply plus ECM, at the
+campaign's effective cost per curve:</p>
+<table><tr><th>Schedule</th><th>supply at 8.8 core-s per order</th><th>supply at 1.0 core-s per order</th><th>supply at 0.3 core-s per order</th></tr>
+<tr><td>Campaign tiers and caps (the reference)</td><td>401 <span class="mut">(33,198 orders, 34.7 core-s of ECM each)</span></td><td>329 <span class="mut">(33,198 orders, 34.7 core-s of ECM each)</span></td><td>323 <span class="mut">(33,198 orders, 34.7 core-s of ECM each)</span></td></tr>
+<tr><td>Campaign tiers, best stopping rule</td><td>244 <span class="mut">(53,823 orders, 7.5 core-s of ECM each)</span></td><td>85 <span class="mut">(141,407 orders, 1.2 core-s of ECM each)</span></td><td>49 <span class="mut">(248,430 orders, 0.4 core-s of ECM each)</span></td></tr>
+<tr><td>Same B1, in sweeps of 12&ndash;20 curves</td><td>224 <span class="mut">(53,391 orders, 6.3 core-s of ECM each)</span></td><td>75 <span class="mut">(116,649 orders, 1.3 core-s of ECM each)</span></td><td>46 <span class="mut">(207,579 orders, 0.5 core-s of ECM each)</span></td></tr>
+<tr><td>More sweeps at 10<sup>6</sup> and 3&middot;10<sup>6</sup></td><td>143 <span class="mut">(30,844 orders, 7.9 core-s of ECM each)</span></td><td>53 <span class="mut">(74,766 orders, 1.6 core-s of ECM each)</span></td><td>35 <span class="mut">(139,496 orders, 0.6 core-s of ECM each)</span></td></tr>
+<tr><td>Adding B1 = 10<sup>7</sup> and 3&middot;10<sup>7</sup> (cost and &pi; extrapolated)</td><td>113 <span class="mut">(21,154 orders, 10.5 core-s of ECM each)</span></td><td>49 <span class="mut">(57,601 orders, 2.0 core-s of ECM each)</span></td><td>34 <span class="mut">(117,688 orders, 0.7 core-s of ECM each)</span></td></tr>
+</table>
+<p class="mut">8.8 core-s per order is what supply cost in the August 1030-bit run; 1.0 and 0.3 bracket what it costs now (scan 0.1&ndash;0.25, strip under 0.01, plus overheads).  In brackets: orders bought per winner and ECM spent per order.</p>
+<p>Two things produce the gain, and both go against a ladder with fixed admission caps:</p>
+<ul>
+<li><b>Selection.</b> The win probability is proportional to the coverage and falls by about 3% per bit
+of tail above &radic;p, so a candidate with a 100-bit smooth part and 50 bits of coverage is worth tens of
+typical ones.  With cheap supply the best policy gives most orders no ECM at all (at 1.0 core-s per order, 29% of fresh orders get the B1&nbsp;=&nbsp;2,000 sweep, 11% reach 11,000, 2.8% reach 50,000 and 0.6% reach 250,000),
+where the reference runs B1&nbsp;=&nbsp;50,000 on 45% of the pool and 250,000 on 15%.</li>
+<li><b>Depth.</b> On the few candidates that survive, it keeps going well past where the reference
+stops; in the third row of the table 37% of the winners come from the 10<sup>6</sup> sweeps and 58% from 3&middot;10<sup>6</sup>.  This is the same effect as the campaign logs show directly: 11 of the 15
+top-level winners on the 192-core boxes came from the B1&nbsp;=&nbsp;10<sup>6</sup> tier in 2.6 hours of
+wall time, 3 from 250,000 in 6.2 hours.</li>
+</ul>
+
+<h2>5. Experiment: the policy on real orders at 768 bits</h2>
+<p>The model's stopping rule was computed for the real orders of p = nextprime(2<sup>768</sup>)
+(scan to 2&middot;10<sup>11</sup> with the cap at 10<sup>8</sup>, revised-format coverage, supply priced
+at 0.3 core-seconds per order, sweeps up to B1&nbsp;=&nbsp;3&middot;10<sup>7</sup> on offer) and then
+executed with gmp-ecm 7.0.5 on the 192-core box by <code>data/policy_run.py</code>: each composite tail
+runs the next sweep exactly when the table says so for its coverage class and current size, a tail that
+becomes prime is tested against the format's window, and nothing else is consulted.  The prediction was
+written down before the run (<code>data/exp768_policy.json</code>).</p>
+<table><tr><th>B1</th><th>sweeps</th><th>tails run: predicted</th><th>observed</th><th>winners: predicted</th><th>re-predicted with measured &pi;</th><th>observed</th><th>ECM core-s: predicted</th><th>observed</th></tr>
+<tr><td>2,000</td><td>1</td><td>106,055</td><td>106,338</td><td>0.00</td><td>0.00</td><td>0</td><td>10,445</td><td>12,068</td></tr>
+<tr><td>11,000</td><td>1</td><td>20,888</td><td>19,491</td><td>0.09</td><td>0.05</td><td>0</td><td>14,003</td><td>12,645</td></tr>
+<tr><td>50,000</td><td>2</td><td>9,245</td><td>8,074</td><td>1.35</td><td>1.01</td><td>1</td><td>17,205</td><td>14,212</td></tr>
+<tr><td>250,000</td><td>4</td><td>4,057</td><td>3,427</td><td>6.56</td><td>5.36</td><td>2</td><td>21,518</td><td>17,455</td></tr>
+<tr><td>1,000,000</td><td>6</td><td>1,125</td><td>901</td><td>10.08</td><td>9.01</td><td>9</td><td>20,509</td><td>15,269</td></tr>
+<tr><td>3,000,000</td><td>8</td><td>626</td><td>535</td><td>6.11</td><td>5.48</td><td>5</td><td>30,980</td><td>25,088</td></tr>
+<tr><th>Total</th><th></th><th>141,996</th><th>138,766</th><th>24.2</th><th>20.9</th><th>17</th><th>114,660 (31.8 core-h)</th><th>96,737 (26.9 core-h)</th></tr>
+</table>
+<p>The prediction in the fifth column used the theoretical &pi;, because the measurement of &pi;
+finished after the run.  17 winners against 24.2 is about 1.5 standard deviations
+low for a Poisson count.  Re-predicted with the measured &pi;, the same policy is expected to find 20.9 winners, within one standard deviation of 17.  The model still sends 15&ndash;20% more tails to the deep
+sweeps than actually arrived, so some optimism is real, but it is right about the structure: 14 of the
+17 winners came from the 10<sup>6</sup> and 3&middot;10<sup>6</sup> sweeps on a few hundred tails, and the
+policy never asked for B1&nbsp;&ge;&nbsp;10<sup>7</sup> at this size.</p>
+<p>Cost of a top-level winner at 768 bits, all in: 9.1 core-hours of scan and under 1 of strip for the
+whole pool, 26.9 of ECM, so about <b>2.2 core-hours per winner</b>; the run took 759
+seconds of wall time, about a fifth of it single-threaded Python in my driver.  For comparison:</p>
+<ul>
+<li>The August campaign's 765-bit prime (10<sup>230</sup>+753) took 148 core-hours and 83,506 orders for
+its one winner; 698 and 731 bits took 183 and 41.</li>
+<li>The model's expectation for the reference scheduler's order of work on these same orders, at today's
+supply cost, is 33&ndash;37 core-hours of ECM before the first winner: it spends 25&ndash;60 core-hours on
+B1&nbsp;&le;&nbsp;250,000 across the pool before it reaches the sweeps where the winners are.</li>
+<li>Run straight after the experiment for comparison: the modified prover with its old scheduler, from scratch on the same prime and box, reached its first winner after 1,110&nbsp;s (59 core-hours, 53.5 of them ECM; 63,182 orders) and completed a verified chain in 1,224&nbsp;s.  It spent 43 core-hours on B1&nbsp;&le;&nbsp;50,000 across the pool before the second 250,000 sweep found the winner, and the new early stop ended that round after 2.8&nbsp;s.  This is one draw, and somewhat worse than the model's expectation.</li>
+</ul>
+<p>The winners have |D| between 5.2&middot;10<sup>9</sup> and 1.7&middot;10<sup>11</sup>: with a pool this
+wide, winners are spread over the whole scan range and curve construction, not the search, becomes the
+expensive part of a level.  A complete revised-format certificate for nextprime(2<sup>768</sup>) was built on the box from the winner with the smallest |D|, D&nbsp;=&nbsp;&minus;5,201,738,755: the chain took 112&nbsp;s, 107 of them the top-level curve; it passes <code>vshort2.verify</code> and the PARI cross-check, and the baseline run above, which found the same winner, produced the identical certificate (<code>data/p768_cert.txt</code>).</p>
+
+
+<h2>6. Curve construction is now the bottleneck</h2>
+<p>A wide pool spreads winners over the whole scan range, so their discriminants are large: the 17
+winners of section 5 have class numbers from 11,364 to 489,056.  <code>cm_method</code> on four of
+them, alone on the 192-core box, p = nextprime(2<sup>768</sup>):</p>
+<table>
+<tr><th>D</th><th>h(D)</th><th>invariant, degree</th><th>class polynomial mod p</th><th>root of it</th><th>total</th><th>core-s</th></tr>
+<tr><td>&minus;5,201,738,755</td><td>11,364</td><td>159, 11,364</td><td>0.5 s</td><td>109.7 s</td><td>110 s</td><td>6,490</td></tr>
+<tr><td>&minus;18,960,475,695</td><td>74,912</td><td>535, 37,456</td><td>4.9 s</td><td>245.8 s</td><td>251 s</td><td>16,192</td></tr>
+<tr><td>&minus;43,980,816,779</td><td>58,520</td><td>171, 58,520</td><td>3.4 s</td><td>364.4 s</td><td>368 s</td><td>18,396</td></tr>
+<tr><td>&minus;115,333,393,863</td><td>149,392</td><td>26, 149,392</td><td>524.7 s</td><td>816.4 s</td><td>1,342 s</td><td>135,161</td></tr>
+</table>
+<p>Three things follow.</p>
+<ul>
+<li><b>Construction now costs more than the search.</b> The cheapest build, 110&nbsp;s on the box, is 5.9
+core-hours of box time (1.8 of actual CPU); a winner costs about 2.2 to find.</li>
+<li><b>It is almost all root-finding.</b> With a good class invariant the polynomial itself arrives in
+seconds from parallel <code>classpoly</code>; the root of the full-degree polynomial by equal-degree
+splitting takes 61&ndash;99.6% of the time, and keeps only 40&ndash;65 of the 192 cores busy.</li>
+<li><b>The invariant matters as much as h.</b> The fourth discriminant only admits invariant 26 and
+its polynomial takes a hundred times longer than the others.</li>
+</ul>
+<p>This is the case for the decomposition of
+<a href="https://arxiv.org/abs/1009.1082">Sutherland, <i>Accelerating the CM method</i></a>: with a
+subgroup of order n and m = h/n cosets, one finds a root of a polynomial V of degree m, forms from it a
+polynomial of degree n, and finds a root of that, so the degrees in the root-finding drop from h to m and
+n.  How much that buys depends on the divisors of h.  For the first row h = 2<sup>2</sup>&middot;3&middot;947, so
+the best split is degrees 947 and 12 in place of 11,364; for the third, 266 and 220 in place of 58,520.
+Of the 17 winners, 12 have a split with both degrees at most 600, and with winners this cheap one can
+choose among them.
+The vendored <code>classpoly_v1.0.3</code> already has the consuming half for word-size primes
+(<code>ff_classpoly_root</code>, the F/G file format, <code>tower_split</code>), but nothing in the tree
+produces a decomposed polynomial, and <code>cm_method</code> always takes the full-degree route.</p>
+
+
+<h2>7. What I would do next</h2>
+<ol>
+<li><b>Put the stopping rule into <code>prove_level_cm</code>.</b> Replace the caps, the index and the
+widen rule by a table lookup (coverage class, sweep, tail bits) computed once per level by
+<code>shortsim.py</code>, feed orders as a stream priced at the scan's marginal cost, and spread the
+curves of a deep sweep over idle cores when few tails are left.  Validate on nextprime(2<sup>768</sup>)
+against today's numbers, then at 1030 bits, where the model expects 30&ndash;50 core-hours per top-level
+winner against 330&ndash;410 for the reference.</li>
+<li><b>Root-finding through the class group (section 6).</b> Implement the two-level decomposition
+for the big prime: a decomposed output mode in the CRT code and a <code>cm_method</code> path that finds a
+root of V with <code>fproot</code>, evaluates the degree-n polynomial at it and finds a root of that.
+Then the paper's second algorithm if the CRT data for the interpolants becomes the limit.  The 17
+journalled winners (<code>data/exp768_winners.jsonl</code>) are ready-made test cases.</li>
+<li><b>Price construction into the stopping rule.</b> A winner's value should be net of its build
+cost, which depends on h, on the invariant available and, after the previous item, on the shape of the
+class group.  Until the decomposition exists it pays to wait for a winner with a small class number.</li>
+<li><b>Stage 1.</b> Either wire the non-IFMA avx-ecm in as a stage-1 engine with gmp-ecm
+<code>-resume</code> for stage 2 (1.35&ndash;1.5 times per curve, measured), or build yafu's IFMA ECM and
+repeat section 3.2 on it (up to 2 times if it is correct).  Both need the 208-bit rounding and the
+start-up sieve handled at the shallow tiers.</li>
+<li><b>Tighten the model.</b> Measure &pi; and the cost per curve at B1&nbsp;=&nbsp;10<sup>7</sup> and
+3&middot;10<sup>7</sup>, which the 1030-bit policy uses and which are extrapolated here; find where the
+15&ndash;25% optimism comes from (the run counts at the deep sweeps are the place to look); extend it
+below 640 bits, where the rough-cofactor approximation stops being valid, for the lower levels.</li>
+<li><b>For the paper.</b> The model is a heuristic analysis of the search in closed form (the cost per
+winner is the fixed point of the stopping problem), with a direct experimental check.</li>
+
+</ol>
+
+<h2>8. Files</h2>
+<ul>
+<li>Prover: <code>ecpp/shortECPP.py</code>, <code>ecpp/dscan.c</code> (<code>fbmin=</code>,
+<code>roots=</code>), <code>ecpp/smoothtest.c</code> (<code>n2=</code>, <code>prp=1</code>);
+tests <code>ecpp/test_dscan.py</code>, <code>ecpp/test_smooth.py</code>.</li>
+<li>Model: <code>ecpp/shortsim.py</code>.</li>
+<li>Engine benchmark: <code>data/build.sh</code>, <code>data/bench.py</code>, <code>data/bench2.py</code>
+(non-IFMA avx-ecm), <code>data/mb.c</code>, <code>data/chk_avx.py</code>; results
+<code>data/engine_results.json</code>, <code>data/engine_results_avx_noifma.json</code>, logs alongside.</li>
+<li>Calibration of &pi;: <code>data/pi_calib.py</code>, result <code>data/pi_calib.json</code>.</li>
+<li>Experiment: <code>data/prep768.sh</code>, <code>data/make_policy.py</code>,
+<code>data/policy_run.py</code>, <code>data/compare.py</code>, <code>data/make_journal.py</code>; inputs and outputs <code>data/exp768_orders.tgz</code> (tail sizes and smooth parts of the 249,648
+orders), <code>data/exp768_policy.json</code>, <code>data/exp768_policy_run.json</code>,
+<code>data/exp768_run.log</code>, <code>data/exp768_prep.log</code>, the 17 winners
+<code>data/exp768_winners.jsonl</code>, the certificate <code>data/p768_cert.txt</code>, the baseline run
+<code>data/p768_baseline.log</code> and the construction timings <code>data/p768_cm_timing.log</code>.</li>
+<li>This page: <code>make_report.py</code> fills <code>index.template.html</code> and <code>sections.html</code>
+from <code>data/</code> and the model.  It needs the two pools of real orders as pickles, which are too large
+to commit: the 768-bit one is written by <code>data/make_policy.py</code> from
+<code>data/exp768_orders.tgz</code>; the 1030-bit one comes from
+<code>dscan p=nextprime(10^310) B=6e10 maxfb=5e7 dump</code>, a strip with the 2<sup>32</sup> product and
+<code>shortsim.load_candidates</code>.</li>
+</ul>
+</body></html>

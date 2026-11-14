@@ -1,0 +1,7 @@
+dscan B=20000000000 Bmin=0: fb 194.2s (sieve 0.1, legendre 0.1, tonelli 194.1), scan 822.3s, 61315/340331048 solvable, 8 threads
+B=20000000000 maxfb=50000000 user=6714.63 sys=4.09 wall=1016.73 maxrss=758212kB
+61315
+dscan B=60000000000 Bmin=0: fb 231.6s (sieve 0.0, legendre 0.2, tonelli 231.4), scan 2408.4s, 99338/897009323 solvable, 8 threads
+B=60000000000 maxfb=50000000 user=16074.55 sys=10.45 wall=2640.16 maxrss=1545604kB
+99338
+DONE
