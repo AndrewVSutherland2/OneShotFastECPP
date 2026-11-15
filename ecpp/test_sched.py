@@ -13,9 +13,10 @@
   D  queue mechanics on a toy ladder with a hand-made table: order of work,
      the stopping rule, chunking, sweeps of one B1 in flight together but no
      larger B1 before the smaller has reported, cancel;
-  E  a simulated level end to end (virtual time, tails from the model): it
-     terminates with a win, buys orders in growing chunks, and the work it does
-     is of the size the model predicts.
+  E  simulated levels end to end (virtual time, tails from the model): they
+     terminate with a win, the work done is of the size the model predicts and
+     the cores are kept busy; a winner whose build fails resumes the search; a
+     scan that cannot go further ends in a win or a clean failure.
 
 usage: test_sched.py            (about 20 s)
 """
@@ -208,6 +209,39 @@ def test_sim(tiers, lad, cost, tab, lam):
     check("work per level is of the modelled size", 500 < mw < 60000, "%.0f core-s" % mw)
     util = sum(work) / (sum(walls) * 64)
     check("cores are kept busy", util > 0.7, "utilisation %.0f%%" % (100 * util))
+
+    # a winner whose build fails: the search must resume and end at a later win
+    class FailOnce(sd.SimDriver):
+        def __init__(self, *a, **k):
+            sd.SimDriver.__init__(self, *a, **k)
+            self.builds = 0
+            self.first = None
+
+        def build(self, stats):
+            self.builds += 1
+            if self.builds == 1:
+                self.first = dict(stats)
+                self.wins = 0
+                return None
+            return stats
+    drv = FailOnce(pool, lad, tab, 64, np.random.default_rng(7), cost)
+    st = sd.level_loop(drv, tab, tiers, cost)
+    check("a failed build resumes the search", drv.builds == 2 and st["orders"] >= drv.first["orders"]
+          and st["ecm_s"] > drv.first["ecm_s"] and st["wall"] > drv.first["wall"],
+          "first win after %.0f core-s, second after %.0f" % (drv.first["ecm_s"], st["ecm_s"]))
+
+    # a scan that cannot go further: everything queued is then in play, and the level
+    # either wins or reports that it is exhausted
+    ends = []
+    for k in range(6):
+        drv = sd.SimDriver(pool, lad, tab, 64, np.random.default_rng(300 + k), cost, B0=1e6, Bmax=1e6)
+        try:
+            st = sd.level_loop(drv, tab, tiers, cost)
+            ends.append("win" if drv.wins else "?")
+        except RuntimeError as e:
+            ends.append("exhausted" if "exhausted" in str(e) else "?")
+    check("an exhausted scan ends in a win or a clean failure", all(x in ("win", "exhausted") for x in ends)
+          and "exhausted" in ends, " ".join(ends))
 
 
 def main():
