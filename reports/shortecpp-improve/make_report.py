@@ -296,6 +296,56 @@ if os.path.exists(yc):
     R["YAFU_GRID_TABLE"] = ("<table><tr><th>input, bits</th><th>B1</th><th>gmp-ecm</th><th>yafu, B2 as gmp-ecm</th><th>ratio</th>"
                             "<th>yafu, B2 from memory limit</th></tr>" + "".join(rows) + "</table>")
 
+# ---------------------------------------------------------------- 9 the stopping rule in the prover
+rr = os.path.join(DATA, "rule_runs.json")
+if os.path.exists(rr):
+    runs = json.load(open(rr))
+    r768 = [r for r in runs if r["bits"] < 800]
+    rows = []
+    for k, r in enumerate(r768):
+        rows.append("<tr><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%.0f</td><td>%s</td><td>%s</td><td>%.1f</td><td>%.0f</td></tr>"
+                    % (k, fmt(r["first_chunk_D"]), fmt(r["orders"]), fmt(r["scan_s"]), fmt(r["ecm_s"]), r["search_wall"],
+                       "%.2f" % max(r["expwin"], 0.0) if r["expwin"] is not None else "&ndash;", fmt(r["D"]).replace("-", "&minus;"),
+                       r["build_s"], r["chain_s"]))
+    R["RULE_TABLE"] = ("<div class=\"wide\"><table><tr><th>run</th><th>solvable D below 6&middot;10<sup>7</sup></th><th>orders bought</th>"
+                       "<th>scan, thread-s</th><th>ECM, thread-s</th><th>search, s</th><th>wins the model expected</th>"
+                       "<th>top-level D</th><th>build, s</th><th>whole chain, s</th></tr>" + "".join(rows) + "</table></div>")
+    n = len(r768)
+    work = [r["scan_s"] + r["ecm_s"] for r in r768]
+    chain = sorted(r["chain_s"] for r in r768)
+    ew = [max(r["expwin"], 0.0) for r in r768 if r["expwin"] is not None]
+    R["RULE_N"] = n
+    R["RULE_CHAIN_MEAN"] = "%.0f" % (sum(chain) / n)
+    R["RULE_CHAIN_MEDIAN"] = "%.0f" % chain[n // 2]
+    R["RULE_CHAIN_MIN"] = "%.0f" % chain[0]
+    R["RULE_CHAIN_MAX"] = "%.0f" % chain[-1]
+    R["RULE_WORK_MEAN"] = fmt(sum(work) / n)
+    R["RULE_WORK_MEAN_H"] = "%.1f" % (sum(work) / n / 3600)
+    R["RULE_WORK_MEDIAN_H"] = "%.1f" % (sorted(work)[n // 2] / 3600)
+    R["RULE_SEARCH_MEAN"] = "%.0f" % (sum(r["search_wall"] for r in r768) / n)
+    R["RULE_EW_N"] = len(ew)
+    R["RULE_EW_MEAN"] = "%.2f" % (sum(ew) / len(ew))
+    R["RULE_EW_SE"] = "%.2f" % (1.0 / len(ew) ** 0.5)        # of the mean of that many Exp(1) draws
+    R["RULE_EW_SUM"] = "%.1f" % sum(ew)
+    R["RULE_D_MIN"] = fmt(min(r["first_chunk_D"] for r in r768))
+    R["RULE_D_MAX"] = fmt(max(r["first_chunk_D"] for r in r768))
+    big = [r for r in runs if r["bits"] >= 1000]
+    if big:
+        b = big[0]
+        R["RULE1030_ORDERS"] = fmt(b["orders"])
+        R["RULE1030_SCAN_H"] = "%.1f" % (b["scan_s"] / 3600)
+        R["RULE1030_ECM_H"] = "%.1f" % (b["ecm_s"] / 3600)
+        R["RULE1030_WORK_H"] = "%.1f" % ((b["scan_s"] + b["ecm_s"]) / 3600)
+        R["RULE1030_SEARCH"] = fmt(b["search_wall"])
+        R["RULE1030_SEARCH_H"] = "%.2f" % (b["search_wall"] / 3600)
+        R["RULE1030_EW"] = "%.2f" % b["expwin"]
+        R["RULE1030_D"] = fmt(b["D"]).replace("-", "&minus;")
+        R["RULE1030_BUILD"] = "%.0f" % b["build_s"]
+        R["RULE1030_CHAIN"] = fmt(b["chain_s"])
+        R["RULE1030_CHAIN_H"] = "%.2f" % (b["chain_s"] / 3600)
+        R["RULE1030_R_H"] = "%.0f" % (b["R"] / 3600)
+        R["RULE1030_FACTOR"] = "%.2f" % b["cost_factor"]
+
 tpl = open(os.path.join(HERE, "index.template.html")).read()
 body = open(os.path.join(HERE, "sections.html")).read()
 # sections.html holds the prose blocks, each introduced by a line "#### NAME"

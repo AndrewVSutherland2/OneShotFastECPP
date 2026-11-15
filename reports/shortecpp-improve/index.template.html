@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>shortECPP revisited: prover changes, ECM engine benchmark, search model</title>
+<title>shortECPP revisited: prover changes, search model, stopping-rule scheduler</title>
 <style>
 :root { --fg:#1a1a1a; --bg:#fefefe; --rule:#ccc; --th:#f0ede4; --code:#f4f2ea; --hl:#fdf6d8; --hlb:#c9a227; --bd:#bbb; --mut:#555; }
 @media (prefers-color-scheme: dark) {
@@ -23,7 +23,7 @@ div.wide { overflow-x: auto; }
 </style></head><body>
 
 <h1>shortECPP revisited: prover changes, ECM engine benchmark, and a model of the search</h1>
-<p class="mut">2026-11-14 &middot; branch <code>shortecpp-improve</code> &middot; follows the review of the
+<p class="mut">2026-11-14, section 9 added 2026-11-15 &middot; branch <code>shortecpp-improve</code> &middot; follows the review of the
 "Short ECPP prover: recommended improvements" note.  Hardware: one <code>c8a.48xlarge</code>
 spot box (AMD EPYC 9R45, Zen&nbsp;5, 192 cores, no SMT) and the 16-core driver box, which was
 shared with another job all day, so local timings are CPU times and may be up to twice the idle figures.</p>
@@ -212,12 +212,15 @@ wall time, 3 from 250,000 in 6.2 hours.</li>
 <h2>8. yafu's AVX-512 IFMA ECM</h2>
 @@YAFU@@
 
-<h2>9. What I would do next</h2>
+<h2>9. The stopping rule in the prover</h2>
+@@RULE@@
+
+<h2>10. What I would do next</h2>
 <ol>
 @@NEXT@@
 </ol>
 
-<h2>10. Files</h2>
+<h2>11. Files</h2>
 <ul>
 <li>Prover: <code>ecpp/shortECPP.py</code>, <code>ecpp/dscan.c</code> (<code>fbmin=</code>,
 <code>roots=</code>), <code>ecpp/smoothtest.c</code> (<code>n2=</code>, <code>prp=1</code>);
