@@ -256,7 +256,47 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   winner in 29 that needed it).  Height bound: per Drew, optimise for speed and rely on the
   downstream checks; the measured true/bound ratio for non-j invariants has median 0.77 and a
   tail to 1.03, so the 5% slack + retry is left as is (slack tuning moves <= 5% of CRT time).
-  Tests: `ecpp/test_sched.py`.  Report section 9 of `reports/shortecpp-improve/`.
+  Tests: `ecpp/test_sched.py`.  Report sections 9-10 of `reports/shortecpp-improve/`.
+  Two things the repeated runs showed: (a) for a given prime the SAME discriminant tends to win
+  on every machine and engine (9 of 13 primes at least twice in three sets of runs), so reruns
+  of a prime are not independent tests of the model -- count primes, not runs; (b) 8 of 26
+  primes won before the model expected 0.12 wins (an exponential law gives 3): the model may
+  underrate easy winners.  The strip does not scale beyond 8 threads (4,000 orders: 0.41 s on 8
+  or 16 threads, 0.53 s on 32), so the rule gives it `STRIP_THREADS = 8` and frees the scan's
+  other threads for ECM meanwhile (event "scanthreads").
+- **yafu as the ECM engine (2026-11-15, same branch)**: `shortECPP.py engine=yafu yafu=<binary>`
+  (or `SHORTECPP_YAFU`; `engine=auto` uses yafu when a binary is given and passes a planted-
+  factor self-test) runs the stopping-rule levels with yafu 3.1.9's AVX-512 ECM; levels below
+  500 bits and P-1 stay with gmp-ecm.  Per engine, `shortsim.ENGINES` holds the cost of a curve
+  at 1030 bits (`SEC1030_YAFU`: 0.0036 / 0.0148 / 0.0599 / 0.302 / 0.95 / 2.69 / 9.9 / 36 core-s
+  at B1 = 2e3 .. 3e7, i.e. 3.3-5.2x cheaper than gmp-ecm), its growth with size (yafu:
+  bits^1.36 up to 1040 bits = 20 words of 52 bits, 14% above that law beyond), B2 per B1, the
+  success table (`ecpp/ecm_pi_yafu.json`, 182 cells from `data/yafu_pi_calib.py`, 2.5 h on the
+  16-core box) and the curve quantum (8: `Sched(quantum=8)`, sweeps in multiples of 8,
+  `default_tiers("yafu")`).  Calibration result: a yafu curve succeeds ~30% more often than a
+  gmp-ecm curve at B1 = 2e3, 15-20% more from 1.1e4 to 2.5e5, equally from 1e6; yafu's rates match the
+  two-stage Dickman curve with a factor-24 gain within 15% everywhere.  Calling conventions that
+  matter: `-avxecm_stg2 1` (B2 a function of B1; mode 2 takes B2 from a memory limit),
+  `-aprcl_p 1` (otherwise every prime cofactor gets an APR-CL proof, 2 s at 1000 bits),
+  `-logfile /dev/null -session /dev/null`, an empty working directory (it reads yafu.ini from
+  cwd), expressions `ecm(n, curves)` one per line on stdin, `-v -v -v` only when per-lane hits
+  are wanted (calibration).  Curves are seeded from clock + pid + system randomness, `-seed`
+  does not control them.  A thread of the 16-core box does as much yafu work as a c8a core up to
+  B1 = 2.5e5 (gmp-ecm: 1/1.35).  yafu is NOT in the repo: clone bbuhrow/yafu (commit 4d88b0b),
+  ytools, ysieve; gmp-ecm 7.0.6 from its tarball; `make yafu USE_AVX512IFMA=1 ECM=1
+  GMP_INCDIR=/usr/include/x86_64-linux-gnu GMP_LIBDIR=/usr/lib/x86_64-linux-gnu
+  ECM_INCDIR=<ecm> ECM_LIBDIR=<ecm>/.libs`.
+  Simulated (c8a costs, each engine with its own tables): a 768-bit level 0.77 core-h on 192
+  threads (gmp-ecm 1.81) and 0.52 on 32 (1.45); a 1030-bit level 12.6 core-h on 192 threads
+  (gmp-ecm 41.3).  Real, 16-core box, the 13 primes of the 2026-11-15 entry: chain 41 s on
+  average (median 34 s) against 202 s (112 s) with gmp-ecm, search work 0.24 thread-h against
+  1.52.  nextprime(10^310) on that box with yafu: 3,581 s for the chain, 25.5
+  thread-h of CPU (gmp-ecm: 5,081 s, 43.9), on a slow draw (1.26 expected wins at the win; the
+  gmp-ecm run had 0.66), i.e. 22 against 66 thread-h of search per expected win; its winner is
+  D = -83,632,771, the August campaign's.  In that run 27% of the ECM time was "above the
+  rule" (cores waiting for a scan chunk; simulation: 1%) -- the scan's share of the cores
+  should be sized from the observed backlog, not done yet.  Not yet run on a c8a (needs its
+  own spot approval).  Report section 11.
 
 ## Build & test
 ```sh

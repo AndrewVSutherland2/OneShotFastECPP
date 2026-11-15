@@ -1,0 +1,150 @@
+# shortsched.py sim, each engine with its own tables (c8a costs); see section 11.4
+# 768 bits: sim <768-bit pool> threads=T runs=N seed=31 engine=E;  1030 bits: sim <1030-bit pool, revised format> threads=T runs=N seed=S bits=1030 a=0.406 rate=3.4e-7 strip=0.015 B0=4e8 Bmax=1e13 engine=E
+== g768_32
+table built in 5.6s (54 rewards, 34 sweeps)
+300 levels simulated in 178s, 32 threads
+  wall to the first win     mean    163.6 s   median    113.5 s
+  machine cost (wall x thr) mean     5234 core-s = 1.45 core-h
+  work done                 mean     4819 core-s = 1.34 core-h  (scan 1326, ecm 3492); utilisation 92%
+  orders bought             mean    30281   median    24450;  units 1216;  rule R at the end: median 4827 core-s
+  wins the model expected from the work done, at the first win: mean 0.98 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 4% of the ECM work
+  first wins by the B1 of the unit that completed them (0 = at intake), and the wins the model expected there:
+    2000: 0 / 0.0  11000: 2 / 1.4  50000: 21 / 18.6  250000: 92 / 92.0  1e+06: 140 / 140.7  3e+06: 45 / 41.4
+== y768_32
+table built in 4.4s (54 rewards, 28 sweeps)
+300 levels simulated in 136s, 32 threads
+  wall to the first win     mean     58.7 s   median     33.3 s
+  machine cost (wall x thr) mean     1880 core-s = 0.52 core-h
+  work done                 mean     1720 core-s = 0.48 core-h  (scan 549, ecm 1171); utilisation 91%
+  orders bought             mean    17581   median    12225;  units 614;  rule R at the end: median 1530 core-s
+  wins the model expected from the work done, at the first win: mean 0.99 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 2% of the ECM work
+  first wins by the B1 of the unit that completed them (0 = at intake), and the wins the model expected there:
+    2000: 0 / 0.0  11000: 1 / 1.7  50000: 24 / 15.0  250000: 90 / 89.1  1e+06: 127 / 135.0  3e+06: 58 / 55.8
+== y768_192
+table built in 4.3s (54 rewards, 28 sweeps)
+600 levels simulated in 318s, 192 threads
+  wall to the first win     mean     14.4 s   median     10.3 s
+  machine cost (wall x thr) mean     2771 core-s = 0.77 core-h
+  work done                 mean     2469 core-s = 0.69 core-h  (scan 745, ecm 1724); utilisation 89%
+  orders bought             mean    22594   median    17289;  units 1306;  rule R at the end: median 1661 core-s
+  wins the model expected from the work done, at the first win: mean 0.97 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 17% of the ECM work
+  first wins by the B1 of the unit that completed them (0 = at intake), and the wins the model expected there:
+    2000: 0 / 0.0  11000: 1 / 4.2  50000: 60 / 37.9  250000: 237 / 200.6  1e+06: 238 / 266.6  3e+06: 64 / 71.2
+== g1030_192
+table built in 10.0s (54 rewards, 34 sweeps)
+48 levels simulated in 283s, 192 threads
+  wall to the first win     mean    783.3 s   median    519.8 s
+  machine cost (wall x thr) mean   150395 core-s = 41.78 core-h
+  work done                 mean   137191 core-s = 38.11 core-h  (scan 40855, ecm 96336); utilisation 91%
+  orders bought             mean   111536   median    91867;  units 15223;  rule R at the end: median 129743 core-s
+  wins the model expected from the work done, at the first win: mean 0.96 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 4% of the ECM work
+  first wins by the B1 of the unit that completed them (0 = at intake), and the wins the model expected there:
+    2000: 0 / 0.0  11000: 0 / 0.0  50000: 0 / 0.1  250000: 4 / 1.4  1e+06: 14 / 9.1  3e+06: 16 / 17.8  1e+07: 11 / 14.2  3e+07: 3 / 3.4
+== g1030_192_s7
+table built in 6.1s (54 rewards, 34 sweeps)
+96 levels simulated in 806s, 192 threads
+  wall to the first win     mean    768.5 s   median    466.8 s
+  machine cost (wall x thr) mean   147550 core-s = 40.99 core-h
+  work done                 mean   136172 core-s = 37.83 core-h  (scan 41698, ecm 94474); utilisation 92%
+  orders bought             mean   113469   median    91867;  units 14916;  rule R at the end: median 128922 core-s
+  wins the model expected from the work done, at the first win: mean 0.96 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 4% of the ECM work
+  first wins by the B1 of the unit that completed them (0 = at intake), and the wins the model expected there:
+    2000: 0 / 0.0  11000: 0 / 0.0  50000: 0 / 0.1  250000: 7 / 2.2  1e+06: 25 / 19.6  3e+06: 30 / 35.9  1e+07: 28 / 27.8  3e+07: 6 / 6.2
+== y1030_192
+table built in 6.2s (54 rewards, 28 sweeps)
+48 levels simulated in 125s, 192 threads
+  wall to the first win     mean    180.6 s   median    112.3 s
+  machine cost (wall x thr) mean    34673 core-s = 9.63 core-h
+  work done                 mean    31411 core-s = 8.73 core-h  (scan 10349, ecm 21062); utilisation 91%
+  orders bought             mean    57443   median    45934;  units 5794;  rule R at the end: median 39730 core-s
+  wins the model expected from the work done, at the first win: mean 0.68 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 7% of the ECM work
+  first wins by the B1 of the unit that completed them (0 = at intake), and the wins the model expected there:
+    2000: 0 / 0.0  11000: 0 / 0.0  50000: 0 / 0.1  250000: 2 / 1.3  1e+06: 15 / 7.0  3e+06: 13 / 13.0  1e+07: 16 / 10.0  3e+07: 2 / 1.0
+== y1030_192_s7
+table built in 7.9s (54 rewards, 28 sweeps)
+96 levels simulated in 384s, 192 threads
+  wall to the first win     mean    263.5 s   median    161.2 s
+  machine cost (wall x thr) mean    50591 core-s = 14.05 core-h
+  work done                 mean    45778 core-s = 12.72 core-h  (scan 15326, ecm 30453); utilisation 90%
+  orders bought             mean    68540   median    64960;  units 7601;  rule R at the end: median 44822 core-s
+  wins the model expected from the work done, at the first win: mean 0.94 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 5% of the ECM work
+  first wins by the B1 of the unit that completed them (0 = at intake), and the wins the model expected there:
+    2000: 0 / 0.0  11000: 0 / 0.0  50000: 0 / 0.1  250000: 3 / 3.1  1e+06: 32 / 18.0  3e+06: 32 / 34.5  1e+07: 25 / 29.8  3e+07: 4 / 5.0
+== y1030_32
+table built in 7.3s (54 rewards, 28 sweeps)
+48 levels simulated in 202s, 32 threads
+  wall to the first win     mean   1171.4 s   median    817.8 s
+  machine cost (wall x thr) mean    37485 core-s = 10.41 core-h
+  work done                 mean    34122 core-s = 9.48 core-h  (scan 11962, ecm 22161); utilisation 91%
+  orders bought             mean    59272   median    55447;  units 4980;  rule R at the end: median 42291 core-s
+  wins the model expected from the work done, at the first win: mean 0.81 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 1% of the ECM work
+  first wins by the B1 of the unit that completed them (0 = at intake), and the wins the model expected there:
+    2000: 0 / 0.0  11000: 0 / 0.0  50000: 0 / 0.1  250000: 5 / 1.5  1e+06: 15 / 8.0  3e+06: 16 / 13.5  1e+07: 10 / 13.1  3e+07: 2 / 2.7
+== g768_192 (seed 31, 600 levels; g=2.0 of the scan-chunk comparison)
+table built in 18.9s (54 rewards, 34 sweeps)
+600 levels simulated in 786s, 192 threads
+  wall to the first win     mean     33.9 s   median     21.5 s
+  machine cost (wall x thr) mean     6508 core-s = 1.81 core-h
+  work done                 mean     5951 core-s = 1.65 core-h  (scan 1585, ecm 4365); utilisation 91%
+  orders bought             mean    33510   median    24450;  units 2897;  rule R at the end: median 4834 core-s
+  wins the model expected from the work done, at the first win: mean 1.04 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 10% of the ECM work
+== g768_192 scan-chunk growth 1.5
+table built in 18.4s (54 rewards, 34 sweeps)
+600 levels simulated in 834s, 192 threads
+  wall to the first win     mean     32.3 s   median     24.0 s
+  machine cost (wall x thr) mean     6201 core-s = 1.72 core-h
+  work done                 mean     5735 core-s = 1.59 core-h  (scan 1585, ecm 4151); utilisation 92%
+  orders bought             mean    33000   median    32822;  units 2809;  rule R at the end: median 5083 core-s
+  wins the model expected from the work done, at the first win: mean 1.00 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 11% of the ECM work
+== g768_192 scan-chunk growth 1.25
+table built in 19.7s (54 rewards, 34 sweeps)
+600 levels simulated in 889s, 192 threads
+  wall to the first win     mean     36.6 s   median     28.5 s
+  machine cost (wall x thr) mean     7029 core-s = 1.95 core-h
+  work done                 mean     5576 core-s = 1.55 core-h  (scan 1120, ecm 4456); utilisation 79%
+  orders bought             mean    23249   median    18434;  units 2960;  rule R at the end: median 4543 core-s
+  wins the model expected from the work done, at the first win: mean 0.95 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 30% of the ECM work
+== g768_192 seed 41, 400 levels, wins by B1
+table built in 14.8s (54 rewards, 34 sweeps)
+400 levels simulated in 486s, 192 threads
+  wall to the first win     mean     31.7 s   median     23.4 s
+  machine cost (wall x thr) mean     6089 core-s = 1.69 core-h
+  work done                 mean     5564 core-s = 1.55 core-h  (scan 1466, ecm 4098); utilisation 91%
+  orders bought             mean    32779   median    34578;  units 2759;  rule R at the end: median 5192 core-s
+  wins the model expected from the work done, at the first win: mean 0.98 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 11% of the ECM work
+  first wins by the B1 of the unit that completed them (0 = at intake), and the wins the model expected there:
+    2000: 0 / 0.0  11000: 2 / 2.1  50000: 28 / 23.6  250000: 157 / 127.0  1e+06: 162 / 185.8  3e+06: 51 / 51.9
+== yafu, theoretical success rates (before the calibration), default ladder
+table built in 17.2s (54 rewards, 28 sweeps)
+300 levels simulated in 300s, 192 threads
+  wall to the first win     mean     13.8 s   median     11.2 s
+  machine cost (wall x thr) mean     2649 core-s = 0.74 core-h
+  work done                 mean     2381 core-s = 0.66 core-h  (scan 740, ecm 1641); utilisation 90%
+  orders bought             mean    22750   median    24450;  units 1268;  rule R at the end: median 1784 core-s
+  wins the model expected from the work done, at the first win: mean 0.92 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 17% of the ECM work
+  first wins by the B1 of the unit that completed them (0 = at intake), and the wins the model expected there:
+    2000: 0 / 0.0  11000: 5 / 2.3  50000: 21 / 19.1  250000: 125 / 97.9  1e+06: 124 / 130.7  3e+06: 25 / 26.2
+== yafu, theoretical success rates, sweeps of 8 curves
+table built in 29.6s (54 rewards, 54 sweeps)
+300 levels simulated in 299s, 192 threads
+  wall to the first win     mean     13.8 s   median     10.8 s
+  machine cost (wall x thr) mean     2642 core-s = 0.73 core-h
+  work done                 mean     2357 core-s = 0.65 core-h  (scan 721, ecm 1636); utilisation 89%
+  orders bought             mean    22360   median    17289;  units 1315;  rule R at the end: median 1654 core-s
+  wins the model expected from the work done, at the first win: mean 0.90 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 17% of the ECM work
+  first wins by the B1 of the unit that completed them (0 = at intake), and the wins the model expected there:
+    2000: 0 / 0.0  11000: 3 / 2.2  50000: 28 / 15.2  250000: 116 / 91.7  1e+06: 123 / 135.1  3e+06: 30 / 27.0

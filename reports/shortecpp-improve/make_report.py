@@ -440,6 +440,26 @@ if os.path.exists(rr):
         R["EW_ALL_KS5"] = "%.2f" % (1.36 / n ** 0.5)
         R["EW_ALL_LOW"] = sum(1 for x in ew if x < 0.12)
         R["EW_ALL_LOW_EXP"] = "%.1f" % (n * (1 - math.exp(-0.12)))
+        # one value per prime: the runs on this box
+        ew = sorted(s2["ew"])
+        n = len(ew)
+        ks = max(max(abs((i + 1) / n - (1 - math.exp(-x))), abs(i / n - (1 - math.exp(-x)))) for i, x in enumerate(ew))
+        R["EW_C8A_MEAN"] = "%.2f" % (sum(ew) / n)
+        R["EW_C8A_SE"] = "%.2f" % (1 / n ** 0.5)
+        R["EW_C8A_KS"] = "%.2f" % ks
+        R["EW_C8A_KS5"] = "%.2f" % (1.36 / n ** 0.5)
+        R["EW_LOW_N"] = sum(1 for x in ew if x < 0.12)
+        R["EW_LOW_EXP"] = "%.1f" % (n * (1 - math.exp(-0.12)))
+        # the same primes on the driver box (gmp-ecm, yafu) and here: which discriminant won
+        def pidx(r):
+            return int(re.search(r"(\d+)(?:_first_run)?\.log$", r["file"]).group(1))
+        by = {}
+        for r in r768 + ga + run_group(runs, "yafu_local", "y768_"):
+            by.setdefault(pidx(r), []).append(r["D"])
+        two = sum(1 for k, v in by.items() if len(v) >= 2 and max(v.count(d) for d in v) >= 2)
+        three = sum(1 for k, v in by.items() if len(v) >= 3 and max(v.count(d) for d in v) >= 3)
+        R["SAME_D_2"] = two
+        R["SAME_D_3"] = three
     if gb:
         R["C8A_TABLE_1030"] = run_rows(gb)
         sb = run_stats(gb)
@@ -488,6 +508,165 @@ if os.path.exists(rr):
                           + "<td>%d</td></tr>" % sum(won.values())
                           + "<tr><td>wins the model expected from the sweeps run</td>" + "".join("<td>%.1f</td>" % exp.get(b1, 0.0) for b1 in b1s)
                           + "<td>%.1f</td></tr></table>" % sum(exp.values()))
+
+    # build time against the decomposition of the class polynomial, the 29 runs on the c8a
+    def lpf(x):
+        f, l = 2, 1
+        while f * f <= x:
+            while x % f == 0:
+                l, x = f, x // f
+            f += 1
+        return max(l, x) if x > 1 else l
+    cms = sorted([r for r in call if r.get("cm")], key=lambda r: (r["bits"], lpf(r["cm"]["n"])))
+    if cms:
+        rows = []
+        for r in cms:
+            c = r["cm"]
+            if lpf(c["n"]) < 150 and r["build_s"] < 8:
+                continue
+            rows.append("<tr><td>%d</td><td>%s</td><td>%s = %d &times; %s</td><td>%s</td><td>%.1f</td><td>%.1f</td><td>%.1f</td><td>%.1f</td></tr>"
+                        % (r["bits"], fmt(r["D"]).replace("-", "&minus;"), fmt(c["deg"]), c["m"], fmt(c["n"]), fmt(lpf(c["n"])),
+                           c["poly_s"], c["root1_s"] + c["root2_s"], r["build_s"], r["search_wall"]))
+        small = [r for r in cms if lpf(r["cm"]["n"]) < 150 and r["build_s"] < 8]
+        R["C8A_BUILD_TABLE"] = ("<table><tr><th>bits</th><th>D</th><th>degree = m &times; n</th><th>largest prime in n</th>"
+                                "<th>class polynomial, s</th><th>roots, s</th><th>build, s</th><th>search, s</th></tr>"
+                                + "".join(rows) + "</table>")
+        R["C8A_BUILD_SMALL_N"] = len(small)
+        R["C8A_BUILD_SMALL_MAX"] = "%.1f" % max(r["build_s"] for r in small)
+        big = [r for r in cms if lpf(r["cm"]["n"]) >= 1000]
+        for nb in (769, 1030):
+            v = [r["cm"]["root2_s"] / r["cm"]["n"] * 1000 for r in big if r["bits"] == nb]
+            if v:
+                R["C8A_BUILD_MS_%d" % nb] = "%.0f to %.0f" % (min(v), max(v))
+
+
+# ---------------------------------------------------------------- 11 yafu as the ECM engine
+ypi = os.path.join(HERE, "..", "..", "ecpp", "ecm_pi_yafu.json")
+if os.path.exists(ypi) and HAVE_CALIB:
+    yc = {(c["b1"], c["bits"]): c for c in json.load(open(ypi))}
+    gc_ = {(c["b1"], c["bits"]): c for c in json.load(open(CALIB)) if c["method"] == "ecm"}
+    emy = ss.EcmModel(ypi, b2=ss.B2_YAFU)
+    rows = []
+    for b1 in sorted({k[0] for k in yc}):
+        # three factor sizes per B1: where gmp-ecm's measured success per curve is nearest 10%, 1% and 0.2%
+        bits_all = sorted(b for (bb, b) in yc if bb == b1)
+        good = [b for b in bits_all if yc[(b1, b)]["hits"] >= 8]
+        cells = []
+        for target in (0.1, 0.01, 0.002):
+            cand = [b for b in good if (b1, b) in gc_ and gc_[(b1, b)]["hits"] >= 8] or good
+            if not cand:
+                continue
+            b = min(cand, key=lambda x: abs(math.log(max(yc[(b1, x)]["hits"] / yc[(b1, x)]["curves"], 1e-9) / target)))
+            if b not in [c[0] for c in cells]:
+                cells.append((b, yc[(b1, b)], gc_.get((b1, b))))
+        for (b, y, g) in sorted(cells):
+            py = y["hits"] / y["curves"]
+            pg = g["hits"] / g["curves"] if g and g["curves"] and g["hits"] >= 8 else None
+            rows.append("<tr><td>%s</td><td>%d</td><td>%s / %s</td><td>%.4f</td><td>%s</td><td>%s</td></tr>"
+                        % (fmt(b1), b, fmt(y["hits"]), fmt(y["curves"]), py, "%.4f" % pg if pg else "&ndash;",
+                           "%.2f" % (py / pg) if pg else "&ndash;"))
+    R["YPI_TABLE"] = ("<table><tr><th>B1</th><th>factor, bits</th><th>yafu: hits / curves</th><th>yafu, per curve</th>"
+                      "<th>gmp-ecm, per curve</th><th>ratio</th></tr>" + "".join(rows) + "</table>")
+    # overall ratio yafu / gmp-ecm over the cells where both have 8 hits or more, per B1 (weighted by yafu's hits)
+    rr_ = []
+    for b1 in sorted({k[0] for k in yc}):
+        num = den = 0.0
+        for (bb, b), y in yc.items():
+            g = gc_.get((bb, b))
+            if bb == b1 and g and g["hits"] >= 8 and y["hits"] >= 8 and g["hits"] < g["primes"] * 50:
+                r_ = (y["hits"] / y["curves"]) / (g["hits"] / g["curves"])
+                if y["hits"] / y["curves"] < 0.3:
+                    num += math.log(r_) * y["hits"]
+                    den += y["hits"]
+        if den:
+            rr_.append((b1, math.exp(num / den)))
+    R["YPI_RATIOS"] = ", ".join("%s: %.2f" % (fmt(b1), v) for b1, v in rr_)
+    R["YPI_CURVES"] = fmt(sum(c["curves"] for c in yc.values()))
+    R["YPI_CELLS"] = len(yc)
+    R["YPI_CPU_H"] = "%.0f" % (sum(c["cpu_s"] for c in yc.values()) / 3600)
+    # cost per curve at 1030 bits, c8a reference, and what a 16-curve sweep buys per core-second
+    crow = []
+    for b1 in sorted(ss.SEC1030_YAFU):
+        crow.append("<tr><td>%s</td><td>%.4g</td><td>%.4g</td><td>%.1f</td><td>%s</td><td>%s</td></tr>"
+                    % (fmt(b1), ss.SEC1030_LOADED[b1], ss.SEC1030_YAFU[b1], ss.SEC1030_LOADED[b1] / ss.SEC1030_YAFU[b1],
+                       fmt(ss.B2_DEFAULT[b1]), fmt(ss.B2_YAFU[b1])))
+    R["YCOST_TABLE"] = ("<table><tr><th>B1</th><th>gmp-ecm, core-s per curve</th><th>yafu</th><th>ratio</th>"
+                        "<th>B2, gmp-ecm</th><th>B2, yafu</th></tr>" + "".join(crow) + "</table>")
+if os.path.exists(rr):
+    gy, gy10 = run_group(runs, "yafu_local", "y768_"), run_group(runs, "yafu_local", "y1030_")
+    if gy:
+        def idx(r):
+            m_ = re.search(r"(\d+)(?:_first_run)?\.log$", r["file"])
+            return int(m_.group(1))
+        gl = {idx(r): r for r in r768}
+        rows = []
+        for r in gy:
+            k = idx(r)
+            g = gl.get(k)
+            rows.append("<tr><td>%d</td><td>%s</td><td>%s</td><td>%.0f</td><td>%.0f</td><td>%s</td><td>%s</td><td>%.0f</td><td>%s</td><td>%.1f</td><td>%.0f</td></tr>"
+                        % (k, fmt(g["orders"]) if g else "&ndash;", fmt(g["scan_s"] + g["ecm_s"]) if g else "&ndash;",
+                           g["search_wall"] if g else 0, g["chain_s"] if g else 0,
+                           fmt(r["orders"]), fmt(r["scan_s"] + r["ecm_s"]), r["search_wall"],
+                           "%.2f" % max(r["expwin"], 0.0) if r["expwin"] is not None else "&ndash;", r["build_s"], r["chain_s"]))
+        R["YENG_LOCAL_TABLE"] = ("<div class=\"wide\"><table><tr><th rowspan=\"2\">prime</th><th colspan=\"4\">gmp-ecm (section 9.3)</th>"
+                                 "<th colspan=\"6\">yafu</th></tr><tr><th>orders</th><th>search, thread-s</th><th>search, s</th><th>chain, s</th>"
+                                 "<th>orders</th><th>search, thread-s</th><th>search, s</th><th>wins the model expected</th><th>build, s</th>"
+                                 "<th>chain, s</th></tr>" + "".join(rows) + "</table></div>")
+        sy, sg = run_stats(gy), run_stats([gl[idx(r)] for r in gy if idx(r) in gl])
+        R["YL_N"] = sy["n"]
+        R["YL_OK"] = "all" if sy["ok"] else "NOT ALL"
+        R["YL_CHAIN_MEAN"] = "%.0f" % sy["chain_mean"]
+        R["YL_CHAIN_MED"] = "%.0f" % sy["chain_med"]
+        R["YL_CHAIN_MIN"] = "%.0f" % sy["chain_min"]
+        R["YL_CHAIN_MAX"] = "%.0f" % sy["chain_max"]
+        R["YL_WORK_H"] = "%.2f" % (sy["work_mean"] / 3600)
+        R["YL_WORK_MED_H"] = "%.2f" % (sy["work_med"] / 3600)
+        R["YL_WALL_MEAN"] = "%.0f" % sy["wall_mean"]
+        R["YL_EW"] = "%.2f" % sy["ew_mean"]
+        R["GL_CHAIN_MEAN"] = "%.0f" % sg["chain_mean"]
+        R["GL_CHAIN_MED"] = "%.0f" % sg["chain_med"]
+        R["GL_WORK_H"] = "%.2f" % (sg["work_mean"] / 3600)
+        R["GL_WORK_MED_H"] = "%.2f" % (sg["work_med"] / 3600)
+        R["GL_WALL_MEAN"] = "%.0f" % sg["wall_mean"]
+        R["YL_SCAN_SHARE"] = "%.0f" % (100 * sy["scan_mean"] / sy["work_mean"])
+        R["YL_BUILD_MEAN"] = "%.1f" % sy["build_mean"]
+        ratios = {}
+        for r in gy + gy10:
+            for b1, v in r["cost_ratio"].items():
+                ratios.setdefault(int(b1), []).append(v)
+        R["YL_RATIOS"] = ", ".join("%s: %.2f" % (fmt(b1), sum(v) / len(v)) for b1, v in sorted(ratios.items()))
+        won, exp = {}, {}
+        for r in gy:
+            if r["win_b1"] is not None:
+                won[r["win_b1"]] = won.get(r["win_b1"], 0) + 1
+            for b1, v in r["expwin_b1"].items():
+                exp[int(b1)] = exp.get(int(b1), 0.0) + v
+        R["YL_WON"] = ", ".join("%s: %d" % (fmt(b1), n_) for b1, n_ in sorted(won.items()))
+        R["YL_EXP"] = ", ".join("%s: %.1f" % (fmt(b1), v) for b1, v in sorted(exp.items()) if v >= 0.05)
+    if gy10:
+        b = gy10[0]
+        g = big[0] if big else None
+        R["Y1030_CHAIN"] = fmt(b["chain_s"])
+        R["Y1030_CHAIN_MIN"] = "%.0f" % (b["chain_s"] / 60)
+        R["Y1030_SEARCH"] = fmt(b["search_wall"])
+        R["Y1030_ORDERS"] = fmt(b["orders"])
+        R["Y1030_SCAN_H"] = "%.1f" % (b["scan_s"] / 3600)
+        R["Y1030_ECM_H"] = "%.1f" % (b["ecm_s"] / 3600)
+        R["Y1030_WORK_H"] = "%.1f" % ((b["scan_s"] + b["ecm_s"]) / 3600)
+        R["Y1030_CPU_H"] = "%.1f" % ((b["cpu_s"] or 0) / 3600)
+        R["Y1030_EW"] = "%.2f" % b["expwin"]
+        R["Y1030_BUILD"] = "%.0f" % b["build_s"]
+        R["Y1030_D"] = fmt(b["D"]).replace("-", "&minus;")
+        R["Y1030_FACTOR"] = "%.2f" % b["cost_factor"]
+
+yl = os.path.join(DATA, "yafu_cost2_local.json")
+if os.path.exists(yl):
+    t = {(r["bits"], r["b1"]): r["sec_per_curve"] for r in json.load(open(yl))}
+    sizes = sorted({k[0] for k in t})
+    b1s = [b for b in sorted({k[1] for k in t}) if b <= 1000000]
+    R["YSIZE_TABLE"] = ("<table><tr><th>number, bits</th>" + "".join("<th>B1 = %s</th>" % fmt(b) for b in b1s) + "</tr>"
+                        + "".join("<tr><td>%d</td>%s</tr>" % (sz, "".join("<td>%.4f</td>" % t[(sz, b)] for b in b1s)) for sz in sizes)
+                        + "</table>")
 
 tpl = open(os.path.join(HERE, "index.template.html")).read()
 body = open(os.path.join(HERE, "sections.html")).read()

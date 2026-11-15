@@ -53,6 +53,13 @@ def parse(fn, sname):
         except ValueError:
             pass
     nsearch = len(SEARCH.findall(txt))
+    # the top level's cm_method line: degree of the class polynomial, its decomposition m x n, the times
+    cm = re.search(r"cm_method D=-(\d+): H_D\^inv\(deg (\d+)(?: = (\d+) x (\d+))?, inv (\d+)\): ([\d.]+)s\s+roots?: ([\d.]+)s(?: \+ ([\d.]+)s)?",
+                   txt[m.start():])
+    cmrec = None
+    if cm and b and int(cm.group(1)) == int(b.group(1)):
+        cmrec = {"deg": int(cm.group(2)), "m": int(cm.group(3) or 1), "n": int(cm.group(4) or cm.group(2)), "inv": int(cm.group(5)),
+                 "poly_s": float(cm.group(6)), "root1_s": float(cm.group(7)), "root2_s": float(cm.group(8) or 0)}
     line = txt[m.start():txt.find("\n", m.start())]
     eb = re.search(r"wins expected by B1: ([^;]*); won at B1=(\w+)", line)
     ewb = {}
@@ -65,7 +72,7 @@ def parse(fn, sname):
             "units": int(m.group(6)), "splits": int(m.group(7)), "R": int(m.group(8)),
             "expwin": float(m.group(9)) if m.group(9) else None, "cost_ratio": ratios,
             "expwin_b1": ewb, "win_b1": (int(eb.group(2)) if eb and eb.group(2).isdigit() else None),
-            "D": -int(b.group(1)) if b else None, "build_s": float(b.group(3)) if b else None,
+            "D": -int(b.group(1)) if b else None, "build_s": float(b.group(3)) if b else None, "cm": cmrec,
             "levels": int(c.group(1)) if c else None, "chain_s": float(c.group(2)) if c else None,
             "engine": ("yafu" if f.group(1) == "yafu" else "gmp") if f else "gmp",
             "threads": int(f.group(3)) if f else None, "cost_factor": float(f.group(4)) if f else None,

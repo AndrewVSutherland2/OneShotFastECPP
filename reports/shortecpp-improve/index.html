@@ -23,7 +23,7 @@ div.wide { overflow-x: auto; }
 </style></head><body>
 
 <h1>shortECPP revisited: prover changes, ECM engine benchmark, and a model of the search</h1>
-<p class="mut">2026-11-14, sections 9 and 10 added 2026-11-15 &middot; branch <code>shortecpp-improve</code> &middot; follows the review of the
+<p class="mut">2026-11-14, sections 9 to 11 added 2026-11-15 &middot; branch <code>shortecpp-improve</code> &middot; follows the review of the
 "Short ECPP prover: recommended improvements" note.  Hardware: one <code>c8a.48xlarge</code>
 spot box (AMD EPYC 9R45, Zen&nbsp;5, 192 cores, no SMT) and the 16-core driver box, which was
 shared with another job all day, so local timings are CPU times and may be up to twice the idle figures.</p>
@@ -68,10 +68,17 @@ model's win rate holds up: the wins it expected from the work done, at the first
 <b>44&nbsp;s each on average (median 36&nbsp;s)</b> and
 1.56 core-hours, three of 1030 bits <b>671&nbsp;s on average</b> and
 27.2 core-hours; the campaign prime 10<sup>310</sup> + 733 took 167&nbsp;s.  Search
-cost and wall time agree with the simulation, and over all 38 real runs the model's win rate
-checks out (0.80 where an exact model gives 1 &plusmn; 0.16).</li>
-<li><b>yafu as the ECM engine.</b> In progress: the prover can run yafu (<code>engine=yafu</code>), the
-calibration of its success rate is running.</li>
+cost and wall time agree with the simulation, and over the 26 primes the wins the model expected at the
+first win average 0.86, where an exact model gives 1 &plusmn; 0.20.</li>
+<li><b>yafu as the ECM engine (section 11, 15 November).</b> The prover runs yafu with
+<code>engine=yafu</code>.  Its success per curve was measured as finely as gmp-ecm's (6 million curves):
+at equal B1 a yafu curve succeeds as often or up to 30% more often, and costs 3.3 to 5.2 times less.  On
+the 16-core driver box the thirteen 768-bit primes take <b>41&nbsp;s each on average (median
+34&nbsp;s)</b> where gmp-ecm took 202 (112), and
+10<sup>310</sup> + 733 takes 60 minutes on a slow draw where gmp-ecm took 85 on a fast
+one.  In simulation a level on 192 cores costs 0.77 core-hours instead of 1.81 at 768 bits and 12.6 instead
+of 41.3 at 1030 bits.  yafu has not yet been run on the 192-core box.</li>
+
 <li><b>Not done.</b> A build still spends most of its time in root-finding at the prime part of the class
 number: at 1030 bits on 192 cores that is now a quarter of a chain, and up to five minutes for one
 curve.</li>
@@ -444,10 +451,10 @@ core-seconds per curve:</p>
 B1&nbsp;=&nbsp;2,000, where a process of 8 curves lasts a twentieth of a second (yafu itself starts in
 11&nbsp;ms).  yafu's default stage 2, which takes B2 from a memory limit, costs 5&ndash;30% more per curve
 than the gmp-ecm B2 used above.</p>
-<p>What this does not show: a calibration of yafu's success rate as fine as the one of section 4 for
-gmp-ecm, which the stopping rule needs; behaviour at the shallow tiers when curves come in batches of 8;
-and any use of it by the prover, which still calls gmp-ecm.  yafu is not in this repository; the build
-line and the two drivers are in <code>data/yafu_test.py</code> and <code>data/yafu_cost.py</code>.</p>
+<p>What this section does not show, and section 11 adds: a calibration of yafu's success rate as fine as
+the one of section 4 for gmp-ecm, which the stopping rule needs; the cost at the shallow tiers when curves
+come in batches of 8; and its use by the prover.  yafu is not in this repository; the build line and the
+two drivers are in <code>data/yafu_test.py</code> and <code>data/yafu_cost.py</code>.</p>
 
 
 <h2>9. The stopping rule in the prover</h2>
@@ -531,7 +538,8 @@ Section 10 has the rule on the c8a.</li>
 actually run.  At a level's first win that sum is exponentially distributed with mean 1 if the model is
 right.  Over the 12 runs that recorded it the mean is 0.66, where an exact model
 gives 1 &plusmn; 0.29: no sign of the optimism of section 5 (17 winners where 20.9 were expected),
-if anything the reverse.  Run 0 predates the bookkeeping.  Section 10.3 repeats this with 38 runs.</li>
+if anything the reverse.  Run 0 predates the bookkeeping.  Section 10.3 has 26 primes, and finds that
+this 0.65 belongs to these thirteen primes rather than to the model.</li>
 <li><b>Supply differs by prime.</b> The first chunk finds between 2,422 and 15,865 solvable
 discriminants below 6&middot;10<sup>7</sup>, a factor 6.5 between primes of the same size, and the price of
 an order differs accordingly.  nextprime(2<sup>768</sup>), on which sections 5 to 8 rest, is an average
@@ -650,8 +658,9 @@ and 7.0, 47.1, 27.5 core-hours of CPU.  Prime 0 is the campaign prime: 5.0 hours
 core-hours in August, 167&nbsp;s and 7.0 core-hours now.  That run was lucky (the
 model expected 0.10 wins when the win came); the other two are ordinary draws.</li>
 <li><b>Against the simulation.</b> The search does 6.8, 42.9, 24.6 core-hours of work, 24.8 on
-average, where the simulation of 9.2 gave 32.9; the scan is 28% of it.  The wins the model
-expected at the win average 0.60.  Three draws do not distinguish 25 from 33.</li>
+average, where the simulation gives 32.9 (24 levels, section 9.2) and 37.9 (144 levels, section 11.4); the
+scan is 28% of it.  The wins the model expected at the win average 0.60.  Three
+draws do not distinguish 25 from 38.</li>
 <li><b>ECM cost.</b> Measured against modelled cost is 0.82 to 0.88 for B1
 from 11,000 to 3&middot;10<sup>6</sup> (by B1: 2,000: 1.12, 11,000: 0.87, 50,000: 0.88, 250,000: 0.82, 1,000,000: 0.83, 3,000,000: 0.82, 10,000,000: 0.94, 30,000,000: 0.89).  The benchmark at the start of a run has
 all 192 cores on ECM at once and overstates the cost of a curve during the search by about 15%; at
@@ -666,28 +675,181 @@ root-finding without looking at the next one.</li>
 
 <h3>10.3 Is the model's win rate right?</h3>
 <p>At a level's first win the wins the model expected from the work done should be exponentially distributed
-with mean 1.  Over all 38 real 768-bit runs that recorded it (twelve on the driver box,
-26 here) the mean is <b>0.80</b>, where an exact model gives 1 &plusmn; 0.16,
-and the largest distance between the empirical distribution and the exponential one is 0.16
-(Kolmogorov&ndash;Smirnov, 5% point 0.22).  So the model's win rate is right to within what
-38 runs can show, and if it errs it is on the cautious side.  The thirteen primes of section 9.3
-gave 0.65 on the driver box and 0.65 here, the thirteen new ones 1.07; each of these means
-has a standard error of 0.28.</p>
+with mean 1.  Over the 26 primes here the mean is <b>0.86</b>, where an exact model gives
+1 &plusmn; 0.20 (the thirteen primes of section 9.3 give 0.65, the thirteen new ones
+1.07), and the largest distance between the empirical distribution and the exponential one is
+0.22 (Kolmogorov&ndash;Smirnov, 5% point 0.27).  So the model's overall win rate is right to
+within what 26 primes can show.</p>
+<p>Two things qualify that.</p>
+<ul>
+<li><b>Runs on the same prime are not independent draws.</b> The thirteen primes of 9.3 have now been proved
+three times: on the driver box, here, and with yafu in section 11.  For 9 of them the same
+discriminant won at least twice, for 3 all three times, and the three means of the expected wins
+are 0.65, 0.65 and 0.62.  The first winner is largely a property of the prime's pool of
+orders, not of the random curves, so repeating a prime adds little, and the 0.65 of section 9.3 is those
+thirteen primes.</li>
+<li><b>Easy winners.</b> 8 of the 26 primes won before the model expected 0.12 wins, where the
+exponential law gives 2.9, and four won after it expected more than 1.8, where the law gives 4.3.
+The early ones are orders whose medium primes are all within reach of the first sweeps; the same order then
+wins on every machine.  The model may underrate these, which would make the rule a little too patient with
+the rest.  It is the one place where the data pull away from the model, and with 26 primes it is a hint,
+not a finding.</li>
+</ul>
 <p>The last thirteen runs also record which sweep completed the win:</p>
 <table><tr><th>B1 of the sweep</th><th>11,000</th><th>50,000</th><th>250,000</th><th>1,000,000</th><th>3,000,000</th><th>all</th></tr><tr><td>first wins, of 13</td><td>0</td><td>0</td><td>7</td><td>4</td><td>2</td><td>13</td></tr><tr><td>wins the model expected from the sweeps run</td><td>0.1</td><td>0.9</td><td>4.5</td><td>6.6</td><td>1.9</td><td>13.9</td></tr></table>
 <p>Winners come from the sweeps at B1&nbsp;=&nbsp;250,000 to 3&middot;10<sup>6</sup>, as the model says, on
 candidates that the shallow sweeps left with the right kind of tail.  The simulation gives the same picture
 (of 400 simulated first wins: 2, 28, 157, 162 and 51 at B1 = 11,000 to 3&middot;10<sup>6</sup>).</p>
 
-<h3>10.4 Scan chunks</h3>
+<h3>10.4 What a build costs</h3>
+<p>The 29 top-level builds on this box, those with a prime of 150 or more in the order n of the subgroup or
+longer than 8&nbsp;s (the other 17 take at most 6.9&nbsp;s):</p>
+<table><tr><th>bits</th><th>D</th><th>degree = m &times; n</th><th>largest prime in n</th><th>class polynomial, s</th><th>roots, s</th><th>build, s</th><th>search, s</th></tr><tr><td>769</td><td>&minus;29,582,330,767</td><td>78,672 = 264 &times; 298</td><td>149</td><td>3.9</td><td>4.6</td><td>9.4</td><td>80.6</td></tr><tr><td>769</td><td>&minus;7,906,514,692</td><td>21,376 = 128 &times; 167</td><td>167</td><td>0.6</td><td>2.1</td><td>2.9</td><td>65.7</td></tr><tr><td>769</td><td>&minus;11,106,300,916</td><td>31,140 = 180 &times; 173</td><td>173</td><td>1.7</td><td>2.6</td><td>5.2</td><td>59.4</td></tr><tr><td>769</td><td>&minus;3,290,562,571</td><td>12,172 = 68 &times; 179</td><td>179</td><td>0.5</td><td>1.8</td><td>2.5</td><td>29.7</td></tr><tr><td>769</td><td>&minus;14,345,272</td><td>716 = 4 &times; 179</td><td>179</td><td>0.1</td><td>1.4</td><td>1.6</td><td>6.2</td></tr><tr><td>769</td><td>&minus;2,517,001,547</td><td>11,472 = 48 &times; 239</td><td>239</td><td>0.5</td><td>2.1</td><td>4.2</td><td>54.6</td></tr><tr><td>769</td><td>&minus;140,236,055</td><td>8,488 = 8 &times; 1,061</td><td>1,061</td><td>0.2</td><td>8.8</td><td>11.4</td><td>19.0</td></tr><tr><td>769</td><td>&minus;18,216,731,771</td><td>30,776 = 8 &times; 3,847</td><td>3,847</td><td>1.4</td><td>31.0</td><td>32.5</td><td>80.6</td></tr><tr><td>769</td><td>&minus;408,118,703</td><td>17,722 = 2 &times; 8,861</td><td>8,861</td><td>0.3</td><td>88.0</td><td>89.5</td><td>9.0</td></tr><tr><td>1030</td><td>&minus;10,023,569,747</td><td>20,214 = 18 &times; 1,123</td><td>1,123</td><td>1.7</td><td>16.5</td><td>18.4</td><td>132.5</td></tr><tr><td>1030</td><td>&minus;38,597,025,143</td><td>196,038 = 18 &times; 10,891</td><td>10,891</td><td>7.9</td><td>184.8</td><td>195.2</td><td>482.5</td></tr><tr><td>1030</td><td>&minus;140,861,442,439</td><td>156,664 = 8 &times; 19,583</td><td>19,583</td><td>13.0</td><td>289.7</td><td>305.4</td><td>836.2</td></tr></table>
+<p>With the decomposition in place a build is the root of one polynomial whose degree is the largest prime
+factor of the class number, and its time is proportional to that prime: 8 to 10&nbsp;ms per unit
+of degree at 768 bits and 15 to 17 at 1030 bits, on about 50 of the 192 cores.  The class
+number of a winner is known in milliseconds, so the cost of its build is known before it starts.  At 768
+bits three winners in 26 have a prime above 1,000 in the class number and one of them takes ten times
+longer to build than it took to find; at 1030 bits, where the scan reaches |D| near 10<sup>11</sup>, all
+three do.  Passing on such a winner helps at 768 bits; at 1030 bits and beyond the root-finding itself has
+to become faster.</p>
+
+<h3>10.5 Scan chunks</h3>
 <p>Section 9.4 suggested that scan chunks which double B waste orders late in a level.  In simulation
 (768 bits, 192 threads, 600 levels each) a growth factor of 1.5 gives 1.72 core-hours of machine time per
 level against 1.81 for 2, within the noise of 4%, and 1.25 gives 1.95, because the cores wait for orders more
 often (utilisation 79% against 91%).  The doubling stays.</p>
 
 
-<h2>11. What I would do next</h2>
+<h2>11. yafu as the ECM engine</h2>
+<p>yafu 3.1.9's ECM (section 8) is now an engine of the prover: <code>engine=yafu yafu=&lt;binary&gt;</code>
+runs the stopping-rule levels with it, gmp-ecm keeps the levels below 500 bits.  What had to be measured
+and built:</p>
+
+<h3>11.1 Success per curve</h3>
+<p>As in section 4 for gmp-ecm: for every B1 and factor size, 96 random primes f, numbers N = f&middot;g with g
+a fixed 192-bit prime, curves until f appears or a cap is reached (<code>data/yafu_pi_calib.py</code>).
+yafu runs 8 curves at a time and reports which of the 8 found the factor, so the estimate is hits over curves
+run.  182 cells, 6,060,112 curves, 78 thread-hours on the driver box.  A selection,
+against gmp-ecm's table at the same B1 and factor size:</p>
+<table><tr><th>B1</th><th>factor, bits</th><th>yafu: hits / curves</th><th>yafu, per curve</th><th>gmp-ecm, per curve</th><th>ratio</th></tr><tr><td>2,000</td><td>42</td><td>152 / 1,176</td><td>0.1293</td><td>0.0928</td><td>1.39</td></tr><tr><td>2,000</td><td>54</td><td>103 / 6,528</td><td>0.0158</td><td>0.0112</td><td>1.41</td></tr><tr><td>2,000</td><td>62</td><td>97 / 37,000</td><td>0.0026</td><td>0.0020</td><td>1.29</td></tr><tr><td>11,000</td><td>50</td><td>137 / 1,168</td><td>0.1173</td><td>0.1154</td><td>1.02</td></tr><tr><td>11,000</td><td>66</td><td>100 / 10,232</td><td>0.0098</td><td>0.0109</td><td>0.90</td></tr><tr><td>11,000</td><td>74</td><td>96 / 32,984</td><td>0.0029</td><td>0.0020</td><td>1.46</td></tr><tr><td>50,000</td><td>58</td><td>141 / 1,144</td><td>0.1233</td><td>0.1020</td><td>1.21</td></tr><tr><td>50,000</td><td>78</td><td>99 / 12,800</td><td>0.0077</td><td>0.0064</td><td>1.21</td></tr><tr><td>50,000</td><td>86</td><td>93 / 35,224</td><td>0.0026</td><td>0.0022</td><td>1.21</td></tr><tr><td>250,000</td><td>66</td><td>133 / 1,224</td><td>0.1087</td><td>0.1091</td><td>1.00</td></tr><tr><td>250,000</td><td>86</td><td>101 / 7,336</td><td>0.0138</td><td>0.0109</td><td>1.27</td></tr><tr><td>250,000</td><td>102</td><td>34 / 25,056</td><td>0.0014</td><td>0.0012</td><td>1.09</td></tr><tr><td>1,000,000</td><td>74</td><td>127 / 1,384</td><td>0.0918</td><td>0.1019</td><td>0.90</td></tr><tr><td>1,000,000</td><td>98</td><td>55 / 7,504</td><td>0.0073</td><td>0.0086</td><td>0.86</td></tr><tr><td>1,000,000</td><td>110</td><td>22 / 9,632</td><td>0.0023</td><td>0.0042</td><td>0.54</td></tr><tr><td>3,000,000</td><td>82</td><td>131 / 1,424</td><td>0.0920</td><td>0.0777</td><td>1.18</td></tr><tr><td>3,000,000</td><td>98</td><td>49 / 3,072</td><td>0.0160</td><td>0.0178</td><td>0.90</td></tr><tr><td>10,000,000</td><td>86</td><td>74 / 768</td><td>0.0964</td><td>&ndash;</td><td>&ndash;</td></tr><tr><td>10,000,000</td><td>106</td><td>11 / 768</td><td>0.0143</td><td>&ndash;</td><td>&ndash;</td></tr><tr><td>30,000,000</td><td>90</td><td>98 / 768</td><td>0.1276</td><td>&ndash;</td><td>&ndash;</td></tr><tr><td>30,000,000</td><td>118</td><td>9 / 768</td><td>0.0117</td><td>&ndash;</td><td>&ndash;</td></tr></table>
+<p>Per B1, the ratio of yafu's success per curve to gmp-ecm's over the factor sizes where both tables have
+8 hits or more and the probability is below 0.3: 2,000: 1.29, 11,000: 1.19, 50,000: 1.17, 250,000: 1.16, 1,000,000: 1.03, 3,000,000: 1.04.  A yafu curve finds a factor about 30% more often than a gmp-ecm curve at B1 = 2,000, 15 to 20% more often
+from 11,000 to 250,000 and equally often from 10<sup>6</sup>, at the stage-2 bounds each program chooses.
+Against the two-stage smoothness probability of a number 24 times smaller than the factor (the curve
+families' torsion), yafu's measured rates are within 15% at every B1 and size with enough hits; gmp-ecm's
+default curves fall about 20% short of it at small B1.  gmp-ecm's table has no measured cells at
+B1&nbsp;=&nbsp;10<sup>7</sup> and 3&middot;10<sup>7</sup>; yafu's has ten each.
+</p>
+
+<h3>11.2 Cost per curve</h3>
+<p>Core-seconds per curve on a 1030-bit number, c8a under full load, with yafu called the way the prover
+calls it (a list of numbers per process, 16 or 24 curves each, so that start-up is amortised):</p>
+<table><tr><th>B1</th><th>gmp-ecm, core-s per curve</th><th>yafu</th><th>ratio</th><th>B2, gmp-ecm</th><th>B2, yafu</th></tr><tr><td>2,000</td><td>0.0134</td><td>0.0036</td><td>3.7</td><td>147,396</td><td>132,359</td></tr><tr><td>11,000</td><td>0.064</td><td>0.0148</td><td>4.3</td><td>1,873,422</td><td>1,446,869</td></tr><tr><td>50,000</td><td>0.263</td><td>0.0599</td><td>4.4</td><td>12,746,592</td><td>14,241,149</td></tr><tr><td>250,000</td><td>1.215</td><td>0.302</td><td>4.0</td><td>128,992,510</td><td>156,787,994</td></tr><tr><td>1,000,000</td><td>4.95</td><td>0.95</td><td>5.2</td><td>1,045,563,762</td><td>966,061,634</td></tr><tr><td>3,000,000</td><td>13.5</td><td>2.69</td><td>5.0</td><td>5,706,890,290</td><td>4,542,893,354</td></tr><tr><td>10,000,000</td><td>40</td><td>9.9</td><td>4.0</td><td>35,133,391,030</td><td>25,952,321,849</td></tr><tr><td>30,000,000</td><td>120</td><td>36</td><td>3.3</td><td>144,289,975,846</td><td>127,773,807,524</td></tr></table>
+<p>With size, on the driver box with all 32 threads busy (<code>data/yafu_cost2_local.json</code>), seconds
+per curve:</p>
+<table><tr><th>number, bits</th><th>B1 = 2,000</th><th>B1 = 11,000</th><th>B1 = 50,000</th><th>B1 = 250,000</th><th>B1 = 1,000,000</th></tr><tr><td>260</td><td>0.0011</td><td>0.0027</td><td>0.0096</td><td>0.0456</td><td>0.1741</td></tr><tr><td>364</td><td>0.0013</td><td>0.0038</td><td>0.0145</td><td>0.0687</td><td>0.2567</td></tr><tr><td>520</td><td>0.0016</td><td>0.0060</td><td>0.0227</td><td>0.1115</td><td>0.4141</td></tr><tr><td>676</td><td>0.0022</td><td>0.0086</td><td>0.0326</td><td>0.1607</td><td>0.5934</td></tr><tr><td>780</td><td>0.0026</td><td>0.0104</td><td>0.0406</td><td>0.2281</td><td>0.7417</td></tr><tr><td>884</td><td>0.0030</td><td>0.0127</td><td>0.0497</td><td>0.2447</td><td>0.9001</td></tr><tr><td>1030</td><td>0.0036</td><td>0.0150</td><td>0.0599</td><td>0.2926</td><td>1.0871</td></tr><tr><td>1196</td><td>0.0049</td><td>0.0209</td><td>0.0836</td><td>0.4005</td><td>1.4921</td></tr><tr><td>1352</td><td>0.0058</td><td>0.0253</td><td>0.0996</td><td>0.4749</td><td>1.7595</td></tr></table>
+<ul>
+<li>From 260 to 1030 bits the cost grows like bits<sup>1.36</sup> (bits<sup>1.28</sup> at B1 = 11,000 and
+bits<sup>0.97</sup> at 2,000, where the set-up per number counts); gmp-ecm's grows like bits<sup>1.5</sup>.
+Above 1040 bits yafu is 12 to 16% above that law: its arithmetic changes at 20 words of 52 bits.</li>
+<li>A thread of the driver box does as much yafu work as a c8a core up to B1 = 250,000 and 14 to 19% less
+at 10<sup>6</sup> and beyond; for gmp-ecm the factor is 1.35 throughout.  So yafu gains more on the small
+box than on the large one.</li>
+<li>Stage 2 uses 350 to 450 MB per process from B1 = 10<sup>6</sup>.  Raising yafu's limit from 256 MB to
+1 GB makes a curve at B1 = 10<sup>7</sup> 8% cheaper with a larger B2; it is left at the default, with which
+the calibration was done.</li>
+</ul>
+
+<h3>11.3 In the prover</h3>
+<ul>
+<li><b>Batches of 8.</b> The scheduler has a curve quantum: every unit is a multiple of 8 curves and the
+ladder is B1 = 2,000 &times; 16, 11,000 &times; 24, then sweeps of 16 curves (2, 3, 5, 6, 6 and 4 of them at
+50,000 to 3&middot;10<sup>7</sup>).  Sweeps of 8 instead of 16 make no difference in simulation.</li>
+<li><b>Engine profile.</b> Cost table, growth with size, stage-2 bounds and success table are per engine
+(<code>shortsim.ENGINES</code>); the break-even table is built from the engine's own numbers, and the cost
+per curve is calibrated at the start of a run as for gmp-ecm.</li>
+<li><b>Calling yafu.</b> One process per unit, expressions <code>ecm(n, curves)</code> on standard input,
+<code>-avxecm_stg2 1</code> (B2 depends on B1 only), logs off, and <code>-aprcl_p 1</code>: by default yafu
+proves a prime cofactor prime with APR-CL, two seconds at 1000 bits, every time a tail turns out to be
+prime.  Its curves are seeded from the clock, the process id and the system's random source, so processes
+running at once use different curves.  The parts it reports are checked to multiply back to the input.</li>
+<li><b>Self-test.</b> A yafu binary is used only if it finds a planted factor at start-up; otherwise the
+prover says so and runs gmp-ecm.</li>
+</ul>
+<h3>11.4 Simulation</h3>
+<p>The scheduler in virtual time as in 9.2, c8a costs, each engine with its own tables; machine cost is wall
+time times threads.</p>
+<table><tr><th>level, threads</th><th>engine</th><th>wall to the first win, s</th><th>machine cost, core-h</th><th>work: scan + ECM, core-h</th><th>orders bought</th><th>levels simulated</th></tr>
+<tr><td>768 bits, 32</td><td>gmp-ecm</td><td>164</td><td>1.45</td><td>0.37 + 0.97</td><td>30,281</td><td>300</td></tr>
+<tr><td></td><td>yafu</td><td>59</td><td><b>0.52</b></td><td>0.15 + 0.33</td><td>17,581</td><td>300</td></tr>
+<tr><td>768 bits, 192</td><td>gmp-ecm</td><td>34</td><td>1.81</td><td>0.44 + 1.21</td><td>33,510</td><td>600</td></tr>
+<tr><td></td><td>yafu</td><td>14</td><td><b>0.77</b></td><td>0.21 + 0.48</td><td>22,594</td><td>600</td></tr>
+<tr><td>1030 bits, 192</td><td>gmp-ecm</td><td>773</td><td>41.3</td><td>11.5 + 26.4</td><td>112,825</td><td>144</td></tr>
+<tr><td></td><td>yafu</td><td>236</td><td><b>12.6</b></td><td>3.8 + 7.6</td><td>64,841</td><td>144</td></tr>
+<tr><td>1030 bits, 32</td><td>yafu</td><td>1,171</td><td>10.4</td><td>3.3 + 6.2</td><td>59,272</td><td>48</td></tr>
+</table>
+
+<p>A level costs 2.3 to 2.8 times less at 768 bits and 3.3 times less at 1030 bits.  A curve is 4 to 5 times
+cheaper; the rule answers by running more curves on each order and buying fewer orders (a third to a half
+fewer), so the ECM bill and the scan bill both fall, by 2.5 to 3.5 and by 2 to 3.  The 1030-bit rows are
+144 levels and supersede the 24 of section 9.2 (36.5 core-hours there, 41.3 here); the two batches of yafu
+levels behind its row gave 9.6 and 14.1, so these means are good to about 10%.  Summaries in
+<code>data/yafu_sims.txt</code>.
+</p>
+
+<h3>11.5 Real: the driver box</h3>
+<p>The thirteen 768-bit primes of section 9.3 again, on the same 16-core box with 32 threads, with yafu
+(<code>data/yafu_local/</code>).  The gmp-ecm columns are the runs of 9.3; the two engines draw different
+random curves, so the comparison is between averages, not prime by prime.</p>
+<div class="wide"><table><tr><th rowspan="2">prime</th><th colspan="4">gmp-ecm (section 9.3)</th><th colspan="6">yafu</th></tr><tr><th>orders</th><th>search, thread-s</th><th>search, s</th><th>chain, s</th><th>orders</th><th>search, thread-s</th><th>search, s</th><th>wins the model expected</th><th>build, s</th><th>chain, s</th></tr><tr><td>0</td><td>99,262</td><td>22,857</td><td>715</td><td>735</td><td>23,060</td><td>2,267</td><td>83</td><td>1.51</td><td>3.1</td><td>92</td></tr><tr><td>1</td><td>29,696</td><td>2,579</td><td>89</td><td>102</td><td>11,456</td><td>273</td><td>7</td><td>0.04</td><td>1.2</td><td>15</td></tr><tr><td>2</td><td>27,422</td><td>9,407</td><td>346</td><td>377</td><td>12,878</td><td>2,041</td><td>72</td><td>1.11</td><td>0.6</td><td>79</td></tr><tr><td>3</td><td>6,822</td><td>1,197</td><td>40</td><td>64</td><td>6,822</td><td>469</td><td>14</td><td>0.21</td><td>2.6</td><td>25</td></tr><tr><td>4</td><td>60,830</td><td>3,714</td><td>124</td><td>156</td><td>33,360</td><td>759</td><td>26</td><td>1.22</td><td>7.1</td><td>43</td></tr><tr><td>5</td><td>84,920</td><td>5,864</td><td>200</td><td>216</td><td>33,140</td><td>635</td><td>20</td><td>0.82</td><td>1.2</td><td>29</td></tr><tr><td>6</td><td>22,656</td><td>1,827</td><td>59</td><td>92</td><td>22,656</td><td>1,722</td><td>56</td><td>1.08</td><td>12.9</td><td>79</td></tr><tr><td>7</td><td>48,986</td><td>14,004</td><td>446</td><td>463</td><td>7,790</td><td>661</td><td>23</td><td>0.41</td><td>4.5</td><td>34</td></tr><tr><td>8</td><td>14,494</td><td>1,783</td><td>60</td><td>75</td><td>5,608</td><td>261</td><td>9</td><td>0.09</td><td>0.4</td><td>14</td></tr><tr><td>9</td><td>7,116</td><td>453</td><td>14</td><td>22</td><td>5,338</td><td>192</td><td>5</td><td>0.01</td><td>0.6</td><td>13</td></tr><tr><td>10</td><td>66,070</td><td>2,439</td><td>81</td><td>112</td><td>20,006</td><td>178</td><td>5</td><td>0.05</td><td>2.8</td><td>16</td></tr><tr><td>11</td><td>24,200</td><td>3,820</td><td>136</td><td>149</td><td>11,736</td><td>941</td><td>34</td><td>0.63</td><td>2.7</td><td>43</td></tr><tr><td>12</td><td>23,456</td><td>1,359</td><td>44</td><td>68</td><td>17,506</td><td>677</td><td>23</td><td>0.85</td><td>13.3</td><td>46</td></tr></table></div>
+<ul>
+<li><b>768 bits.</b> All 13 certificates pass both verifiers.  The whole chain takes
+<b>41&nbsp;s on average, median 34&nbsp;s</b> (range 13 to
+92), where gmp-ecm took 202 and 112.  The top-level search does
+0.24 thread-hours of work on average (median 0.18) against 1.52
+(0.72), and the scan is now 28% of it.  The gmp-ecm mean is carried by run 0 (6.3 thread-hours); on the medians the search costs 4 times less and
+the chain takes a third of the time.  Sixteen cores with yafu now prove a 768-bit prime about as fast as
+192 cores did with gmp-ecm (section 10.1: 44&nbsp;s).
+</li>
+<li><b>Model.</b> The wins the model expected at the win average 0.62 over the 13 runs (these
+are the primes of section 10.3 that give 0.65 with gmp-ecm).  First wins by B1 of the sweep: 250,000: 8, 1,000,000: 5;
+the model expected 50,000: 0.3, 250,000: 3.1, 1,000,000: 3.4, 3,000,000: 1.3.  Measured against modelled cost of a
+curve, by B1: 2,000: 0.98, 11,000: 0.91, 50,000: 0.90, 250,000: 0.80, 1,000,000: 0.90, 3,000,000: 0.88, 10,000,000: 1.00, 30,000,000: 0.75.</li>
+<li><b>1030 bits.</b> nextprime(10<sup>310</sup>) with yafu on the same box: <b>3,581&nbsp;s</b>
+(60 minutes) for the whole chain and 25.5 thread-hours of CPU, verified by both
+verifiers; with gmp-ecm it took 5,081&nbsp;s and 43.9 (section 9.4).  The search took 3,546&nbsp;s:
+133,514 orders, scan 8.4 + ECM 19.5 thread-hours.  This was a slow draw and
+the gmp-ecm run a fast one: the model expected 1.26 wins when the win came here and 0.66 there, so
+per expected win the search cost 22 thread-hours with yafu and 66 with gmp-ecm, the factor 3 of the
+simulation.  The winner is D = &minus;83,632,771, the discriminant the August campaign ended with after five
+hours; it sits in the first scan chunk and was completed by a sweep at B1 = 3&middot;10<sup>6</sup>.  Its
+class number is 2,907 and the curve is built in 4&nbsp;s.</li>
+<li><b>Above the rule.</b> In that run 27% of the ECM time went to work above the rule, given to cores that
+had nothing below it while a scan chunk was running; the simulation has 1% there.  One reason is that in
+most runs a curve costs 10 to 20% less during the search than the benchmark at the start says, so the scan
+gets too small a share of the cores.  Sizing the scan so that the next chunk arrives when the work below
+the rule runs out, from the backlog actually observed, is the fix to try.</li>
+<li><b>Sharing.</b> Other jobs ran on the box during part of these runs (the second rule level of the
+1030-bit chain shows curves at twice their cost), so the times are upper bounds.</li>
+</ul>
+
+<h3>11.6 Not yet</h3>
+<p>yafu has not been run on the 192-core box by the prover.  The simulation says a 768-bit level there costs
+0.77 core-hours instead of 1.81 and a 1030-bit level 12.6 instead of 41.3; the builds and the lower levels
+are unchanged, so whole chains gain less than that.</p>
+
+
+
+<h2>12. What I would do next</h2>
 <ol>
+<li><b>yafu on the 192-core box.</b> The thirteen 768-bit primes and the three 1030-bit primes of section
+10 again with <code>engine=yafu</code>: about half an hour of one spot box.  It would also give yafu's cost
+table on that machine at B1 = 2,000, 10<sup>7</sup> and 3&middot;10<sup>7</sup>, which are scaled from the
+driver box here.</li>
+<li><b>Size the scan from the backlog (section 11.5).</b> With yafu the scan is a third to a half of a
+level, and cores wait for it: 27% of the ECM time of the 1030-bit run was above the rule.  Give the scan
+the share of the cores at which its next chunk arrives as the work below the rule runs out.</li>
 <li><b>Root-finding at prime degree (sections 9.5 and 10.2).</b> A powering mod a polynomial of degree
 1,000 to 20,000 over a 768- or 1030-bit field is that many squarings as the field has bits, each done as
 three GMP multiplications of integers of 1 to 40 megabits; at degree 19,583 and 1030 bits it takes 290&nbsp;s
@@ -701,17 +863,18 @@ the cost of finding and building the next one, keep it in reserve otherwise) is 
 <li><b>Sharper height estimates for the decomposition (section 9.6).</b> The bound is a median 23% too
 large for invariants other than j.  Numerical values of the invariant at the forms would give the heights
 to a few bits; the plain bound in the ramified case is also about twice too large.</li>
-<li><b>Tighten the model.</b> Measure &pi; and the cost per curve at B1&nbsp;=&nbsp;10<sup>7</sup> and
-3&middot;10<sup>7</sup>, which the 1030-bit rule uses and which are extrapolated here, and extend the model
-below 500 bits, where the rough-cofactor approximation stops being valid, so that the lower levels can use
-the rule too.</li>
+<li><b>Tighten the model.</b> Look at the easy winners of section 10.3, which the model may underrate.
+Extend the model below 500 bits, where the rough-cofactor approximation stops being valid, so that the
+lower levels can use the rule (and yafu) too.  For gmp-ecm, &pi; and the cost per curve at
+B1&nbsp;=&nbsp;10<sup>7</sup> and 3&middot;10<sup>7</sup> are still extrapolated; for yafu they are
+measured.</li>
 <li><b>For the paper.</b> The search is a bandit problem with a closed-form index: the cost per level is
 the fixed point of a stopping problem, the rule is an index policy, and both have a direct experimental
 check.</li>
 
 </ol>
 
-<h2>12. Files</h2>
+<h2>13. Files</h2>
 <ul>
 <li>Prover: <code>ecpp/shortECPP.py</code>, <code>ecpp/dscan.c</code> (<code>fbmin=</code>,
 <code>roots=</code>), <code>ecpp/smoothtest.c</code> (<code>n2=</code>, <code>prp=1</code>);
@@ -743,6 +906,12 @@ and <code>data/rule1030_local/</code> (log, certificate),
 and <code>data/rule_c8a/</code> (section 10: 29 logs and certificates, the run script, the primes) and their summary <code>data/rule_runs.py</code>, <code>data/rule_runs.json</code>; simulation
 summaries <code>data/rule_sims.txt</code>; lattice subgroups <code>data/tower_sweep.py</code>,
 <code>data/tower_sweep_lattice.log</code>.</li>
+<li>yafu as the engine (section 11): <code>ecpp/shortECPP.py</code> (<code>EcmRunner</code>,
+<code>parse_yafu</code>, <code>ecm_engine</code>), <code>ecpp/shortsim.py</code> (<code>ENGINES</code>),
+success table <code>ecpp/ecm_pi_yafu.json</code> from <code>data/yafu_pi_calib.py</code>
+(<code>data/yafu_pi_calib.json</code>, <code>.log</code>; <code>data/yafu_pi_merge.py</code>), costs
+<code>data/yafu_cost2.py</code>, <code>data/yafu_cost2_local.json</code>, simulations
+<code>data/yafu_sims.txt</code>, runs <code>data/yafu_local/</code> (14 logs and certificates).</li>
 <li>yafu (section 8): <code>data/yafu_test.py</code>, <code>data/yafu_cost.py</code>, results
 <code>data/yafu_test.json</code>, <code>data/yafu_cost.json</code>, logs <code>data/yafu_test.log</code>,
 <code>data/yafu_cost.log</code>, <code>data/yafu_build.log</code>
