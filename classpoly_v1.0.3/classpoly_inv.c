@@ -28,7 +28,9 @@
 */
 
 
-int classpoly_inv_setup (classpoly_inv_t Hinv, classpoly_t H, int inv, classpoly_crt_t crt)
+// With signfree set, an invariant whose roots are only determined up to a common sign is left that way: the square of the trace is
+// not computed (it takes a CRT of its own over many primes) and ff_classpoly_inv_disambiguate leaves the sign of the roots alone.
+int classpoly_inv_setup_signfree (classpoly_inv_t Hinv, classpoly_t H, int inv, classpoly_crt_t crt, int signfree)
 {
 	clock_t start, end;
 	ff_t t0, t1, j;
@@ -47,7 +49,8 @@ int classpoly_inv_setup (classpoly_inv_t Hinv, classpoly_t H, int inv, classpoly
 	Hinv->units = inv_units (inv);
 	Hinv->ambiguous_sign = inv_sqrt_invariant(inv);
 	mpz_init (Hinv->T);
-	if ( Hinv->ambiguous_sign && ! ((H->pres->enum_cnt&1) && Hinv->units) ) {
+	Hinv->signfree = ( signfree && classpoly_inv_needs_trace (inv, H->pres->enum_cnt) );
+	if ( Hinv->ambiguous_sign && ! Hinv->signfree && ! ((H->pres->enum_cnt&1) && Hinv->units) ) {
 		start = clock();
 		mpz_init (M);  mpz_init (X);  mpz_init (Y);  mpz_init (Z);
 		mpz_set_ui(M,1);
@@ -133,7 +136,7 @@ int _ff_classpoly_inv_disambiguate (classpoly_t H, classpoly_inv_t Hinv)
 			if ( Hinv->negated ) for ( i = 0 ; i < H->pres->enum_cnt ; i++ ) ff_negate(H->roots[i]);
 		}
 	}
-	if ( Hinv->ambiguous_sign ) {
+	if ( Hinv->ambiguous_sign && ! Hinv->signfree ) {
 		negate = 0;
 		if ( (H->pres->enum_cnt&1) && Hinv->units ) {
 			_ff_set_one(t1);  ff_negate(t1);

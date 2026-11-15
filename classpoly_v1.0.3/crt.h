@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <gmp.h>
 
 #ifdef __cplusplus
@@ -64,6 +65,7 @@ struct ecrt_context {
 	mp_limb_t *sdata;
 	char prefix[192];
 	int jobs, jobid;				// if jobs=0 then no job processing is performed (i.e. all ecrt precomp, update and postcomp happens in a single process)
+	uint64_t tag;					// caller-defined value stored in the header of a job's dump file; ecrt_merge checks that every job agrees and returns it here
 	FILE *fp;						// file pointer for job data (if used)
 	int batching;					// batching is only supported with job processing
 	long fpbase;					// file offset of data stored as blocks of CRT_BATCH_SIZE*Cbytes +CRT_BATCH_SIZE*sbytes

@@ -74,11 +74,65 @@ void classpoly_crt_end (classpoly_crt_t crt)
 void classpoly_crt_dump (classpoly_crt_t crt)
 {
 	if ( ! crt->jobs || ! mpz_sgn(crt->P) ) { err_printf ("classpoly_crt_dump requires multi-job ECRT mode\n"); abort(); }
+	crt->ecrt->tag = classpoly_tower_tag (crt->tower_m, crt->tower_signfree);		// the merge job learns the shape of the output from the dump files
 	ecrt_dump (crt->ecrt);
 }
 
+/*
+	Output format.  A plain class polynomial is written as before: I=, D= and (if reduced) P= lines, then one line "c*X^i + " per
+	coefficient and a final "1*X^deg".
+
+	A decomposition (tower_m = m > 0, n = ccnt/m) is written in the F/G format that classpoly_load and ff_classpoly_root already
+	understand: after the I=, D=, P= lines come "F=m" and "G=n", then m*n+1 coefficient lines:
+		F_0, ..., F_{m-1}, 1				F(Y) = Y^m + F_{m-1}Y^{m-1} + ... + F_0 has the m coset values y as its roots
+		g_{0,0}, ..., g_{0,m-1}				g_0(Y) = g_{0,0} + g_{0,1}Y + ...
+		...
+		g_{n-2,0}, ..., g_{n-2,m-1}
+	and for a root y of F the polynomial G(X) = X^n + y X^{n-1} + sum_{j<=n-2} (g_j(y)/F'(y)) X^j divides the class polynomial.
+	Each line is "c*<monomial>"; only the part before '*' is significant to a reader.
+
+	Sign-free decompositions.  For an invariant f whose class polynomial is only determined mod p up to f -> -f, fixing the sign takes
+	the trace T of the class polynomial, which costs a CRT of its own before the main one (classpoly_inv_setup).  A consumer who only
+	wants a root up to sign (the invariants concerned are square roots of invariants through which j factors) can do without: under
+	f -> -f the coefficient of Y^j in F is multiplied by (-1)^(m-j) and that of Y^j in g_k by (-1)^(n-k+m-1-j), so each coefficient
+	has a parity, and T itself is odd.  In a sign-free decomposition every odd coefficient is stored multiplied by T, which makes all
+	stored numbers independent of the sign, and S = T^2 is stored as well, in a header line "S=<S>" after G=.  Dividing the odd
+	coefficients by either square root of S gives the decomposition of H(X) or of H(-X).  (The line starts with a letter, so
+	classpoly_load skips it; the file must not be used as a plain F/G file.)
+*/
+void classpoly_crt_print_header (FILE *fp, long D, int inv, mpz_t P, int ccnt, int tower_m, int signfree)
+{
+	fprintf (fp, "I=%d\n", inv);
+	fprintf (fp, "D=%ld\n", D);
+	if ( P && mpz_sgn(P) ) gmp_fprintf (fp, "P=%Zd\n", P);
+	if ( tower_m ) fprintf (fp, "F=%d\nG=%d\n", tower_m, (ccnt-(signfree?1:0))/tower_m);
+}
+
+void classpoly_crt_print_coeff (FILE *fp, mpz_t c, int i, int ccnt, int tower_m, int signfree)
+{
+	if ( tower_m && signfree ) {
+		if ( ! i ) { gmp_fprintf (fp, "S=%Zd\n", c); return; }
+		i--;
+	}
+	if ( ! tower_m ) {
+		gmp_fprintf (fp, "%Zd*X^%d + \n", c, i);
+		if ( i == ccnt-1 ) fprintf (fp, "1*X^%d\n", ccnt);
+	} else if ( i < tower_m ) {
+		gmp_fprintf (fp, "%Zd*Y^%d\n", c, i);
+		if ( i == tower_m-1 ) fprintf (fp, "1*Y^%d\n", tower_m);
+	} else {
+		gmp_fprintf (fp, "%Zd*Y^%d*X^%d\n", c, (i-tower_m)%tower_m, (i-tower_m)/tower_m);
+	}
+}
+
+struct classpoly_crt_output_ctx { FILE *fp; int ccnt, tower_m, signfree; };
+
 int classpoly_crt_output_coefficient (mpz_t c, int i, void *ctx)
-	{ gmp_fprintf ((FILE*)ctx, "%Zd*X^%d + \n", c, i);  return 1; }
+{
+	struct classpoly_crt_output_ctx *o = (struct classpoly_crt_output_ctx *) ctx;
+	classpoly_crt_print_coeff (o->fp, c, i, o->ccnt, o->tower_m, o->signfree);
+	return 1;
+}
 
 int classpoly_crt_finish (classpoly_crt_t crt, long *totbits, long *maxcbits, FILE *fp)
 {
@@ -94,15 +148,13 @@ int classpoly_crt_finish (classpoly_crt_t crt, long *totbits, long *maxcbits, FI
 		crt_close_files(crt->fp, crt->ccnt);
 		info_printf ("Wrote %ld bytes of data to CRT files\n", crt->ccnt*crt->pcnt*sizeof(unsigned long));
 	}
-	gmp_fprintf (fp, "I=%d\n", crt->inv);
-	gmp_fprintf (fp, "D=%ld\n", crt->D);
-	if ( mpz_sgn(crt->P) ) gmp_fprintf (fp, "P=%Zd\n", crt->P);
+	classpoly_crt_print_header (fp, crt->D, crt->inv, crt->P, crt->ccnt, crt->tower_m, crt->tower_signfree);
 
 	if ( mpz_sgn(crt->P) ) {		
 		// all ecrt cases treated as "small" in the sense of section 6 of "Computing Hilbert class polynomials with the Chinese Remainder Theorem")
 		ecrt_finalize (crt->ecrt);
 		mpz_init (X);
-		for ( i = 0 ; ecrt_next_coeff(X, crt->ecrt) ; i++ ) gmp_fprintf (fp, "%Zd*X^%d + \n", X, i);
+		for ( i = 0 ; ecrt_next_coeff(X, crt->ecrt) ; i++ ) classpoly_crt_print_coeff (fp, X, i, crt->ccnt, crt->tower_m, crt->tower_signfree);
 		mpz_clear (X);
 		if ( i != crt->ccnt ) { err_printf ("ECRT postcomputation returned only %d of %d expected coefficients\n", i, crt->ccnt); ecrt_clear (crt->ecrt); mpz_clear (crt->P); return 0; }
 		if ( totbits ) *totbits = crt->ccnt * mpz_sizeinbase(crt->P,2);
@@ -110,10 +162,10 @@ int classpoly_crt_finish (classpoly_crt_t crt, long *totbits, long *maxcbits, FI
 		ecrt_clear (crt->ecrt);
 		mpz_clear (crt->P);
 	} else {
+		struct classpoly_crt_output_ctx octx = { fp, crt->ccnt, crt->tower_m, crt->tower_signfree };
 		mpz_clear (crt->P);
-		if ( ! crt_process_files (totbits, maxcbits, -crt->D, 0, crt->ccnt, crt->p, crt->pcnt, classpoly_crt_output_coefficient, fp) ) { err_printf ("Error processing CRT output files\n");  return 0; }
+		if ( ! crt_process_files (totbits, maxcbits, -crt->D, 0, crt->ccnt, crt->p, crt->pcnt, classpoly_crt_output_coefficient, &octx) ) { err_printf ("Error processing CRT output files\n");  return 0; }
 	}
-	gmp_fprintf (fp, "1*X^%d\n", crt->ccnt);
 	end = clock();
 	if ( crt->jcache ) mem_free (crt->jcache);
 	mem_free (crt->p);

@@ -65,6 +65,12 @@ void fpoly_clear (fp_poly *f);
 // Returns the root in Montgomery form (root, s limbs).  seed drives the RNG.
 void fp_find_root (const fp_ctx *C, fp_poly *h, mp_limb_t *root, uint64_t seed);
 
+// The same, for input that may not split completely: returns 1 with a genuine
+// root of h, or 0 once consecutive trivial splits amount to `bits` bits of
+// evidence against complete splitting (a trivial split at degree k counts k-1
+// bits; bits = 0: never give up).
+int  fp_find_root_bounded (const fp_ctx *C, fp_poly *h, mp_limb_t *root, uint64_t seed, int bits);
+
 // Find ALL distinct roots of h in F_p (h need NOT split completely).  Writes up
 // to maxr roots (Montgomery form) into roots[i*s]; returns the count.  Works by
 // g = gcd(h, x^p - x) then peeling linear factors.  h is not modified.
