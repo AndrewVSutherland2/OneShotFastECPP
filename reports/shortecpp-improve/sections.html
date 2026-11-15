@@ -31,8 +31,16 @@ primes were proved on the 16-core driver box in <b>@@RULE_CHAIN_MEAN@@&nbsp;s on
 scheduler needed 59 and 148 core-hours of search on the 192-core box for two primes of this size.  The
 model's win rate holds up: the wins it expected from the work done, at the first win, average
 @@RULE_EW_MEAN@@ over 12 runs, where an exact model gives 1 &plusmn; @@RULE_EW_SE@@.  @@RULE1030_SUMMARY@@</li>
-<li><b>Not done.</b> The rule has not been run on the 192-core box, yafu is not the prover's ECM engine, and
-a build still spends most of its time in root-finding at the prime part of the class number.</li>
+<li><b>On 192 cores (section 10, 15 November).</b> 26 primes of 768 bits take
+<b>@@C8A_ALL_CHAIN_MEAN@@&nbsp;s each on average (median @@C8A_ALL_CHAIN_MED@@&nbsp;s)</b> and
+@@C8A_ALL_CPU_H@@ core-hours, three of 1030 bits <b>@@C8A_B_CHAIN_MEAN@@&nbsp;s on average</b> and
+@@C8A_B_CPU_H@@ core-hours; the campaign prime 10<sup>310</sup> + 733 took @@C8A_B0_CHAIN@@&nbsp;s.  Search
+cost and wall time agree with the simulation, and over all @@EW_ALL_N@@ real runs the model's win rate
+checks out (@@EW_ALL_MEAN@@ where an exact model gives 1 &plusmn; @@EW_ALL_SE@@).</li>
+@@YAFU_ENGINE_SUMMARY@@
+<li><b>Not done.</b> A build still spends most of its time in root-finding at the prime part of the class
+number: at 1030 bits on 192 cores that is now a quarter of a chain, and up to five minutes for one
+curve.</li>
 
 #### EXPERIMENT
 <p>The model's stopping rule was computed for the real orders of p = nextprime(2<sup>768</sup>)
@@ -287,13 +295,13 @@ wall time times threads in use; one thread here does about 1/1.3 of a c8a core's
 thread-hours on average, median @@RULE_WORK_MEDIAN_H@@.</li>
 <li><b>Against the old scheduler.</b> On the c8a the old scheduler needed 59 core-hours of search for
 nextprime(2<sup>768</sup>), and 148 in August for the 765-bit campaign prime.  Run 0 is the same prime: 6.3
-thread-hours, and it is the unluckiest of the thirteen (the simulation puts it at the 95th percentile).  The
-rule has not been run on the c8a.</li>
+thread-hours, and it is the unluckiest of the thirteen (the simulation puts it at the 95th percentile).
+Section 10 has the rule on the c8a.</li>
 <li><b>Is the model's win rate right?</b> The log adds up the wins the model expects from the sweeps
 actually run.  At a level's first win that sum is exponentially distributed with mean 1 if the model is
 right.  Over the @@RULE_EW_N@@ runs that recorded it the mean is @@RULE_EW_MEAN@@, where an exact model
 gives 1 &plusmn; @@RULE_EW_SE@@: no sign of the optimism of section 5 (17 winners where 20.9 were expected),
-if anything the reverse.  Run 0 predates the bookkeeping.</li>
+if anything the reverse.  Run 0 predates the bookkeeping.  Section 10.3 repeats this with 38 runs.</li>
 <li><b>Supply differs by prime.</b> The first chunk finds between @@RULE_D_MIN@@ and @@RULE_D_MAX@@ solvable
 discriminants below 6&middot;10<sup>7</sup>, a factor 6.5 between primes of the same size, and the price of
 an order differs accordingly.  nextprime(2<sup>768</sup>), on which sections 5 to 8 rest, is an average
@@ -374,19 +382,89 @@ is CRT on 32 threads.  The next level, 489 bits, is below the rule's threshold a
 old rounds.</li>
 </ul>
 
+#### C8A
+<p>One <code>c8a.48xlarge</code> (192 cores), <code>threads=192</code>, gmp-ecm 7.0.5, revised format, every prime
+proved from scratch, one after the other (<code>data/rule_c8a/</code>).  Three sets: the thirteen 768-bit primes
+of section 9.3 (k = 0 to 12), thirteen more of the same form (nextprime(2<sup>768</sup> + k&middot;2<sup>640</sup>),
+k = 13 to 25), and three 1030-bit primes, nextprime(10<sup>310</sup> + k&middot;10<sup>300</sup>) for k = 0, 1, 2,
+of which k = 0 is the campaign prime 10<sup>310</sup> + 733.  All @@C8A_NCERT@@ certificates pass both
+verifiers.  The 29 proofs took @@C8A_TOTAL_WALL_MIN@@ minutes and @@C8A_TOTAL_CPU_H@@ core-hours of CPU in
+all; the box was up for 57 minutes.</p>
+
+<h3>10.1 768 bits</h3>
+@@C8A_CMP@@
+<ul>
+<li><b>Time.</b> A 768-bit prime takes <b>@@C8A_ALL_CHAIN_MEAN@@&nbsp;s on average, median
+@@C8A_ALL_CHAIN_MED@@&nbsp;s</b> (range @@C8A_ALL_CHAIN_MIN@@ to @@C8A_ALL_CHAIN_MAX@@), of which the top-level
+search is @@C8A_ALL_WALL_MEAN@@&nbsp;s.  The simulation of 9.2 said 32&nbsp;s for the search.</li>
+<li><b>Cost.</b> The search does @@C8A_ALL_WORK_H@@ core-hours of work per prime and occupies the machine for
+@@C8A_ALL_MACHINE_H@@ (wall time times 192): the cores are @@C8A_ALL_UTIL@@% busy.  The simulation said 1.6
+to 1.9 core-hours of machine time.  Everything included, a prime costs @@C8A_ALL_CPU_H@@ core-hours of CPU.
+With the old scheduler the search alone took 59 core-hours for prime 0 on this box.</li>
+<li><b>Same primes, two machines.</b> The thirteen primes of 9.3 needed @@C8A_LOCAL_WORK_H@@ thread-hours of
+search on the driver box and @@C8A_A_WORK_H@@ core-hours here.  The two are independent draws (the curves are
+random), a thread there does about three quarters of a core's work here, and the driver box's mean is
+carried by one run of 6.3 thread-hours; the medians are 0.7 and 0.95.  The thirteen new primes cost more,
+@@C8A_C_WORK_H@@ core-hours on average: with a cost per level that is close to exponentially distributed, a
+mean over thirteen has a standard error of about 30%.</li>
+<li><b>Builds.</b> The top-level curve takes @@C8A_ALL_BUILD_MEAN@@&nbsp;s on average; the slowest,
+@@C8A_ALL_BUILD_MAX@@&nbsp;s, is a class polynomial of degree 17,722 = 2 &times; 8,861, where all but a
+second is root-finding at the prime degree 8,861 (prime 16 below: 9&nbsp;s of search, 89&nbsp;s of build).</li>
+</ul>
+@@C8A_TABLE_768@@
+
+<h3>10.2 1030 bits</h3>
+@@C8A_TABLE_1030@@
+<ul>
+<li><b>Time.</b> The three chains take @@C8A_B_CHAINS@@&nbsp;s, <b>@@C8A_B_CHAIN_MEAN@@&nbsp;s on average</b>,
+and @@C8A_B_CPUS@@ core-hours of CPU.  Prime 0 is the campaign prime: 5.0 hours of search and about 812
+core-hours in August, @@C8A_B0_CHAIN@@&nbsp;s and @@C8A_B0_CPU_H@@ core-hours now.  That run was lucky (the
+model expected @@C8A_B0_EW@@ wins when the win came); the other two are ordinary draws.</li>
+<li><b>Against the simulation.</b> The search does @@C8A_B_WORKS@@ core-hours of work, @@C8A_B_WORK_H@@ on
+average, where the simulation of 9.2 gave 32.9; the scan is @@C8A_B_SCAN_SHARE@@% of it.  The wins the model
+expected at the win average @@C8A_B_EW@@.  Three draws do not distinguish 25 from 33.</li>
+<li><b>ECM cost.</b> Measured against modelled cost is @@C8A_B_RATIO_LO@@ to @@C8A_B_RATIO_HI@@ for B1
+from 11,000 to 3&middot;10<sup>6</sup> (by B1: @@C8A_B_RATIOS@@).  The benchmark at the start of a run has
+all 192 cores on ECM at once and overstates the cost of a curve during the search by about 15%; at
+B1&nbsp;=&nbsp;2,000 process launches push the other way.</li>
+<li><b>The build is the next bottleneck here.</b> The three top-level curves take @@C8A_B_BUILDS@@&nbsp;s to
+build, @@C8A_B_BUILD_SHARE@@% of the three chains.  The two slow ones have class polynomials of degree
+156,664 = 8 &times; 19,583 and 196,038 = 18 &times; 10,891: the decomposed polynomials take 13&nbsp;s and
+8&nbsp;s, the root of the factor of prime degree 290&nbsp;s and 185&nbsp;s, on about 50 of the 192 cores.
+A 1030-bit search that takes 8 to 14 minutes should not accept a winner that needs 5 minutes of
+root-finding without looking at the next one.</li>
+</ul>
+
+<h3>10.3 Is the model's win rate right?</h3>
+<p>At a level's first win the wins the model expected from the work done should be exponentially distributed
+with mean 1.  Over all @@EW_ALL_N@@ real 768-bit runs that recorded it (twelve on the driver box,
+@@C8A_N768@@ here) the mean is <b>@@EW_ALL_MEAN@@</b>, where an exact model gives 1 &plusmn; @@EW_ALL_SE@@,
+and the largest distance between the empirical distribution and the exponential one is @@EW_ALL_KS@@
+(Kolmogorov&ndash;Smirnov, 5% point @@EW_ALL_KS5@@).  So the model's win rate is right to within what
+@@EW_ALL_N@@ runs can show, and if it errs it is on the cautious side.  The thirteen primes of section 9.3
+gave 0.65 on the driver box and @@C8A_A_EW@@ here, the thirteen new ones @@C8A_C_EW@@; each of these means
+has a standard error of 0.28.</p>
+<p>The last thirteen runs also record which sweep completed the win:</p>
+@@C8A_WINB1@@
+<p>Winners come from the sweeps at B1&nbsp;=&nbsp;250,000 to 3&middot;10<sup>6</sup>, as the model says, on
+candidates that the shallow sweeps left with the right kind of tail.  The simulation gives the same picture
+(of 400 simulated first wins: 2, 28, 157, 162 and 51 at B1 = 11,000 to 3&middot;10<sup>6</sup>).</p>
+
+<h3>10.4 Scan chunks</h3>
+<p>Section 9.4 suggested that scan chunks which double B waste orders late in a level.  In simulation
+(768 bits, 192 threads, 600 levels each) a growth factor of 1.5 gives 1.72 core-hours of machine time per
+level against 1.81 for 2, within the noise of 4%, and 1.25 gives 1.95, because the cores wait for orders more
+often (utilisation 79% against 91%).  The doubling stays.</p>
+
 #### NEXT
-<li><b>Run the rule on the 192-core box.</b> Section 9.3 is 32 threads and 9.2 is simulation.  A dozen
-768-bit primes and two or three 1030-bit ones would settle the wall times and the cost per level there:
-about two hours of one spot box.</li>
-<li><b>yafu as the ECM engine (section 8).</b> Measure its per-curve success by factor size as in
-section 4, run it in batches of 8 curves, and rebuild the table with its costs: a curve 4 to 5 times
-cheaper moves every threshold, and the scan becomes the larger part of a level.</li>
-<li><b>Root-finding at prime degree (section 9.5).</b> A powering mod a polynomial of degree 1,000 to
-10,000 over a 768-bit field is 768 squarings, each done as three GMP multiplications of megabit integers
-on one core.  Multiplying residue by residue modulo twenty-odd word-size primes with a number-theoretic
+<li><b>Root-finding at prime degree (sections 9.5 and 10.2).</b> A powering mod a polynomial of degree
+1,000 to 20,000 over a 768- or 1030-bit field is that many squarings as the field has bits, each done as
+three GMP multiplications of integers of 1 to 40 megabits; at degree 19,583 and 1030 bits it takes 290&nbsp;s
+on 192 cores, of which about 50 are busy.  Multiplying residue by residue modulo twenty-odd word-size primes with a number-theoretic
 transform should be several times faster on one core and uses as many cores as there are primes.</li>
 <li><b>Accept or pass on a winner by its build cost.</b> A winner whose class number has a large prime
-factor still costs a minute or two to build, more than finding another one.  The subgroup choice and its
+factor costs one to five minutes to build (section 10), at 768 bits several times more than finding
+another one.  The subgroup choice and its
 time estimate are available before any curve is built; a reservation rule (build if the estimate is below
 the cost of finding and building the next one, keep it in reserve otherwise) is the right form.</li>
 <li><b>Sharper height estimates for the decomposition (section 9.6).</b> The bound is a median 23% too
@@ -418,7 +496,7 @@ scripts <code>data/tower_*.py</code>, <code>data/tower_*.sh</code>.</li>
 <li>Scheduler (section 9): <code>ecpp/shortsched.py</code>, <code>ecpp/shortsim.py</code>
 (<code>IndexTable</code>), <code>ecpp/shortECPP.py</code> (<code>RuleDriver</code>), success table
 <code>ecpp/ecm_pi.json</code>, test <code>ecpp/test_sched.py</code>; run logs <code>data/rule768_local/</code>
-@@RULE1030_FILES@@and their summary <code>data/rule_runs.py</code>, <code>data/rule_runs.json</code>; simulation
+@@RULE1030_FILES@@and <code>data/rule_c8a/</code> (section 10: 29 logs and certificates, the run script, the primes) and their summary <code>data/rule_runs.py</code>, <code>data/rule_runs.json</code>; simulation
 summaries <code>data/rule_sims.txt</code>; lattice subgroups <code>data/tower_sweep.py</code>,
 <code>data/tower_sweep_lattice.log</code>.</li>
 <li>yafu (section 8): <code>data/yafu_test.py</code>, <code>data/yafu_cost.py</code>, results
@@ -431,3 +509,7 @@ The 1030-bit prime 10<sup>310</sup> + 733 took <b>@@RULE1030_CHAIN_H@@ hours on 
 
 #### RULE1030_FILES
 and <code>data/rule1030_local/</code> (log, certificate), 
+
+#### YAFU_ENGINE_SUMMARY
+<li><b>yafu as the ECM engine.</b> In progress: the prover can run yafu (<code>engine=yafu</code>), the
+calibration of its success rate is running.</li>

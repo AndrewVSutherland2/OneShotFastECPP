@@ -300,7 +300,7 @@ if os.path.exists(yc):
 rr = os.path.join(DATA, "rule_runs.json")
 if os.path.exists(rr):
     runs = json.load(open(rr))
-    r768 = [r for r in runs if r["bits"] < 800]
+    r768 = [r for r in runs if r["set"] == "rule768_local"]
     rows = []
     for k, r in enumerate(r768):
         rows.append("<tr><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%.0f</td><td>%s</td><td>%s</td><td>%.1f</td><td>%.0f</td></tr>"
@@ -329,7 +329,7 @@ if os.path.exists(rr):
     R["RULE_EW_SUM"] = "%.1f" % sum(ew)
     R["RULE_D_MIN"] = fmt(min(r["first_chunk_D"] for r in r768))
     R["RULE_D_MAX"] = fmt(max(r["first_chunk_D"] for r in r768))
-    big = [r for r in runs if r["bits"] >= 1000]
+    big = [r for r in runs if r["set"] == "rule1030_local"]
     if big:
         b = big[0]
         R["RULE1030_ORDERS"] = fmt(b["orders"])
@@ -349,6 +349,145 @@ if os.path.exists(rr):
         cj = os.path.join(DATA, "rule1030_local", "p1030.log")
         mm = __import__("re").search(r"RUN wall=([\d.]+) user=([\d.]+) sys=([\d.]+)", open(cj).read())
         R["RULE1030_CPU_H"] = "%.1f" % ((float(mm.group(2)) + float(mm.group(3))) / 3600)
+
+
+
+# ---------------------------------------------------------------- 10 the rule on 192 cores
+def run_stats(a):
+    """Summary of a list of run records."""
+    n = len(a)
+    work = sorted(r["scan_s"] + r["ecm_s"] for r in a)
+    chain = sorted(r["chain_s"] for r in a)
+    ew = [max(r["expwin"], 0.0) for r in a if r["expwin"] is not None]
+    return {"n": n, "chain_mean": sum(chain) / n, "chain_med": chain[n // 2], "chain_min": chain[0], "chain_max": chain[-1],
+            "wall_mean": sum(r["search_wall"] for r in a) / n, "wall_med": sorted(r["search_wall"] for r in a)[n // 2],
+            "work_mean": sum(work) / n, "work_med": work[n // 2], "orders_mean": sum(r["orders"] for r in a) / n,
+            "scan_mean": sum(r["scan_s"] for r in a) / n, "ecm_mean": sum(r["ecm_s"] for r in a) / n,
+            "ew_mean": sum(ew) / max(len(ew), 1), "ew_n": len(ew), "ew": ew,
+            "build_mean": sum(r["build_s"] for r in a) / n, "build_max": max(r["build_s"] for r in a),
+            "cpu_mean": sum(r["cpu_s"] or 0 for r in a) / n, "ok": all(r["verified"] for r in a),
+            "machine_mean": sum(r["search_wall"] * (r["threads"] or 0) for r in a) / n}
+
+
+def run_group(runs, sname, prefix):
+    return [r for r in runs if r["set"] == sname and os.path.basename(r["file"]).startswith(prefix)]
+
+
+def run_rows(a, unit="core"):
+    rows = []
+    for r in a:
+        k = int(re.search(r"_(\d+)\.log$", r["file"]).group(1))
+        rows.append("<tr><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%.1f</td><td>%s</td><td>%s</td><td>%.1f</td><td>%.1f</td><td>%.2f</td></tr>"
+                    % (k, fmt(r["orders"]), fmt(r["scan_s"]), fmt(r["ecm_s"]), r["search_wall"],
+                       "%.2f" % max(r["expwin"], 0.0) if r["expwin"] is not None else "&ndash;", fmt(r["D"]).replace("-", "&minus;"),
+                       r["build_s"], r["chain_s"], (r["cpu_s"] or 0) / 3600))
+    return ("<div class=\"wide\"><table><tr><th>prime</th><th>orders bought</th><th>scan, %s-s</th><th>ECM, %s-s</th><th>search, s</th>"
+            "<th>wins the model expected</th><th>top-level D</th><th>build, s</th><th>whole chain, s</th><th>CPU, %s-h</th></tr>"
+            % (unit, unit, unit) + "".join(rows) + "</table></div>")
+
+
+if os.path.exists(rr):
+    ga, gb, gc = (run_group(runs, "rule_c8a", p) for p in ("a768_", "b1030_", "c768_"))
+    if ga:
+        sa, sl = run_stats(ga), run_stats(r768)
+        g768 = ga + gc
+        s2 = run_stats(g768)
+        R["C8A_TABLE_768"] = run_rows(g768)
+        R["C8A_N768"] = s2["n"]
+        cmp_rows = []
+        cols = [("16-core box, 32 threads (9.3)", sl), ("192 cores, the same 13 primes", sa)]
+        if gc:
+            cols.append(("192 cores, 13 more primes", run_stats(gc)))
+            cols.append(("192 cores, all %d" % s2["n"], s2))
+        def line(name, f):
+            return "<tr><td>%s</td>%s</tr>" % (name, "".join("<td>%s</td>" % f(c[1]) for c in cols))
+        R["C8A_CMP"] = ("<table><tr><th>768 bits</th>" + "".join("<th>%s</th>" % c[0] for c in cols) + "</tr>"
+                        + line("whole chain, s: mean (median)", lambda x: "<b>%.0f</b> (%.0f)" % (x["chain_mean"], x["chain_med"]))
+                        + line("slowest chain, s", lambda x: "%.0f" % x["chain_max"])
+                        + line("top-level search, s: mean (median)", lambda x: "%.0f (%.0f)" % (x["wall_mean"], x["wall_med"]))
+                        + line("search work, core-h: mean (median)", lambda x: "%.2f (%.2f)" % (x["work_mean"] / 3600, x["work_med"] / 3600))
+                        + line("of which scan", lambda x: "%.2f" % (x["scan_mean"] / 3600))
+                        + line("orders bought, mean", lambda x: fmt(x["orders_mean"]))
+                        + line("build of the top-level curve, s: mean (max)", lambda x: "%.1f (%.0f)" % (x["build_mean"], x["build_max"]))
+                        + line("wins the model expected at the win, mean", lambda x: "%.2f" % x["ew_mean"])
+                        + "</table>")
+        for k, v in (("A", sa), ("ALL", s2)):
+            R["C8A_%s_CHAIN_MEAN" % k] = "%.0f" % v["chain_mean"]
+            R["C8A_%s_CHAIN_MED" % k] = "%.0f" % v["chain_med"]
+            R["C8A_%s_CHAIN_MIN" % k] = "%.0f" % v["chain_min"]
+            R["C8A_%s_CHAIN_MAX" % k] = "%.0f" % v["chain_max"]
+            R["C8A_%s_WALL_MEAN" % k] = "%.0f" % v["wall_mean"]
+            R["C8A_%s_WORK_H" % k] = "%.2f" % (v["work_mean"] / 3600)
+            R["C8A_%s_MACHINE_H" % k] = "%.2f" % (v["machine_mean"] / 3600)
+            R["C8A_%s_UTIL" % k] = "%.0f" % (100 * v["work_mean"] / v["machine_mean"])
+            R["C8A_%s_CPU_H" % k] = "%.2f" % (v["cpu_mean"] / 3600)
+            R["C8A_%s_EW" % k] = "%.2f" % v["ew_mean"]
+        R["C8A_LOCAL_WORK_H"] = "%.2f" % (sl["work_mean"] / 3600)
+        R["C8A_ALL_BUILD_MEAN"] = "%.1f" % s2["build_mean"]
+        R["C8A_ALL_BUILD_MAX"] = "%.0f" % s2["build_max"]
+        if gc:
+            sc = run_stats(gc)
+            R["C8A_C_WORK_H"] = "%.2f" % (sc["work_mean"] / 3600)
+            R["C8A_C_EW"] = "%.2f" % sc["ew_mean"]
+        # the wins the model expected at the first win, all real 768-bit runs: Exp(1) if the model is right
+        ew = sorted(sl["ew"] + s2["ew"])
+        n = len(ew)
+        ks = max(max(abs((i + 1) / n - (1 - math.exp(-x))), abs(i / n - (1 - math.exp(-x)))) for i, x in enumerate(ew))
+        R["EW_ALL_N"] = n
+        R["EW_ALL_MEAN"] = "%.2f" % (sum(ew) / n)
+        R["EW_ALL_SE"] = "%.2f" % (1 / n ** 0.5)
+        R["EW_ALL_KS"] = "%.2f" % ks
+        R["EW_ALL_KS5"] = "%.2f" % (1.36 / n ** 0.5)
+        R["EW_ALL_LOW"] = sum(1 for x in ew if x < 0.12)
+        R["EW_ALL_LOW_EXP"] = "%.1f" % (n * (1 - math.exp(-0.12)))
+    if gb:
+        R["C8A_TABLE_1030"] = run_rows(gb)
+        sb = run_stats(gb)
+        R["C8A_B_N"] = sb["n"]
+        R["C8A_B_CHAIN_MEAN"] = fmt(sb["chain_mean"])
+        R["C8A_B_WORK_H"] = "%.1f" % (sb["work_mean"] / 3600)
+        R["C8A_B_CPU_H"] = "%.1f" % (sb["cpu_mean"] / 3600)
+        R["C8A_B_WALL_MEAN"] = fmt(sb["wall_mean"])
+        R["C8A_B_EW"] = "%.2f" % sb["ew_mean"]
+        R["C8A_B_BUILD_MAX"] = fmt(sb["build_max"])
+        R["C8A_B0_CHAIN"] = "%.0f" % gb[0]["chain_s"]
+        R["C8A_B0_CPU_H"] = "%.1f" % ((gb[0]["cpu_s"] or 0) / 3600)
+        R["C8A_B0_EW"] = "%.2f" % gb[0]["expwin"]
+        R["C8A_B0_SEARCH"] = "%.0f" % gb[0]["search_wall"]
+        ratios = {}
+        for r in gb:
+            for b1, v in r["cost_ratio"].items():
+                ratios.setdefault(int(b1), []).append(v)
+        R["C8A_B_RATIOS"] = ", ".join("%s: %.2f" % (fmt(b1), sum(v) / len(v)) for b1, v in sorted(ratios.items()))
+        rmid = [sum(v) / len(v) for b1, v in ratios.items() if 11000 <= b1 <= 3000000]
+        R["C8A_B_RATIO_LO"] = "%.2f" % min(rmid)
+        R["C8A_B_RATIO_HI"] = "%.2f" % max(rmid)
+        R["C8A_B_CHAINS"] = ", ".join("%s" % fmt(r["chain_s"]) for r in gb)
+        R["C8A_B_CPUS"] = ", ".join("%.1f" % ((r["cpu_s"] or 0) / 3600) for r in gb)
+        R["C8A_B_WORKS"] = ", ".join("%.1f" % ((r["scan_s"] + r["ecm_s"]) / 3600) for r in gb)
+        R["C8A_B_BUILDS"] = ", ".join("%.0f" % r["build_s"] for r in gb)
+        R["C8A_B_SCAN_SHARE"] = "%.0f" % (100 * sum(r["scan_s"] for r in gb) / sum(r["scan_s"] + r["ecm_s"] for r in gb))
+        R["C8A_B_BUILD_SHARE"] = "%.0f" % (100 * sum(r["build_s"] for r in gb) / sum(r["chain_s"] for r in gb))
+    call = [r for r in runs if r["set"] == "rule_c8a"]
+    if call:
+        R["C8A_NCERT"] = len(call)
+        R["C8A_NCERT_OK"] = sum(1 for r in call if r["verified"])
+        R["C8A_TOTAL_CPU_H"] = "%.0f" % (sum(r["cpu_s"] or 0 for r in call) / 3600)
+        R["C8A_TOTAL_WALL_MIN"] = "%.0f" % (sum(r["wall_s"] or 0 for r in call) / 60)
+    if gc:
+        won = {}
+        exp = {}
+        for r in gc:
+            if r["win_b1"] is not None:
+                won[r["win_b1"]] = won.get(r["win_b1"], 0) + 1
+            for b1, v in r["expwin_b1"].items():
+                exp[int(b1)] = exp.get(int(b1), 0.0) + v
+        b1s = [b1 for b1 in sorted(set(won) | set(exp)) if won.get(b1, 0) or exp.get(b1, 0.0) >= 0.05]
+        R["C8A_WINB1"] = ("<table><tr><th>B1 of the sweep</th>" + "".join("<th>%s</th>" % fmt(b1) for b1 in b1s) + "<th>all</th></tr>"
+                          "<tr><td>first wins, of %d</td>" % len(gc) + "".join("<td>%d</td>" % won.get(b1, 0) for b1 in b1s)
+                          + "<td>%d</td></tr>" % sum(won.values())
+                          + "<tr><td>wins the model expected from the sweeps run</td>" + "".join("<td>%.1f</td>" % exp.get(b1, 0.0) for b1 in b1s)
+                          + "<td>%.1f</td></tr></table>" % sum(exp.values()))
 
 tpl = open(os.path.join(HERE, "index.template.html")).read()
 body = open(os.path.join(HERE, "sections.html")).read()

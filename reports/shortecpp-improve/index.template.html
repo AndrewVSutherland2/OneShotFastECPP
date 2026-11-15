@@ -23,7 +23,7 @@ div.wide { overflow-x: auto; }
 </style></head><body>
 
 <h1>shortECPP revisited: prover changes, ECM engine benchmark, and a model of the search</h1>
-<p class="mut">2026-11-14, section 9 added 2026-11-15 &middot; branch <code>shortecpp-improve</code> &middot; follows the review of the
+<p class="mut">2026-11-14, sections 9 and 10 added 2026-11-15 &middot; branch <code>shortecpp-improve</code> &middot; follows the review of the
 "Short ECPP prover: recommended improvements" note.  Hardware: one <code>c8a.48xlarge</code>
 spot box (AMD EPYC 9R45, Zen&nbsp;5, 192 cores, no SMT) and the 16-core driver box, which was
 shared with another job all day, so local timings are CPU times and may be up to twice the idle figures.</p>
@@ -216,12 +216,15 @@ wall time, 3 from 250,000 in 6.2 hours.</li>
 <h2>9. The stopping rule in the prover</h2>
 @@RULE@@
 
-<h2>10. What I would do next</h2>
+<h2>10. The rule on 192 cores</h2>
+@@C8A@@
+
+<h2>11. What I would do next</h2>
 <ol>
 @@NEXT@@
 </ol>
 
-<h2>11. Files</h2>
+<h2>12. Files</h2>
 <ul>
 <li>Prover: <code>ecpp/shortECPP.py</code>, <code>ecpp/dscan.c</code> (<code>fbmin=</code>,
 <code>roots=</code>), <code>ecpp/smoothtest.c</code> (<code>n2=</code>, <code>prp=1</code>);

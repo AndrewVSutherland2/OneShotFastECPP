@@ -1,0 +1,41 @@
+[19:57:36] revised format: B = 61685, log2 rad <= 81, recursion floor B^2 = 3805039225
+[19:57:36] proving p0 (769 bits), n2 = 591361
+[19:57:37]   gmp-ecm here: 0.185 s per curve at B1=50000 on 769 bits with 192 processes -> cost factor 1.09
+[19:57:41]   level 769 bits: rule table in 4.1s (34 sweeps, rewards 30..32818515 core-s)
+[19:57:41]   level 769 bits: dscan[0,6e+07) maxfb=1e+06 on 192 threads: +6271 D -> +6240 orders (5842 live), 215 core-s (strip 159) = 0.0344 per order; 0 winners
+[19:57:42]   level 769 bits: dscan[6e+07,1.2e+08) maxfb=1e+06 on 57 threads: +2255 D -> +2194 orders (2063 live), 78 core-s (strip 58) = 0.0354 per order; 0 winners
+[19:57:44]   level 769 bits: dscan[1.2e+08,2.4e+08) maxfb=1e+06 on 57 threads: +2997 D -> +3022 orders (2832 live), 69 core-s (strip 38) = 0.0228 per order; 0 winners
+[19:57:45]   level 769 bits: dscan[2.4e+08,4.8e+08) maxfb=1e+06 on 52 threads: +3909 D -> +3974 orders (3726 live), 85 core-s (strip 32) = 0.0214 per order; 0 winners
+[19:57:48]   level 769 bits: dscan[4.8e+08,9.6e+08) maxfb=1e+06 on 52 threads: +5246 D -> +5196 orders (4877 live), 130 core-s (strip 40) = 0.0251 per order; 0 winners
+[19:57:50]     WINNER D=-76373380 q 381 bits, o=m*q with m=14 (|D| h~8739)
+[19:57:50]     search: 20626 orders, scan 577 + ecm 1305 core-s (322 above the rule), 9.5s wall, 1076 units, 1850 splits, rule R = 4134 core-s; the model expected 0.31 wins from this work; measured/modelled ECM cost by B1: 2000:1.00 11000:0.84 50000:0.87 250000:0.87 1e+06:0.98
+[19:57:51]     cm_method D=-76373380: H_D^inv(deg 1320 = 24 x 55, inv 24): 0.035s   roots: 0.149s + 0.247s   1 j-candidate(s)
+[19:57:52]   level 769 bits: built D=-76373380 h~8739 in 1.3s; o has 385 bits, q 381 bits (total 15.5s, 20626 cands, 1305 ecm-s)
+[19:57:52]   level 381 bits: dscan[0,3e+07) maxfb=1e+06 +6650 D -> +5156 orders (4488 live) in 0.6s (strip 0.4s), 0 winners
+[19:57:54]     ecm B1=2000 c=10 on 4488 tails: 2155 split, 0 winners, 1.6s
+[19:57:55]     WINNER D=-18287367 q 188 bits, o=m*q with m=10 (|D| h~4276)
+[19:57:55]     WINNER D=-167187 q 173 bits, o=m*q with m=2619829 (|D| h~408)
+[19:57:55]     WINNER D=-794407 q 182 bits, o=m*q with m=796 (|D| h~891)
+[19:57:55]     WINNER D=-5441983 q 190 bits, o=m*q with m=2 (|D| h~2332)
+[19:57:55]     ecm B1=11000 c=16 on 3954 tails: 75 split, 4 winners, 1.1s (stopped at the first winner, 150 tails done)
+[19:57:55]     cm_method D=-167187: H_D^inv(deg 36 = 6 x 6, inv 123): 0.013s   roots: 0.001s + 0.001s   1 j-candidate(s)   ell=2 floor
+[19:57:55]   level 381 bits: built D=-167187 h~408 in 0.0s; o has 194 bits, q 173 bits (total 3.3s, 25782 cands, 1810 ecm-s)
+[19:57:56]     WINNER D=-236959 q 74 bits, o=m*q with m=5260 (|D| h~486)
+[19:57:56]     WINNER D=-964967 q 82 bits, o=m*q with m=24 (|D| h~982)
+[19:57:56]     WINNER D=-5325943 q 66 bits, o=m*q with m=1714933 (|D| h~2307)
+[19:57:56]     WINNER D=-6645667 q 85 bits, o=m*q with m=4 (|D| h~2577)
+[19:57:56]     WINNER D=-7574383 q 74 bits, o=m*q with m=5294 (|D| h~2752)
+[19:57:56]     WINNER D=-9652939 q 79 bits, o=m*q with m=212 (|D| h~3106)
+[19:57:56]     WINNER D=-13073407 q 86 bits, o=m*q with m=2 (|D| h~3615)
+[19:57:56]     WINNER D=-13994551 q 84 bits, o=m*q with m=8 (|D| h~3740)
+[19:57:56]     WINNER D=-20434339 q 79 bits, o=m*q with m=190 (|D| h~4520)
+[19:57:56]   level 173 bits: dscan[0,3e+07) maxfb=1e+06 +1624 D -> +1236 orders (855 live) in 0.7s (strip 0.6s), 9 winners
+[19:57:56]     cm_method D=-236959: H_D^inv(deg 296 = 8 x 37, inv 1): 0.013s   roots: 0.000s + 0.007s   1 j-candidate(s)
+[19:57:56]   level 173 bits: built D=-236959 h~486 in 0.2s; o has 87 bits, q 74 bits (total 0.9s, 27018 cands, 1810 ecm-s)
+[19:57:56] finishing below 135 bits with short2.gp (p has 74 bits)
+[19:57:56]   gp tail: 1 levels in 0.2s
+[19:57:56] chain complete: 4 levels, 20.0s; verifying...
+[19:57:56] vshort2.verify = True   PARI cross-check = True
+[19:57:56] certificate written to /home/ubuntu/rule/out/a768_1.cert.txt (verified twice)
+RUN a768_1 wall=20.11 user=2175.43 sys=21.69
+EXIT 0

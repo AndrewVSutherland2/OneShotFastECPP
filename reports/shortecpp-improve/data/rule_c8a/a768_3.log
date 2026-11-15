@@ -1,0 +1,42 @@
+[20:00:01] revised format: B = 61685, log2 rad <= 81, recursion floor B^2 = 3805039225
+[20:00:01] proving p0 (769 bits), n2 = 591361
+[20:00:02]   gmp-ecm here: 0.190 s per curve at B1=50000 on 769 bits with 192 processes -> cost factor 1.12
+[20:00:06]   level 769 bits: rule table in 4.2s (34 sweeps, rewards 30..32818515 core-s)
+[20:00:06]   level 769 bits: dscan[0,6e+07) maxfb=1e+06 on 192 threads: +2768 D -> +2210 orders (2072 live), 117 core-s (strip 81) = 0.0532 per order; 0 winners
+[20:00:06]   level 769 bits: dscan[6e+07,1.2e+08) maxfb=1e+06 on 61 threads: +961 D -> +792 orders (738 live), 21 core-s (strip 11) = 0.0264 per order; 0 winners
+[20:00:07]   level 769 bits: dscan[1.2e+08,2.4e+08) maxfb=1e+06 on 55 threads: +1314 D -> +976 orders (932 live), 29 core-s (strip 12) = 0.0300 per order; 0 winners
+[20:00:08]   level 769 bits: dscan[2.4e+08,4.8e+08) maxfb=1e+06 on 57 threads: +1673 D -> +1228 orders (1151 live), 57 core-s (strip 24) = 0.0466 per order; 0 winners
+[20:00:09]   level 769 bits: dscan[4.8e+08,9.6e+08) maxfb=1e+06 on 58 threads: +2165 D -> +1616 orders (1509 live), 80 core-s (strip 22) = 0.0492 per order; 0 winners
+[20:00:12]   level 769 bits: dscan[9.6e+08,1.92e+09) maxfb=1.92e+06 on 59 threads: +3960 D -> +3178 orders (2988 live), 155 core-s (strip 29) = 0.0489 per order; 0 winners
+[20:00:13]     WINNER D=-221131823 q 376 bits, o=m*q with m=502 (|D| h~14870)
+[20:00:13]     search: 10000 orders, scan 460 + ecm 880 core-s (441 above the rule), 6.9s wall, 803 units, 1303 splits, rule R = 5100 core-s; the model expected 0.04 wins from this work; measured/modelled ECM cost by B1: 2000:0.99 11000:0.83 50000:0.85 250000:0.83
+[20:00:14]     cm_method D=-221131823: H_D^inv(deg 7488 = 78 x 96, inv 159): 0.079s   roots: 0.430s + 0.602s   1 j-candidate(s)
+[20:00:16]   level 769 bits: built D=-221131823 h~14870 in 2.7s; o has 385 bits, q 376 bits (total 14.5s, 10000 cands, 880 ecm-s)
+[20:00:17]   level 376 bits: dscan[0,3e+07) maxfb=1e+06 +1998 D -> +1938 orders (1673 live) in 0.8s (strip 0.6s), 0 winners
+[20:00:17]     ecm B1=2000 c=10 on 1673 tails: 822 split, 0 winners, 0.7s
+[20:00:18]     WINNER D=-10700948 q 187 bits, o=m*q with m=2 (|D| h~3271)
+[20:00:18]     ecm B1=11000 c=16 on 1446 tails: 12 split, 1 winners, 0.9s (stopped at the first winner, 24 tails done)
+[20:00:18]     cm_method D=-10700948: H_D^inv(deg 768 = 24 x 32, inv 159): 0.055s   roots: 0.018s + 0.032s   1 j-candidate(s)
+[20:00:18]   level 376 bits: built D=-10700948 h~3271 in 0.3s; o has 189 bits, q 187 bits (total 2.7s, 11938 cands, 1199 ecm-s)
+[20:00:19]     WINNER D=-254623 q 83 bits, o=m*q with m=1678 (|D| h~504)
+[20:00:19]     WINNER D=-788447 q 89 bits, o=m*q with m=48 (|D| h~887)
+[20:00:19]     WINNER D=-1077764 q 84 bits, o=m*q with m=832 (|D| h~1038)
+[20:00:19]     WINNER D=-1420228 q 70 bits, o=m*q with m=17965442 (|D| h~1191)
+[20:00:19]     WINNER D=-1824295 q 59 bits, o=m*q with m=53830332461 (|D| h~1350)
+[20:00:19]     WINNER D=-1932340 q 91 bits, o=m*q with m=8 (|D| h~1390)
+[20:00:19]     WINNER D=-4707784 q 93 bits, o=m*q with m=4 (|D| h~2169)
+[20:00:19]     WINNER D=-12836696 q 85 bits, o=m*q with m=700 (|D| h~3582)
+[20:00:19]     WINNER D=-12891835 q 86 bits, o=m*q with m=508 (|D| h~3590)
+[20:00:19]     WINNER D=-13378808 q 83 bits, o=m*q with m=2433 (|D| h~3657)
+[20:00:19]     WINNER D=-13853752 q 94 bits, o=m*q with m=2 (|D| h~3722)
+[20:00:19]     WINNER D=-28636399 q 71 bits, o=m*q with m=8402458 (|D| h~5351)
+[20:00:19]   level 187 bits: dscan[0,3e+07) maxfb=1e+06 +3824 D -> +4834 orders (3426 live) in 0.8s (strip 0.6s), 12 winners
+[20:00:19]     cm_method D=-254623: H_D^inv(deg 213 = 3 x 71, inv 1): 0.014s   roots: 0.000s + 0.012s   1 j-candidate(s)
+[20:00:19]   level 187 bits: built D=-254623 h~504 in 0.1s; o has 96 bits, q 83 bits (total 0.8s, 16772 cands, 1199 ecm-s)
+[20:00:19] finishing below 135 bits with short2.gp (p has 83 bits)
+[20:00:20]   gp tail: 1 levels in 0.3s
+[20:00:20] chain complete: 4 levels, 18.4s; verifying...
+[20:00:20] vshort2.verify = True   PARI cross-check = True
+[20:00:20] certificate written to /home/ubuntu/rule/out/a768_3.cert.txt (verified twice)
+RUN a768_3 wall=18.56 user=1621.75 sys=18.08
+EXIT 0
