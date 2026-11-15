@@ -345,6 +345,10 @@ if os.path.exists(rr):
         R["RULE1030_CHAIN_H"] = "%.2f" % (b["chain_s"] / 3600)
         R["RULE1030_R_H"] = "%.0f" % (b["R"] / 3600)
         R["RULE1030_FACTOR"] = "%.2f" % b["cost_factor"]
+        R["RULE1030_C8A_H"] = "%.0f" % ((b["scan_s"] + b["ecm_s"]) / 3600 / b["cost_factor"])
+        cj = os.path.join(DATA, "rule1030_local", "p1030.log")
+        mm = __import__("re").search(r"RUN wall=([\d.]+) user=([\d.]+) sys=([\d.]+)", open(cj).read())
+        R["RULE1030_CPU_H"] = "%.1f" % ((float(mm.group(2)) + float(mm.group(3))) / 3600)
 
 tpl = open(os.path.join(HERE, "index.template.html")).read()
 body = open(os.path.join(HERE, "sections.html")).read()

@@ -555,6 +555,9 @@ def get_j(p, d, ells=None, jobs=0, attempts=3, plain=False):
             for line in r.stdout.splitlines():
                 w = line.split()
                 if len(w) == 2 and w[0] == "j":
+                    for ln in r.stderr.splitlines():      # degrees, timings, and whether a retry was needed
+                        if ln.startswith("[H_D"):
+                            log("    cm_method D=-%d: %s" % (d, ln.strip("[] ")))
                     return int(w[1])
         log("    cm_method D=-%d attempt %d/%d: exit %d, no j; tail: %s" % (
             d, att + 1, attempts, r.returncode,

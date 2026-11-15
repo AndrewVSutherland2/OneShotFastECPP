@@ -233,7 +233,13 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   (so the model is not optimistic); the old scheduler needed 59 and 148 core-h of search on a
   c8a for two primes of this size.  Simulation (768 bits, c8a costs): machine cost per level
   1.8 core-h at 4 threads, 1.6 at 32, 1.6-1.9 at 192 (about 30 s wall), 2.7 at 768; 1030 bits on
-  192 cores: 37 core-h, 685 s wall (the August campaign: 812 core-h).  Build side, found on the
+  192 cores: 37 core-h, 685 s wall (the August campaign: 812 core-h).  Real, 1030 bits:
+  nextprime(10^310) proved on the 16-core box in 5,081 s, 43.9 thread-hours in all (search:
+  181,428 orders, scan 13.4 + ECM 29.8 thread-h = 32 c8a core-h; expected wins at the win 0.66;
+  top-level D = -155,888,345,711, A_47 class polynomial of degree 251,808 built in 105 s, nearly
+  all CRT at 32 threads).  The last scan chunk arrived 5 min before the win (14% of the search
+  hardly used): chunks double B, a smaller factor late in a level would trim that.  Not yet run
+  on a c8a.  Build side, found on the
   way: `build_level` skips hits with an odd prime dividing gcd(m, v) on the H_D curve (they can
   only work from the volcano floor; 14.8 s -> 2.9 s when it happens) and, when the curves with
   the computed j have the wrong order (`j_order_ok`), recomputes j from the plain class

@@ -36,7 +36,8 @@ shared with another job all day, so local timings are CPU times and may be up to
 <h2>1. What changed in the prover</h2>
 <p>All of this is in <code>ecpp/shortECPP.py</code>, <code>ecpp/dscan.c</code> and
 <code>ecpp/smoothtest.c</code>.  The scheduler (tiers, admission caps, ranking, widen rule) is
-<b>unchanged</b>: these are the changes that needed no model.</p>
+<b>unchanged</b> by them: these are the changes that needed no model.  (Section 9 replaces the scheduler for
+levels of 500 bits and more.)</p>
 <div class="wide"><table>
 <tr><th>Change</th><th class="l">What it does</th><th class="l">Measured effect</th></tr>
 <tr><td>Factor-base cap from the first scan</td>

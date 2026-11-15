@@ -1,5 +1,25 @@
 [
  {
+  "file": "rule1030_local/p1030.log",
+  "bits": 1030,
+  "orders": 181428,
+  "scan_s": 48366,
+  "ecm_s": 107357,
+  "over_s": 3450,
+  "search_wall": 4964.0,
+  "units": 14982,
+  "splits": 21989,
+  "R": 200024,
+  "expwin": 0.66,
+  "D": -155888345711,
+  "build_s": 104.6,
+  "levels": 4,
+  "chain_s": 5080.8,
+  "cost_factor": 1.35,
+  "first_chunk_D": 7909,
+  "verified": true
+ },
+ {
   "file": "rule768_local/p0_first_run.log",
   "bits": 769,
   "orders": 99262,
