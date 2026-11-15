@@ -7,6 +7,7 @@ format, 2^32 strip; 768 bits, revised format, 2^26 strip); they are too large
 to commit (see section 8 of the report for how they are produced).
 """
 import json
+import re
 import math
 import os
 import pickle
@@ -202,6 +203,98 @@ R["PI_SOURCE"] = ("measured for gmp-ecm on the box (section 8, <code>data/pi_cal
     "the two-stage Dickman function for a curve order near 2<sup>b</sup>/24 with gmp-ecm's default B2")
 R["PI_FILE"] = ", result <code>data/pi_calib.json</code>" if HAVE_CALIB else " (not yet run to completion)"
 R.update(EXTRA)
+
+# ---- sections 7 and 8: class-group decomposition timings and the yafu ECM benchmark (data/tower_*, data/yafu_*)
+def cm_rows(fn):
+    """cm_method timing log -> {|D|: dict}"""
+    out, cur, retry = {}, None, 0
+    if not os.path.exists(fn):
+        return out
+    for ln in open(fn):
+        if "retrying" in ln:
+            retry = 1
+        m = re.match(r"\[H_D\^inv\(deg (\d+) = (\d+) x (\d+), inv (\d+)\): ([\d.]+)s\s+roots: ([\d.]+)s \+ ([\d.]+)s", ln)
+        if m:
+            cur = {"deg": int(m.group(1)), "m": int(m.group(2)), "n": int(m.group(3)), "inv": int(m.group(4)),
+                   "crt": float(m.group(5)), "root": float(m.group(6)) + float(m.group(7))}
+        m = re.match(r"\[H_D\^inv\(deg (\d+), inv (\d+)\): ([\d.]+)s\s+root: ([\d.]+)s", ln)
+        if m:
+            cur = {"deg": int(m.group(1)), "m": 0, "n": 0, "inv": int(m.group(2)), "crt": float(m.group(3)), "root": float(m.group(4))}
+        m = re.match(r"D=(\d+) wall=([\d.]+) user=([\d.]+)", ln)
+        if m and float(m.group(2)) > 0 and cur:
+            cur.update({"wall": float(m.group(2)), "user": float(m.group(3)), "retry": retry})
+            out[int(m.group(1))] = cur
+            cur, retry = None, 0
+    return out
+
+INVNAME = {1: "f", 14: "w<sub>2,7</sub>", 26: "w<sub>2,13</sub>", 129: "A<sub>29</sub>", 147: "A<sub>47</sub>", 159: "A<sub>59</sub>",
+           171: "A<sub>71</sub>", 521: "w<sub>3,7</sub>", 535: "w<sub>5,7</sub>"}
+tw4 = cm_rows(os.path.join(DATA, "tower_cm_192.log"))
+tw3 = cm_rows(os.path.join(DATA, "tower_cm_192_pass3.log"))
+plain = cm_rows(os.path.join(DATA, "p768_cm_timing.log"))
+if tw4:
+    rows = []
+    for d in sorted(tw4):
+        r, b = tw4[d], plain.get(d)
+        rows.append("<tr><td>&minus;%s</td><td>%s</td><td>%s</td><td>%d &times; %d</td><td>%.1f</td><td>%.1f</td><td><b>%.1f</b>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>" % (
+            fmt(d), fmt(r["deg"]), INVNAME.get(r["inv"], str(r["inv"])), r["m"], r["n"], r["crt"], r["root"], r["wall"],
+            " *" if r["retry"] else "", fmt(r["user"]), ("%.0f" % b["wall"]) if b else "", fmt(b["user"]) if b else ""))
+    R["TOWER_TABLE"] = ("<table><tr><th>D</th><th>degree</th><th>invariant</th><th>m &times; n</th><th>CRT, s</th><th>roots, s</th>"
+                        "<th>wall, s</th><th>core-s</th><th>before: wall, s</th><th>core-s</th></tr>" + "".join(rows) + "</table>")
+    walls = sorted(r["wall"] for r in tw4.values())
+    R["TOWER_N"] = len(tw4)
+    R["TOWER_WALL_TOTAL"] = fmt(sum(walls))
+    R["TOWER_WALL_MEDIAN"] = "%.1f" % walls[len(walls) // 2]
+    R["TOWER_WALL_MAX"] = "%.0f" % walls[-1]
+    R["TOWER_COREH"] = "%.1f" % (sum(r["user"] for r in tw4.values()) / 3600)
+    R["TOWER_COREH_EACH"] = "%.2f" % (sum(r["user"] for r in tw4.values()) / 3600 / len(tw4))
+    both = [d for d in tw4 if d in plain]
+    R["TOWER_BEFORE_WALL"] = fmt(sum(plain[d]["wall"] for d in both))
+    R["TOWER_AFTER_WALL"] = fmt(sum(tw4[d]["wall"] for d in both))
+    R["TOWER_BEFORE_COREH"] = "%.0f" % (sum(plain[d]["user"] for d in both) / 3600)
+    R["TOWER_AFTER_COREH"] = "%.1f" % (sum(tw4[d]["user"] for d in both) / 3600)
+    R["TOWER_RETRIES"] = sum(r["retry"] for r in tw4.values())
+    if tw3:
+        common = [d for d in tw4 if d in tw3]
+        R["TOWER_ROOT_SERIAL"] = fmt(sum(tw3[d]["root"] for d in common))
+        R["TOWER_ROOT_PAR"] = fmt(sum(tw4[d]["root"] for d in common))
+yt = os.path.join(DATA, "yafu_test.json")
+if os.path.exists(yt):
+    res = json.load(open(yt))["res"]
+    def med(v):
+        v = sorted(v)
+        return v[len(v) // 2]
+    rows = []
+    for b1 in sorted(set(r["b1"] for r in res)):
+        g = med([r["secs"] / 8 for r in res if r["kind"] == "cost" and r["eng"] == "gmp" and r["b1"] == b1])
+        y = med([r["secs"] / 8 for r in res if r["kind"] == "cost" and r["eng"] == "yafu" and r["b1"] == b1])
+        rows.append("<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td>%.1f</td></tr>" % (fmt(b1), g, y, g / y))
+    R["YAFU_COST_TABLE"] = ("<table><tr><th>B1</th><th>gmp-ecm 7.0.5, core-s per curve</th><th>yafu, core-s per curve</th><th>ratio</th></tr>"
+                            + "".join(rows) + "</table>")
+    rows, tg, ty, tn = [], 0, 0, 0
+    for b1 in sorted(set(r["b1"] for r in res)):
+        for b in sorted(set(r["bits"] for r in res if r["kind"] == "success" and r["b1"] == b1)):
+            cell = [r for r in res if r["kind"] == "success" and r["b1"] == b1 and r["bits"] == b]
+            g = sum(r["found"] for r in cell if r["eng"] == "gmp")
+            y = sum(r["found"] for r in cell if r["eng"] == "yafu")
+            n = len(cell) // 2
+            tg, ty, tn = tg + g, ty + y, tn + n
+            rows.append("<tr><td>%s</td><td>%d</td><td>%d of %d</td><td>%d of %d</td></tr>" % (fmt(b1), b, g, n, y, n))
+    R["YAFU_SUCCESS_TABLE"] = ("<table><tr><th>B1</th><th>factor, bits</th><th>gmp-ecm found</th><th>yafu found</th></tr>" + "".join(rows) + "</table>")
+    R["YAFU_FOUND_GMP"], R["YAFU_FOUND_YAFU"], R["YAFU_FOUND_N"] = tg, ty, tn
+    R["YAFU_BAD"] = sum(r["bad"] for r in res)
+yc = os.path.join(DATA, "yafu_cost.json")
+if os.path.exists(yc):
+    res = json.load(open(yc))
+    rows = []
+    for nb in sorted(set(r["bits"] for r in res)):
+        for b1 in sorted(set(r["b1"] for r in res if r["bits"] == nb)):
+            c = {(r["eng"], r["mode"]): r for r in res if r["bits"] == nb and r["b1"] == b1}
+            if ("gmp", "") in c and ("yafu", "1") in c and ("yafu", "2") in c:
+                g, y1, y2 = c[("gmp", "")]["sec_per_curve"], c[("yafu", "1")]["sec_per_curve"], c[("yafu", "2")]["sec_per_curve"]
+                rows.append("<tr><td>%d</td><td>%s</td><td>%.4f</td><td>%.4f</td><td>%.1f</td><td>%.4f</td></tr>" % (nb, fmt(b1), g, y1, g / y1, y2))
+    R["YAFU_GRID_TABLE"] = ("<table><tr><th>input, bits</th><th>B1</th><th>gmp-ecm</th><th>yafu, B2 as gmp-ecm</th><th>ratio</th>"
+                            "<th>yafu, B2 from memory limit</th></tr>" + "".join(rows) + "</table>")
 
 tpl = open(os.path.join(HERE, "index.template.html")).read()
 body = open(os.path.join(HERE, "sections.html")).read()

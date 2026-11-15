@@ -1,0 +1,356 @@
+D=-200003 inv=171 deg=129 plain height 198 (bound 207) sqrt=0 cands=2
+   n=43 m=3: height 113 (bound 198, plain 198) check OK
+   n=3 m=43: height 176 (bound 289, plain 198) check OK
+D=-200004 inv=26 deg=256 plain height 282 (bound 303) sqrt=0 cands=7
+   n=64 m=4: height 146 (bound 239, plain 282) check OK
+   n=2 m=128: height 205 (bound 500, plain 282) check OK
+   n=4 m=64: height 198 (bound 402, plain 282) check OK
+   n=8 m=32: height 174 (bound 310, plain 282) check OK
+   n=16 m=16: height 153 (bound 252, plain 282) check OK
+   n=128 m=2: height 189 (bound 334, plain 282) check OK
+D=-200008 inv=123 deg=48 plain height 230 (bound 515) sqrt=1 cands=7
+   n=2 m=24: height 202 (bound 269, plain 230) check OK
+   n=4 m=12: height 185 (bound 240, plain 230) check OK
+   n=6 m=8: height 188 (bound 232, plain 230) check OK
+   n=8 m=6: height 169 (bound 224, plain 230) check OK
+   n=24 m=2: height 186 (bound 240, plain 230) check OK
+   n=16 m=3: height 171 (bound 231, plain 230) check OK
+D=-200011 inv=535 deg=66 plain height 170 (bound 192) sqrt=0 cands=6
+   n=33 m=2: height 146 (bound 202, plain 170) check OK
+   n=22 m=3: height 149 (bound 185, plain 170) check OK
+   n=11 m=6: height 150 (bound 189, plain 170) check OK
+   n=6 m=11: height 155 (bound 203, plain 170) check OK
+   n=3 m=22: height 157 (bound 229, plain 170) check OK
+   n=2 m=33: height 178 (bound 244, plain 170) check OK
+D=-3000003 inv=21 deg=388 plain height 803 (bound 878) sqrt=0 cands=3
+   n=194 m=2: height 588 (bound 823, plain 803) check OK
+   n=97 m=4: height 531 (bound 655, plain 803) check OK
+   n=2 m=194: height 825 (bound 1122, plain 803) check OK
+D=-3000004 inv=10 deg=536 plain height 686 (bound 718) sqrt=0 cands=3
+   n=2 m=268: height 598 (bound 1165, plain 686) check OK
+   n=134 m=4: height 435 (bound 567, plain 686) check OK
+   n=268 m=2: height 529 (bound 756, plain 686) check OK
+D=-3000007 inv=1 deg=1120 plain height 902 (bound 949) sqrt=0 cands=19
+   n=14 m=80: height 572 (bound 951, plain 902) check OK
+   n=70 m=16: height 417 (bound 620, plain 902) check OK
+   n=7 m=160: height 678 (bound 1263, plain 902) check OK
+   n=35 m=32: height 465 (bound 721, plain 902) check OK
+   n=112 m=10: height 395 (bound 584, plain 902) check OK
+   n=2 m=560: height 911 (bound 1945, plain 902) check OK
+D=-3000008 inv=23 deg=656 plain height 1233 (bound 1271) sqrt=0 cands=5
+   n=2 m=328: height 1151 (bound 1772, plain 1233) check OK
+   n=164 m=4: height 738 (bound 888, plain 1233) check OK
+   n=82 m=8: height 736 (bound 770, plain 1233) check OK
+   n=4 m=164: height 1114 (bound 1361, plain 1233) check OK
+   n=328 m=2: height 1018 (bound 1368, plain 1233) check OK
+D=-3000011 inv=141 deg=308 plain height 926 (bound 2102) sqrt=1 cands=4
+   n=77 m=4: height 574 (bound 736, plain 926) check OK
+   n=11 m=28: height 650 (bound 846, plain 926) check OK
+   n=7 m=44: height 691 (bound 926, plain 926) check OK
+   n=154 m=2: height 669 (bound 917, plain 926) check OK
+D=-3000019 inv=111 deg=160 plain height 1935 (bound 4019) sqrt=1 cands=10
+   n=40 m=4: height 1270 (bound 1451, plain 1935) check OK
+   n=10 m=16: height 1419 (bound 1572, plain 1935) check OK
+   n=5 m=32: height 1507 (bound 1717, plain 1935) check OK
+   n=16 m=10: height 1309 (bound 1478, plain 1935) check OK
+   n=2 m=80: height 1720 (bound 1960, plain 1935) check OK
+   n=8 m=20: height 1446 (bound 1607, plain 1935) check OK
+D=-40000003 inv=171 deg=779 plain height 1944 (bound 2009) sqrt=0 cands=2
+   n=41 m=19: height 1222 (bound 1455, plain 1944) check OK
+   n=19 m=41: height 1314 (bound 1648, plain 1944) check OK
+D=-40000004 inv=10 deg=2892 plain height 4231 (bound 4435) sqrt=0 cands=7
+   n=482 m=6: height 2121 (bound 2554, plain 4231) check OK
+   n=6 m=482: height 3552 (bound 5051, plain 4231) check OK
+   n=4 m=723: height 3826 (bound 5059, plain 4231) check OK
+   n=12 m=241: height 3231 (bound 3621, plain 4231) check OK
+   n=2 m=1446: height 4013 (bound 6790, plain 4231) check OK
+   n=1446 m=2: height 2606 (bound 4134, plain 4231) check OK
+D=-40000007 inv=1 deg=4858 plain height 5172 (bound 5284) sqrt=0 cands=3
+   n=2429 m=2: height 4023 (bound 6537, plain 5172) check FAIL 140160071 1 140520683 1 140641031 1 *** Warning: increasing stack size to 16000000. *** Warning: increasing stack size to 16000000.
+   n=347 m=14: height 1641 (bound 2258, plain 5172) check FAIL 140160071 1 140520683 1 140641031 1 *** Warning: increasing stack size to 16000000.
+   n=7 m=694: height 3203 (bound 5542, plain 5172) check FAIL 140160071 1 140520683 1 140641031 1 *** Warning: increasing stack size to 16000000.
+D=-40000008 inv=147 deg=960 plain height 3094 (bound 6709) sqrt=1 cands=7
+   n=64 m=15: height 1913 (bound 2209, plain 3094) check OK
+   n=8 m=120: height 1979 (bound 2600, plain 3094) check OK
+   n=4 m=240: height 2137 (bound 3009, plain 3094) check OK
+   n=32 m=30: height 1675 (bound 2037, plain 3094) check OK
+   n=2 m=480: height 2362 (bound 3504, plain 3094) check OK
+   n=16 m=60: height 1820 (bound 2284, plain 3094) check OK
+D=-40000011 inv=171 deg=1632 plain height 3706 (bound 3853) sqrt=0 cands=16
+   n=408 m=4: height 1645 (bound 2317, plain 3706) check OK
+   n=24 m=68: height 1891 (bound 2652, plain 3706) check OK
+   n=8 m=204: height 2320 (bound 3326, plain 3706) check OK
+   n=2 m=816: height 3041 (bound 4739, plain 3706) check OK
+   n=4 m=408: height 2722 (bound 4033, plain 3706) check OK
+   n=12 m=136: height 2188 (bound 3108, plain 3706) check OK
+D=-40000015 inv=1 deg=3964 plain height 4099 (bound 4223) sqrt=0 cands=3
+   n=2 m=1982: height 3726 (bound 7444, plain 4099) check FAIL 142131251 1 142252559 1 142657439 1 *** Warning: increasing stack size to 16000000.
+   n=1982 m=2: height 2293 (bound 4486, plain 4099) check FAIL 142131251 1 142252559 1 142657439 1 *** Warning: increasing stack size to 16000000.
+   n=4 m=991: height 3317 (bound 6051, plain 4099) check FAIL 142131251 1 142252559 1 142657439 1 *** Warning: increasing stack size to 16000000.
+D=-300000003 inv=117 deg=1536 plain height 15995 (bound 32878) sqrt=1 cands=9
+   n=2 m=768: height 13333 (bound 15239, plain 15995) check FAIL 
+   n=4 m=384: height 12117 (bound 13769, plain 15995) check FAIL 
+   n=16 m=96: height 10362 (bound 11419, plain 15995) check FAIL 
+   n=64 m=24: height 9316 (bound 10018, plain 15995) check FAIL 
+   n=8 m=192: height 11149 (bound 12464, plain 15995) check FAIL 
+   n=128 m=12: height 8966 (bound 9820, plain 15995) check FAIL 
+D=-300000004 inv=10 deg=5956 plain height 9733 (bound 10132) sqrt=0 cands=3
+   n=2978 m=2: height 6891 (bound 9190, plain 9733) check FAIL 175200101 1 175280197 1 175681157 1 *** Warning: increasing stack size to 16000000. *** Warning: increasing stack size to 32000000. *** Pol: Warning: increasing stack size to 64000000. *** Warning: increasing stack size to 16000000. *** Warning: increasing stack size to 32000000.
+   n=1489 m=4: height 4704 (bound 6034, plain 9733) check FAIL 175200101 1 175280197 1 175681157 1 *** Warning: increasing stack size to 16000000. *** Warning: increasing stack size to 32000000. *** Pol: Warning: increasing stack size to 64000000. *** Warning: increasing stack size to 16000000.
+   n=2 m=2978: height 9659 (bound 15163, plain 9733) check FAIL 175200101 1 175280197 1 175681157 1 *** Warning: increasing stack size to 16000000. *** Pol: Warning: increasing stack size to 32000000. *** Warning: increasing stack size to 16000000. *** Warning: increasing stack size to 32000000. *** Pol: Warning: increasing stack size to 64000000. *** Warning: increasing stack si
+D=-300000007 inv=1 deg=7817 plain height 9502 (bound 9888) sqrt=0 cands=0
+D=-100004 inv=0 deg=152 plain height 7888 (bound 7983) sqrt=0 cands=4
+   n=2 m=76: height 5918 (bound 6092, plain 7888) check OK
+   n=76 m=2: height 5692 (bound 5839, plain 7888) check OK
+   n=38 m=4: height 4069 (bound 4175, plain 7888) check OK
+   n=4 m=38: height 5271 (bound 5396, plain 7888) check OK
+D=-100007 inv=0 deg=336 plain height 14733 (bound 14898) sqrt=0 cands=8
+   n=28 m=12: height 5712 (bound 5995, plain 14733) check OK
+   n=4 m=84: height 10083 (bound 10348, plain 14733) check OK
+   n=14 m=24: height 7068 (bound 7203, plain 14733) check OK
+   n=56 m=6: height 6357 (bound 6487, plain 14733) check OK
+   n=7 m=48: height 8844 (bound 9040, plain 14733) check OK
+   n=168 m=2: height 10628 (bound 10890, plain 14733) check OK
+D=-100011 inv=0 deg=72 plain height 4388 (bound 4430) sqrt=0 cands=6
+   n=2 m=36: height 3691 (bound 3774, plain 4388) check OK
+   n=36 m=2: height 3523 (bound 3588, plain 4388) check OK
+   n=18 m=4: height 2797 (bound 2851, plain 4388) check OK
+   n=12 m=6: height 2999 (bound 3044, plain 4388) check OK
+   n=6 m=12: height 3208 (bound 3263, plain 4388) check OK
+   n=4 m=18: height 3400 (bound 3463, plain 4388) check OK
+D=-600004 inv=5 deg=256 plain height 5215 (bound 5264) sqrt=0 cands=7
+   n=2 m=128: height 4041 (bound 4308, plain 5215) check OK
+   n=8 m=32: height 3253 (bound 3393, plain 5215) check OK
+   n=16 m=16: height 3184 (bound 3287, plain 5215) check OK
+   n=64 m=4: height 2903 (bound 3006, plain 5215) check OK
+   n=4 m=64: height 3561 (bound 3774, plain 5215) check OK
+   n=128 m=2: height 3736 (bound 3905, plain 5215) check OK
+D=-600007 inv=5 deg=198 plain height 4896 (bound 4947) sqrt=0 cands=7
+   n=2 m=99: height 4479 (bound 4694, plain 4896) check OK
+   n=66 m=3: height 3886 (bound 3989, plain 4896) check OK
+   n=11 m=18: height 3651 (bound 3750, plain 4896) check OK
+   n=6 m=33: height 3973 (bound 4102, plain 4896) check OK
+   n=3 m=66: height 4265 (bound 4440, plain 4896) check OK
+   n=22 m=9: height 3113 (bound 3192, plain 4896) check OK
+D=-600008 inv=5 deg=320 plain height 6992 (bound 7049) sqrt=0 cands=6
+   n=2 m=160: height 5223 (bound 5545, plain 6992) check OK
+   n=64 m=5: height 3862 (bound 3975, plain 6992) check OK
+   n=32 m=10: height 3467 (bound 3569, plain 6992) check OK
+   n=16 m=20: height 3801 (bound 3921, plain 6992) check OK
+   n=8 m=40: height 4219 (bound 4395, plain 6992) check OK
+   n=4 m=80: height 4672 (bound 4920, plain 6992) check OK
+D=-3000091 inv=159 deg=251 plain height 509 (bound 1128) sqrt=1 cands=0
+D=-3000327 inv=159 deg=400 plain height 886 (bound 1948) sqrt=1 cands=9
+   n=5 m=80: height 700 (bound 1021, plain 886) check OK
+   n=200 m=2: height 686 (bound 953, plain 886) check OK
+   n=50 m=8: height 423 (bound 573, plain 886) check OK
+   n=2 m=200: height 832 (bound 1271, plain 886) check OK
+   n=10 m=40: height 614 (bound 859, plain 886) check OK
+   n=4 m=100: height 729 (bound 1085, plain 886) check OK
+D=-3000504 inv=26 deg=392 plain height 589 (bound 1239) sqrt=1 cands=6
+   n=2 m=196: height 462 (bound 901, plain 589) check OK
+   n=196 m=2: height 498 (bound 637, plain 589) check OK
+   n=98 m=4: height 356 (bound 453, plain 589) check OK
+   n=28 m=14: height 401 (bound 461, plain 589) check OK
+   n=14 m=28: height 386 (bound 508, plain 589) check OK
+   n=4 m=98: height 455 (bound 753, plain 589) check OK
+D=-3000247 inv=171 deg=552 plain height 912 (bound 1890) sqrt=1 cands=11
+   n=46 m=12: height 413 (bound 602, plain 912) check OK
+   n=3 m=184: height 738 (bound 1205, plain 912) check OK
+   n=276 m=2: height 569 (bound 895, plain 912) check OK
+   n=4 m=138: height 708 (bound 1146, plain 912) check OK
+   n=92 m=6: height 379 (bound 607, plain 912) check OK
+   n=23 m=24: height 457 (bound 663, plain 912) check OK
+D=-3000531 inv=171 deg=228 plain height 456 (bound 917) sqrt=1 cands=4
+   n=2 m=114: height 384 (bound 616, plain 456) check OK
+   n=114 m=2: height 322 (bound 463, plain 456) check OK
+   n=38 m=6: height 259 (bound 358, plain 456) check OK
+   n=6 m=38: height 314 (bound 475, plain 456) check OK
+D=-3000815 inv=171 deg=1128 plain height 1694 (bound 3505) sqrt=1 cands=8
+   n=2 m=564: height 1480 (bound 2617, plain 1694) check OK
+   n=282 m=4: height 686 (bound 1090, plain 1694) check OK
+   n=94 m=12: height 506 (bound 779, plain 1694) check OK
+   n=3 m=376: height 1368 (bound 2331, plain 1694) check OK
+   n=141 m=8: height 481 (bound 790, plain 1694) check OK
+   n=6 m=188: height 1141 (bound 1864, plain 1694) check OK
+D=-3000104 inv=147 deg=584 plain height 1287 (bound 2946) sqrt=1 cands=3
+   n=2 m=292: height 966 (bound 1670, plain 1287) check OK
+   n=146 m=4: height 654 (bound 910, plain 1287) check OK
+   n=292 m=2: height 757 (bound 1207, plain 1287) check OK
+D=-3000151 inv=147 deg=492 plain height 1243 (bound 2736) sqrt=1 cands=7
+   n=6 m=82: height 868 (bound 1216, plain 1243) check OK
+   n=2 m=246: height 1075 (bound 1656, plain 1243) check OK
+   n=246 m=2: height 832 (bound 1184, plain 1243) check OK
+   n=82 m=6: height 576 (bound 768, plain 1243) check OK
+   n=41 m=12: height 652 (bound 851, plain 1243) check OK
+   n=123 m=4: height 604 (bound 814, plain 1243) check OK
+D=-3000292 inv=147 deg=168 plain height 498 (bound 1087) sqrt=1 cands=11
+   n=8 m=21: height 357 (bound 469, plain 498) check OK
+   n=4 m=42: height 382 (bound 539, plain 498) check OK
+   n=12 m=14: height 341 (bound 445, plain 498) check OK
+   n=28 m=6: height 341 (bound 426, plain 498) check OK
+   n=42 m=4: height 352 (bound 449, plain 498) check OK
+   n=84 m=2: height 408 (bound 530, plain 498) check OK
+D=-3000095 inv=1 deg=1844 plain height 1465 (bound 1525) sqrt=0 cands=2
+   n=2 m=922: height 1374 (bound 3086, plain 1465) check OK
+   n=4 m=461: height 1144 (bound 2439, plain 1465) check OK
+D=-3000235 inv=535 deg=180 plain height 479 (bound 1060) sqrt=1 cands=11
+   n=3 m=60: height 451 (bound 604, plain 479) check OK
+   n=9 m=20: height 396 (bound 477, plain 479) check OK
+   n=90 m=2: height 368 (bound 491, plain 479) check OK
+   n=6 m=30: height 416 (bound 521, plain 479) check OK
+   n=15 m=12: height 363 (bound 441, plain 479) check OK
+   n=10 m=18: height 389 (bound 476, plain 479) check OK
+D=-3000340 inv=24 deg=200 plain height 568 (bound 1160) sqrt=1 cands=6
+   n=2 m=100: height 524 (bound 725, plain 568) check OK
+   n=100 m=2: height 490 (bound 561, plain 568) check OK
+   n=50 m=4: height 423 (bound 461, plain 568) check OK
+   n=20 m=10: height 419 (bound 460, plain 568) check OK
+   n=10 m=20: height 437 (bound 513, plain 568) check OK
+   n=4 m=50: height 496 (bound 619, plain 568) check OK
+D=-3000036 inv=539 deg=304 plain height 743 (bound 1618) sqrt=1 cands=5
+   n=2 m=152: height 580 (bound 939, plain 743) check OK
+   n=76 m=4: height 548 (bound 663, plain 743) check OK
+   n=38 m=8: height 460 (bound 529, plain 743) check OK
+   n=4 m=76: height 575 (bound 816, plain 743) check OK
+   n=152 m=2: height 621 (bound 823, plain 743) check OK
+D=-3000387 inv=539 deg=160 plain height 430 (bound 892) sqrt=1 cands=8
+   n=80 m=2: height 358 (bound 467, plain 430) check OK
+   n=5 m=32: height 355 (bound 472, plain 430) check OK
+   n=40 m=4: height 322 (bound 399, plain 430) check OK
+   n=10 m=16: height 328 (bound 412, plain 430) check OK
+   n=20 m=8: height 311 (bound 372, plain 430) check OK
+   n=8 m=20: height 347 (bound 438, plain 430) check OK
+D=-3000504 inv=26 deg=392 plain height 589 (bound 1239) sqrt=1 cands=6
+   n=2 m=196: height 462 (bound 901, plain 589) check OK
+   n=196 m=2: height 498 (bound 637, plain 589) check OK
+   n=98 m=4: height 356 (bound 453, plain 589) check OK
+   n=28 m=14: height 401 (bound 461, plain 589) check OK
+   n=14 m=28: height 386 (bound 508, plain 589) check OK
+   n=4 m=98: height 455 (bound 753, plain 589) check OK
+D=-3000036 inv=539 deg=304 plain height 743 (bound 1618) sqrt=1 cands=5
+   n=2 m=152: height 580 (bound 939, plain 743) check OK
+   n=76 m=4: height 548 (bound 663, plain 743) check OK
+   n=38 m=8: height 460 (bound 529, plain 743) check OK
+   n=4 m=76: height 575 (bound 816, plain 743) check OK
+   n=152 m=2: height 621 (bound 823, plain 743) check OK
+D=-3000244 inv=10 deg=408 plain height 600 (bound 590) sqrt=0 cands=5
+   n=2 m=204: height 537 (bound 940, plain 600) check OK
+   n=102 m=4: height 403 (bound 491, plain 600) check OK
+   n=34 m=12: height 392 (bound 474, plain 600) check OK
+   n=6 m=68: height 468 (bound 689, plain 600) check OK
+   n=204 m=2: height 436 (bound 653, plain 600) check OK
+D=-3000296 inv=26 deg=612 plain height 877 (bound 1852) sqrt=1 cands=11
+   n=306 m=2: height 550 (bound 873, plain 877) check OK
+   n=6 m=102: height 641 (bound 998, plain 877) check OK
+   n=153 m=4: height 417 (bound 606, plain 877) check OK
+   n=34 m=18: height 477 (bound 617, plain 877) check OK
+   n=18 m=34: height 498 (bound 693, plain 877) check OK
+   n=2 m=306: height 809 (bound 1428, plain 877) check OK
+D=-3438435 inv=539 deg=192 plain height 482 (bound 1050) sqrt=1 cands=6
+   n=2 m=96: height 443 (bound 654, plain 482) check OK
+   n=4 m=48: height 426 (bound 566, plain 482) check OK
+   n=8 m=24: height 406 (bound 495, plain 482) check OK
+   n=64 m=3: height 398 (bound 495, plain 482) check OK
+   n=32 m=6: height 372 (bound 446, plain 482) check OK
+   n=16 m=12: height 391 (bound 466, plain 482) check OK
+D=-3483480 inv=26 deg=288 plain height 475 (bound 1019) sqrt=1 cands=8
+   n=16 m=18: height 391 (bound 434, plain 475) check OK
+   n=144 m=2: height 388 (bound 517, plain 475) check OK
+   n=2 m=144: height 407 (bound 706, plain 475) check OK
+   n=96 m=3: height 371 (bound 507, plain 475) check OK
+   n=32 m=9: height 372 (bound 456, plain 475) check OK
+   n=4 m=72: height 397 (bound 592, plain 475) check OK
+D=-30002280 inv=27 deg=928 plain height 3007 (bound 6337) sqrt=1 cands=5
+   n=2 m=464: height 2491 (bound 3525, plain 3007) check OK
+   n=4 m=232: height 2364 (bound 3053, plain 3007) check OK
+   n=8 m=116: height 2272 (bound 2688, plain 3007) check OK
+   n=232 m=4: height 2035 (bound 2217, plain 3007) check OK
+   n=464 m=2: height 2348 (bound 2808, plain 3007) check OK
+D=-30025380 inv=535 deg=800 plain height 2605 (bound 5720) sqrt=1 cands=8
+   n=16 m=50: height 1963 (bound 2213, plain 2605) check OK
+   n=400 m=2: height 2132 (bound 2681, plain 2605) check OK
+   n=80 m=10: height 1815 (bound 1976, plain 2605) check OK
+   n=8 m=100: height 2003 (bound 2326, plain 2605) check OK
+   n=4 m=200: height 2015 (bound 2595, plain 2605) check OK
+   n=40 m=20: height 1824 (bound 1865, plain 2605) check OK
+D=-20000040 inv=159 deg=1120 plain height 3049 (bound 3278) sqrt=0 cands=10
+   n=560 m=2: height 1868 (bound 3228, plain 3049) check OK
+   n=112 m=10: height 1401 (bound 2035, plain 3049) check OK
+   n=16 m=70: height 1620 (bound 2484, plain 3049) check OK
+   n=80 m=14: height 1412 (bound 2128, plain 3049) check OK
+   n=4 m=280: height 1924 (bound 3129, plain 3049) check OK
+   n=56 m=20: height 1443 (bound 2129, plain 3049) check OK
+D=-20000055 inv=14 deg=3096 plain height 4497 (bound 4774) sqrt=0 cands=6
+   n=2 m=1548: height 3691 (bound 6747, plain 4497) check FAIL 121284151 1 121646779 1 122050459 1 *** Pol: Warning: increasing stack size to 16000000.
+   n=4 m=774: height 2997 (bound 5406, plain 4497) check FAIL 121284151 1 121646779 1 122050459 1 *** Pol: Warning: increasing stack size to 16000000.
+   n=172 m=18: height 1955 (bound 2269, plain 4497) check FAIL 121284151 1 121646779 1 122050459 1 *** Pol: Warning: increasing stack size to 16000000.
+   n=1032 m=3: height 2126 (bound 3394, plain 4497) check FAIL 121284151 1 121646779 1 122050459 1 *** Pol: Warning: increasing stack size to 16000000.
+   n=516 m=6: height 1957 (bound 2388, plain 4497) check FAIL 121284151 1 121646779 1 122050459 1 *** Pol: Warning: increasing stack size to 16000000.
+   n=344 m=9: height 1814 (bound 2239, plain 4497) check FAIL 121284151 1 121646779 1 122050459 1 *** Pol: Warning: increasing stack size to 16000000.
+D=-20000235 inv=21 deg=1320 plain height 2884 (bound 3119) sqrt=0 cands=9
+   n=2 m=660: height 2445 (bound 3956, plain 2884) check OK
+   n=110 m=12: height 1472 (bound 1748, plain 2884) check OK
+   n=220 m=6: height 1552 (bound 1941, plain 2884) check OK
+   n=4 m=330: height 2325 (bound 3369, plain 2884) check OK
+   n=22 m=60: height 1873 (bound 2211, plain 2884) check OK
+   n=10 m=132: height 2003 (bound 2597, plain 2884) check OK
+D=-20000127 inv=14 deg=3136 plain height 4282 (bound 4510) sqrt=0 cands=13
+   n=112 m=28: height 1815 (bound 2078, plain 4282) check FAIL 120360451 1 120601027 1 120721423 1 *** Pol: Warning: increasing stack size to 16000000.
+   n=98 m=32: height 1847 (bound 2161, plain 4282) check FAIL 120360451 1 120601027 1 120721423 1 *** Pol: Warning: increasing stack size to 16000000.
+   n=4 m=784: height 3483 (bound 5336, plain 4282) check FAIL 120360451 1 120601027 1 120721423 1 *** Pol: Warning: increasing stack size to 16000000.
+   n=2 m=1568: height 3519 (bound 6588, plain 4282) check FAIL 120360451 1 120601027 1 120721423 1 *** Pol: Warning: increasing stack size to 16000000.
+   n=392 m=8: height 1668 (bound 2096, plain 4282) check FAIL 120360451 1 120601027 1 120721423 1 *** Pol: Warning: increasing stack size to 16000000.
+   n=16 m=196: height 2617 (bound 3382, plain 4282) check FAIL 120360451 1 120601027 1 120721423 1 *** Pol: Warning: increasing stack size to 16000000.
+D=-20000148 inv=26 deg=1056 plain height 2085 (bound 2184) sqrt=0 cands=9
+   n=16 m=66: height 1383 (bound 1734, plain 2085) check OK
+   n=528 m=2: height 1435 (bound 2111, plain 2085) check OK
+   n=176 m=6: height 1229 (bound 1526, plain 2085) check OK
+   n=8 m=132: height 1485 (bound 2016, plain 2085) check OK
+   n=44 m=24: height 1227 (bound 1465, plain 2085) check OK
+   n=88 m=12: height 1182 (bound 1375, plain 2085) check OK
+D=-20000463 inv=14 deg=2136 plain height 3545 (bound 3658) sqrt=0 cands=8
+   n=178 m=12: height 1576 (bound 1834, plain 3545) check OK
+   n=12 m=178: height 2241 (bound 2994, plain 3545) check OK
+   n=534 m=4: height 1838 (bound 2255, plain 3545) check OK
+   n=6 m=356: height 2450 (bound 3604, plain 3545) check OK
+   n=1068 m=2: height 2423 (bound 3249, plain 3545) check OK
+   n=356 m=6: height 1573 (bound 1979, plain 3545) check OK
+D=-4000004 inv=10 deg=1032 plain height 1285 (bound 1350) sqrt=0 cands=6
+   n=172 m=6: height 681 (bound 868, plain 1285) check OK
+   n=86 m=12: height 695 (bound 794, plain 1285) check OK
+   n=43 m=24: height 724 (bound 860, plain 1285) check OK
+   n=4 m=258: height 1156 (bound 1852, plain 1285) check OK
+   n=2 m=516: height 1253 (bound 2227, plain 1285) check OK
+   n=344 m=3: height 744 (bound 1135, plain 1285) check OK
+D=-16000016 inv=15 deg=2064 plain height 3952 (bound 4220) sqrt=0 cands=8
+   n=688 m=3: height 2005 (bound 3058, plain 3952) check OK
+   n=8 m=258: height 2489 (bound 3633, plain 3952) check OK
+   n=172 m=12: height 1595 (bound 1988, plain 3952) check OK
+   n=4 m=516: height 2644 (bound 4432, plain 3952) check OK
+   n=86 m=24: height 1744 (bound 2083, plain 3952) check OK
+   n=2 m=1032: height 2777 (bound 5315, plain 3952) check OK
+D=-99999900 inv=107 deg=1824 plain height 32090 (bound 66412) sqrt=1 cands=7
+   n=912 m=2: height 21159 (bound 24725, plain 32090) check FAIL 125120011 1 200660989 1 200741269 1 *** Warning: increasing stack size to 16000000. *** Warning: increasing stack size to 32000000. *** Pol: Warning: increasing stack size to 64000000. *** Warning: increasing stack size to 16000000. *** Warning: increasing stack size to 32000000.
+   n=4 m=456: height 24759 (bound 27360, plain 32090) check FAIL 125120011 1 200660989 1 200741269 1 *** Warning: increasing stack size to 16000000. *** Warning: increasing stack size to 32000000. *** Pol: Warning: increasing stack size to 64000000. *** Warning: increasing stack size to 16000000. *** Warning: increasing stack size to 32000000.
+   n=76 m=24: height 15066 (bound 16254, plain 32090) check FAIL 125120011 1 200660989 1 200741269 1 *** Warning: increasing stack size to 16000000. *** Warning: increasing stack size to 32000000. *** Pol: Warning: increasing stack size to 64000000. *** Warning: increasing stack size to 16000000.
+   n=228 m=8: height 15418 (bound 16072, plain 32090) check FAIL 125120011 1 200660989 1 200741269 1 *** Warning: increasing stack size to 16000000. *** Warning: increasing stack size to 32000000. *** Pol: Warning: increasing stack size to 64000000. *** Warning: increasing stack size to 16000000.
+   n=456 m=4: height 16819 (bound 18990, plain 32090) check FAIL 125120011 1 200660989 1 200741269 1 *** Warning: increasing stack size to 16000000. *** Warning: increasing stack size to 32000000. *** Pol: Warning: increasing stack size to 64000000. *** Warning: increasing stack size to 16000000.
+   n=12 m=152: height 19886 (bound 22177, plain 32090) check FAIL 125120011 1 200660989 1 200741269 1 *** Warning: increasing stack size to 16000000. *** Warning: increasing stack size to 32000000. *** Pol: Warning: increasing stack size to 64000000. *** Warning: increasing stack size to 16000000. *** -_: Warning: increasing stack size to 32000000.
+SWEEP 250/283 OK
+D=-40000007 inv=1 deg=4858 plain height 5172 (bound 5284) sqrt=0 cands=3
+   n=2429 m=2: height 4023 (bound 6537, plain 5172) check OK
+   n=347 m=14: height 1641 (bound 2258, plain 5172) check OK
+   n=7 m=694: height 3203 (bound 5542, plain 5172) check OK
+D=-40000015 inv=1 deg=3964 plain height 4099 (bound 4223) sqrt=0 cands=3
+   n=2 m=1982: height 3726 (bound 7444, plain 4099) check OK
+   n=1982 m=2: height 2293 (bound 4486, plain 4099) check OK
+   n=4 m=991: height 3317 (bound 6051, plain 4099) check OK
+D=-300000003 inv=117 deg=1536 plain height 15995 (bound 32878) sqrt=1 cands=9
+   n=2 m=768: height 13333 (bound 15239, plain 15995) check OK
+   n=4 m=384: height 12117 (bound 13769, plain 15995) check OK
+   n=16 m=96: height 10362 (bound 11419, plain 15995) check OK
+   n=64 m=24: height 9316 (bound 10018, plain 15995) check OK
+   n=8 m=192: height 11149 (bound 12464, plain 15995) check OK
+   n=128 m=12: height 8966 (bound 9820, plain 15995) check OK
+SWEEP 12/12 OK

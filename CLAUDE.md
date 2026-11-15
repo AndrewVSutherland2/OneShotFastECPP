@@ -166,6 +166,45 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   gives wrong results, its non-IFMA build is correct and 1.8x faster in stage 1 (1.35-1.5x per
   curve with gmp-ecm stage 2); yafu's IFMA ECM not built.  Report: `reports/shortecpp-improve/`.
 
+- **Class-group decomposition (2026-11-14, same branch; arXiv:1009.1082 Algorithm 1)**: classpoly
+  can now compute, in place of H_D^inv, its decomposition through a subgroup G of the class group
+  (V of degree m = #cosets, interpolants W_k, n = |G|), and `cm_method` uses it by default
+  (`tower=0` off, `tn=<n>` forces |G|): root of V, then of U = X^n + yX^(n-1) + sum W_k(y)/V'(y) X^k.
+  Env: `CLASSPOLY_TOWER=1` (decompose, G chosen by a CRT + root-finding cost model), `=2` (also
+  sign-free, below), `CLASSPOLY_TOWER_N`, `CLASSPOLY_TOWER_C` (exact subgroup, tests),
+  `CLASSPOLY_TOWER_SLACK` (percent added to the height bound).  Output = the F/G format that
+  `classpoly_load` / `ff_classpoly_root` already read (see classpoly_crt.c).  At 768 bits on 192
+  cores the 17 winners of the Nov experiment build in a median of 11.7 s (359 s total, 7.3
+  core-h); the four timed with the plain polynomial went from 2,072 s / 49 core-h to 145 s / 2.6.
+  Things that are NOT in the paper and matter:
+  (1) subgroups: G = <a_i^c_i> with c_i | n_i, valid iff for every i with c_i < n_i the power
+  relation a_i^n_i = prod a_j^r_ij has c_j | r_ij (orbits are then the positions with fixed
+  e_i mod c_i, whatever direction the enumeration walked) -- the paper's prefix form is not
+  enough, e.g. relative orders (2,1894,3) need c = (2,2,3) for 12 x 947;
+  (2) sign-free variant for the sqrt invariants (Weber f, ...): odd coefficients stored times the
+  trace T plus S = T^2 (header line `S=`), which skips classpoly's trace CRT (23-58 s PER WORKER
+  at h = 117,668 in multi-job mode);
+  (3) the height bound is HEURISTIC for inv != j and can be too small (measured 3.0% over the
+  unscaled bound, ramified w_{5,7}): 5% slack by default, and cm_method retries once with 20%,
+  then falls back to the plain polynomial; a wrong decomposition is only caught by V/U not
+  splitting or the trace check, so keep those checks;
+  (4) `fp_find_root_bounded` (gives up on non-splitting input by evidence in bits) and a parallel
+  first splitting step (lg(deg) shifts at once, 1.7x) for degrees 48..4096.
+  Validated: 908 decompositions over Z vs PARI (21 invariants, sqrt cases, both subgroup forms),
+  `ecpp/test_tower.py` (also mod P, multi-job, sign-free, retry/fallback via `fault=`).  Bugs
+  fixed on the way: `qform_table_free` dangling pointer (crash on re-entering compute_classpoly),
+  `fpoly_rem` with deg f < deg g.  Known and unchanged: the PLAIN height bound is ~2x too large
+  when the level is ramified (sqrt of the class polynomial).  Root-finding is what is left: the
+  slow builds are class numbers with a large prime factor (16 x 9337: 110 s), and fproot's
+  parallel multiplication above degree 4096 gains only 1.1-3x.
+- **yafu IFMA ECM (2026-11-14)**: yafu 3.1.9 built with `USE_AVX512IFMA=1` on c8a (Zen 5) is
+  correct and 4-5x cheaper per curve than gmp-ecm 7.0.5 on 1030-bit inputs with all cores busy
+  (0.059 / 0.298 / 0.946 vs 0.274 / 1.206 / 4.938 core-s at B1 = 5e4 / 2.5e5 / 1e6, same B2 via
+  `-avxecm_stg2 1`), finding planted factors at least as often (388 vs 333 of 864).  Its ECM
+  (twisted Edwards, FFT stage 2) is NOT the standalone avx-ecm, whose IFMA build is wrong.  Runs
+  8 curves per call (vector width); expression goes on stdin when not a tty.  Not wired into the
+  prover.  Report sections 7-8 of `reports/shortecpp-improve/`.
+
 ## Build & test
 ```sh
 make -j                      # ff_poly -> classpoly (incl. zp_poly) -> ecpp (all in-tree, ~15 s)
@@ -175,6 +214,7 @@ make test [MAXD=1000]        # classpoly vs PARI (Tests 1/2/3); ~2.5 min
 ./ecpp/oneshotECPP pbits=256 seed=1 threads=16 c=1 B0=4000000 B=20000000000  # all knobs
 python3 ecpp/test_dscan.py   # validate the discriminant scan vs PARI + brute force
 python3 ecpp/test_smooth.py  # validate smoothness engine vs PARI (Test A + end-to-end gate)
+python3 ecpp/test_tower.py   # class-group decomposition: classpoly CLASSPOLY_TOWER + cm_method vs PARI (~2 min)
 make -C ecpp voneshot && python3 ecpp/test_voneshot.py  # C one-shot verifier vs voneshot.py (differential)
 ecpp/voneshot $(cat certs/25519.txt)   # C verifier, same CLI as voneshot.py; --bench <certfile> times it
 make -C ecpp vshort2 && python3 ecpp/test_vshort2.py  # C short-ECPP verifier (faithful + --fast) vs vshort2.py

@@ -46,13 +46,18 @@ winner than fixed tiers with admission caps.</li>
 found <b>17 winners for 26.9 core-hours of ECM</b> (1.6 per winner) plus about
 10 core-hours of supply.  The model had predicted 24.2 winners for 31.8
 core-hours.  On the same prime and box, the prover with its old scheduler needed 59 core-hours of search to reach its first winner; the August campaign's 765-bit prime took 148.</li>
-<li><b>Construction.</b> With winners this cheap, building the curve costs more than finding it, and at
-768 bits 61&ndash;99.6% of a build is root-finding on the full-degree class polynomial (section 6).  The
-class-group decomposition of <a href="https://arxiv.org/abs/1009.1082">arXiv:1009.1082</a> removes most of
-that and is not implemented in this tree.</li>
+<li><b>Construction.</b> With winners this cheap, building the curve cost more than finding it, almost all
+of it root-finding on the full-degree class polynomial (section 6).  The class-group decomposition of
+<a href="https://arxiv.org/abs/1009.1082">arXiv:1009.1082</a> (Algorithm 1) is now implemented in
+<code>classpoly</code> and <code>cm_method</code> (section 7): the 17 winners at 768 bits build in a
+median of <b>11.7&nbsp;s</b> each on 192 cores, and the four timed before take
+145&nbsp;s and 2.6 core-hours in total where they took
+2,072&nbsp;s and 49.</li>
+<li><b>yafu's ECM.</b> The ECM in current yafu, built with AVX-512 IFMA, is correct and costs 4 to 5 times
+less per curve than gmp-ecm on 1030-bit inputs with all cores busy, at the same B2 and with at least the
+same success rate (section 8).  It is not yet used by the prover.</li>
 <li><b>Not done.</b> The prover's scheduler still uses the old tiers and caps; putting the stopping rule
-into it, and the decomposition into <code>cm_method</code>, are the next two steps.  yafu's IFMA ECM was
-not built.</li>
+into it is the next step, and yafu as the ECM engine the one after.</li>
 
 </ul></div>
 
@@ -306,11 +311,127 @@ the best split is degrees 947 and 12 in place of 11,364; for the third, 266 and 
 Of the 17 winners, 12 have a split with both degrees at most 600, and with winners this cheap one can
 choose among them.
 The vendored <code>classpoly_v1.0.3</code> already has the consuming half for word-size primes
-(<code>ff_classpoly_root</code>, the F/G file format, <code>tower_split</code>), but nothing in the tree
-produces a decomposed polynomial, and <code>cm_method</code> always takes the full-degree route.</p>
+(<code>ff_classpoly_root</code>, the F/G file format, <code>tower_split</code>), but at the time of these
+measurements nothing in the tree produced a decomposed polynomial, and <code>cm_method</code> always took the
+full-degree route.  Section 7 describes the implementation that followed.</p>
 
 
-<h2>7. What I would do next</h2>
+<h2>7. The class-group decomposition, implemented</h2>
+<p>For a subgroup G of the class group with n elements and m cosets, <code>classpoly</code> now computes,
+in place of the class polynomial H, a polynomial V of degree m whose roots are the m coset values
+y<sub>i</sub> (minus the sum of the roots in the coset) and n&minus;1 interpolants W<sub>k</sub> with m
+coefficients each.  <code>cm_method</code> finds a root y of V, forms
+U(X) = X<sup>n</sup> + yX<sup>n&minus;1</sup> + &Sigma; (W<sub>k</sub>(y)/V&prime;(y)) X<sup>k</sup>, which is a
+factor of H mod p, and finds a root of U.  Two root-findings of degrees m and n replace one of degree mn,
+and V and the W<sub>k</sub> have smaller coefficients than H, so the CRT uses fewer primes.  The output is in
+the F/G file format that the vendored <code>classpoly</code> already reads for word-size primes.  It is
+requested with <code>CLASSPOLY_TOWER=1</code>; <code>cm_method</code> uses it by default
+(<code>tower=0</code> turns it off).</p>
+<p>The same 17 winners of section 5 and the same prime, each built alone on the 192-core box with
+<code>cm_method jobs=192</code>.  The last two columns are the full-degree timings of section 6.</p>
+<table><tr><th>D</th><th>degree</th><th>invariant</th><th>m &times; n</th><th>CRT, s</th><th>roots, s</th><th>wall, s</th><th>core-s</th><th>before: wall, s</th><th>core-s</th></tr><tr><td>&minus;5,201,738,755</td><td>11,364</td><td>A<sub>59</sub></td><td>12 &times; 947</td><td>0.4</td><td>7.4</td><td><b>7.8</b></td><td>106</td><td>110</td><td>6,490</td></tr><tr><td>&minus;18,960,475,695</td><td>37,456</td><td>w<sub>5,7</sub></td><td>16 &times; 2341</td><td>1.2</td><td>20.2</td><td><b>21.4</b></td><td>373</td><td>251</td><td>16,192</td></tr><tr><td>&minus;24,483,261,047</td><td>117,668</td><td>f</td><td>92 &times; 1279</td><td>3.6</td><td>12.2</td><td><b>15.9</b></td><td>678</td><td></td><td></td></tr><tr><td>&minus;26,558,327,551</td><td>84,592</td><td>f</td><td>272 &times; 311</td><td>2.0</td><td>4.8</td><td><b>7.0</b></td><td>253</td><td></td><td></td></tr><tr><td>&minus;27,115,302,883</td><td>15,912</td><td>A<sub>59</sub></td><td>136 &times; 117</td><td>1.9</td><td>1.7</td><td><b>3.7</b></td><td>244</td><td></td><td></td></tr><tr><td>&minus;30,694,863,135</td><td>120,080</td><td>w<sub>2,7</sub></td><td>316 &times; 380</td><td>5.6</td><td>6.0</td><td><b>11.7</b></td><td>932</td><td></td><td></td></tr><tr><td>&minus;43,980,816,779</td><td>58,520</td><td>A<sub>71</sub></td><td>280 &times; 209</td><td>2.0</td><td>3.9</td><td><b>6.0</b></td><td>260</td><td>368</td><td>18,396</td></tr><tr><td>&minus;62,721,263,535</td><td>85,376</td><td>w<sub>5,7</sub></td><td>232 &times; 368</td><td>6.7</td><td>5.0</td><td><b>16.9</b> *</td><td>956</td><td></td><td></td></tr><tr><td>&minus;76,050,642,003</td><td>21,888</td><td>w<sub>3,7</sub></td><td>144 &times; 152</td><td>3.6</td><td>2.2</td><td><b>5.8</b></td><td>502</td><td></td><td></td></tr><tr><td>&minus;115,333,393,863</td><td>149,392</td><td>w<sub>2,13</sub></td><td>16 &times; 9337</td><td>14.2</td><td>95.3</td><td><b>109.7</b></td><td>8,471</td><td>1342</td><td>135,161</td></tr><tr><td>&minus;123,856,576,567</td><td>160,008</td><td>f</td><td>452 &times; 354</td><td>7.8</td><td>6.9</td><td><b>14.8</b></td><td>1,216</td><td></td><td></td></tr><tr><td>&minus;124,169,733,811</td><td>42,188</td><td>A<sub>29</sub></td><td>199 &times; 212</td><td>3.6</td><td>3.2</td><td><b>6.9</b></td><td>542</td><td></td><td></td></tr><tr><td>&minus;126,996,060,003</td><td>67,200</td><td>A<sub>47</sub></td><td>240 &times; 280</td><td>5.8</td><td>4.3</td><td><b>10.1</b></td><td>892</td><td></td><td></td></tr><tr><td>&minus;127,843,394,223</td><td>257,112</td><td>w<sub>2,7</sub></td><td>72 &times; 3571</td><td>13.7</td><td>30.4</td><td><b>44.4</b></td><td>2,624</td><td></td><td></td></tr><tr><td>&minus;150,887,559,671</td><td>489,056</td><td>f</td><td>496 &times; 986</td><td>19.6</td><td>12.7</td><td><b>32.7</b></td><td>3,161</td><td></td><td></td></tr><tr><td>&minus;154,094,250,923</td><td>92,000</td><td>A<sub>71</sub></td><td>250 &times; 368</td><td>5.4</td><td>5.3</td><td><b>10.8</b></td><td>741</td><td></td><td></td></tr><tr><td>&minus;169,383,168,327</td><td>277,800</td><td>w<sub>2,13</sub></td><td>463 &times; 600</td><td>25.0</td><td>8.0</td><td><b>33.2</b></td><td>4,337</td><td></td><td></td></tr></table>
+<p>An asterisk marks a build whose first attempt failed and was repeated with a larger height bound (see
+below); its time includes both attempts.  All 17 builds take 359&nbsp;s of wall
+time and 7.3 core-hours together, a median of 11.7&nbsp;s and an average of
+0.43 core-hours each, against about 1.6 core-hours of ECM to find a winner.  The four that
+were timed before went from 2,072&nbsp;s and 49 core-hours to
+145&nbsp;s and 2.6.  The whole chain for nextprime(2<sup>768</sup>) was then
+rebuilt by the prover from the journalled winners: 10.0&nbsp;s, of which 7.9 are the top-level build, where
+section 5 had 111.6 and 107.2, and the certificate passes both verifiers
+(<code>data/p768_tower_cert.txt</code>).</p>
+<p>What had to be added to the paper's algorithm, and what it turned up:</p>
+<ul>
+<li><b>A wider family of subgroups.</b> The enumeration of the roots mod p does not control the direction
+in which it walks each generator, so only some subgroups have orbits that can be read off from positions.
+The paper's implementation uses G = &lang;a<sub>1</sub>, &hellip;, a<sub>d&minus;1</sub>,
+a<sub>d</sub><sup>e</sup>&rang;.  That is not enough here: for D = &minus;5,201,738,755 the presentation has
+relative orders (2, 1894, 3), and the split 12 &times; 947 is not of that form.  I use
+G = &lang;a<sub>i</sub><sup>c<sub>i</sub></sup>&rang; with c<sub>i</sub> dividing the relative order
+n<sub>i</sub>, under the condition that whenever c<sub>i</sub> &lt; n<sub>i</sub> the power relation
+a<sub>i</sub><sup>n<sub>i</sub></sup> = &prod;<sub>j&lt;i</sub> a<sub>j</sub><sup>r<sub>ij</sub></sup> has
+c<sub>j</sub> dividing r<sub>ij</sub>.  Then G has order &prod; n<sub>i</sub>/c<sub>i</sub>, the positions with
+all residues e<sub>i</sub> mod c<sub>i</sub> fixed lie in one coset and are as many as G has elements, so
+they are a coset, whatever the directions.  This relies on each generator being walked in one direction
+throughout, which the gcd steps of the enumeration ensure.  The argument is in the comments of
+<code>compute_classpoly.c</code>; it is mine, not the paper's, and deserves a second pair of eyes.</li>
+<li><b>No trace computation for the Weber functions.</b> For an invariant f whose class polynomial is only
+determined mod p up to f &rarr; &minus;f (Weber f, and the eta quotients that are square roots),
+<code>classpoly</code> first computes the trace of the class polynomial by a CRT of its own.  With 192
+workers each of them repeats it: at h = 117,668 that was 23 to 58&nbsp;s per worker before the main loop
+began.  The decomposition has a way round it.  Each coefficient of V and of the W<sub>k</sub> has a parity
+under f &rarr; &minus;f, and the trace T is odd; storing every odd coefficient multiplied by T, together with
+T<sup>2</sup>, makes all stored numbers independent of the sign.  The consumer divides by a square root of
+T<sup>2</sup> mod p and gets the decomposition of H(X) or of H(&minus;X), which give the same j-invariants.
+For D = &minus;24,483,261,047 this took the build from 97&nbsp;s and 14,700 core-seconds to the figures in
+the table.  (<code>CLASSPOLY_TOWER=2</code>; the file then carries a line <code>S=</code> and is not a plain
+F/G file.)</li>
+<li><b>The height bound is heuristic, and it can be too small.</b> For j the bound of the paper is
+rigorous.  For other invariants the code scales the bounds on |j| by the height factor, as the paper
+suggests, and that is right on average over the class group but not coset by coset.  Over Z, for
+D = &minus;18,960,475,695 with w<sub>5,7</sub> ramified, the true height with 16 cosets is 71,992 bits against
+a bound of 69,890 (3.0% over); with 8 cosets it is 65,463 against 66,412.  A decomposition computed with too
+few primes is wrong, and nothing in the CRT says so.  The defences are: 5% added to the bound for
+invariants other than j; every failure on the decomposition path (V or U not splitting, V&prime;(y) = 0, no
+candidate j with the right trace) triggers one retry with 20% added and then the plain class polynomial;
+and a polynomial that does not split is now given up after one failed split rather than thirty.
+1 of the 17 builds needed the retry.  A proper bound for the eta quotients, from
+the sizes of the four eta values involved, would remove the guesswork.</li>
+<li><b>Root-finding is what remains.</b> It is 230&nbsp;s of the 359&nbsp;s
+above.  Below degree 4096 it was single-threaded; the first splitting step now runs with about lg(degree)
+random shifts at once, one per core, and intersects the results, which brought the root-finding of these
+17 builds from 316&nbsp;s to 230&nbsp;s.  Above degree 4096
+<code>fproot</code> multiplies in parallel, and that gains little: a root of degree 4682 took 60&nbsp;s with
+47 cores busy, where the single-threaded rate at lower degrees predicts 68.  The two slowest builds are
+those whose class number has a large prime factor (9337 and 3571), where no balanced split exists.</li>
+<li><b>Choosing the subgroup.</b> <code>classpoly</code> lists the admissible subgroups, computes the height
+bound of each from the table of reduced forms, and takes the one with the least estimated wall time for
+CRT plus the two root-findings, from three constants measured on this box.  Balanced splits win when the
+CRT is cheap; a split with few cosets, which has the smallest height, wins when it is not.  For these
+17 discriminants the height bound of the chosen decomposition is 1.5 to 5.0 times smaller than the
+plain one (median 2.45); 8 of them use the sign-free variant and 4 are square roots
+(<code>data/tower_candidates.log</code>).</li>
+<li><b>Checks.</b> 908 decompositions over Z, with j and more than 20 other invariants, with square roots
+of class polynomials and with subgroups in and outside the paper's form, were compared with the plain class
+polynomial in PARI: modulo three splitting primes each, V has m distinct roots and the product of the U
+equals H.  All agree.  Among 3,494 decompositions of discriminants below 2,000 one has a repeated coset
+value (D = &minus;1603 with A<sub>71</sub>), which <code>classpoly</code> detects, reverting to the plain
+polynomial.  <code>ecpp/test_tower.py</code> runs a selection of these, the explicit-CRT and multi-job
+paths, the sign-free variant, and the retry and fallback paths with deliberately damaged files.</li>
+<li><b>Found on the way.</b> The plain height bound is about twice the true height whenever the level is
+ramified and the square root of the class polynomial is computed (median 0.47 over 23 discriminants), so
+that path does twice the CRT work it needs; I have not changed it.  <code>qform_table_free</code> left a
+dangling pointer that crashed a second call of <code>compute_classpoly</code>, and <code>fproot</code>'s
+schoolbook remainder mishandled a dividend of lower degree than the divisor; both are fixed.</li>
+</ul>
+
+
+<h2>8. yafu's AVX-512 IFMA ECM</h2>
+<p>yafu 3.1.9 (commit 4d88b0b) built with <code>USE_AVX512IFMA=1</code> on the Zen&nbsp;5 box.  Its ECM is
+not the standalone avx-ecm of section 3, whose IFMA build computes wrong residues: it uses twisted Edwards
+curves and an FFT stage 2.  It was run the way the prover runs gmp-ecm: one single-threaded process per
+core with all 192 cores busy, 1030-bit inputs, and here 8 curves per process, which is its vector width.
+Stage 2 was set to gmp-ecm's B2 (<code>-avxecm_stg2 1</code>) so that a curve means the same thing for
+both.  Times include process start-up.</p>
+<table><tr><th>B1</th><th>gmp-ecm 7.0.5, core-s per curve</th><th>yafu, core-s per curve</th><th>ratio</th></tr><tr><td>50,000</td><td>0.274</td><td>0.059</td><td>4.7</td></tr><tr><td>250,000</td><td>1.206</td><td>0.298</td><td>4.0</td></tr><tr><td>1,000,000</td><td>4.938</td><td>0.946</td><td>5.2</td></tr></table>
+<p>Success, on numbers N = f&middot;g of 1030 bits with f a random prime of the stated size: how many of 96
+had f found by one batch of 8 curves.</p>
+<table><tr><th>B1</th><th>factor, bits</th><th>gmp-ecm found</th><th>yafu found</th></tr><tr><td>50,000</td><td>54</td><td>71 of 96</td><td>74 of 96</td></tr><tr><td>50,000</td><td>62</td><td>41 of 96</td><td>49 of 96</td></tr><tr><td>50,000</td><td>70</td><td>20 of 96</td><td>19 of 96</td></tr><tr><td>250,000</td><td>62</td><td>68 of 96</td><td>82 of 96</td></tr><tr><td>250,000</td><td>74</td><td>23 of 96</td><td>37 of 96</td></tr><tr><td>250,000</td><td>86</td><td>10 of 96</td><td>10 of 96</td></tr><tr><td>1,000,000</td><td>70</td><td>63 of 96</td><td>71 of 96</td></tr><tr><td>1,000,000</td><td>82</td><td>29 of 96</td><td>34 of 96</td></tr><tr><td>1,000,000</td><td>94</td><td>8 of 96</td><td>12 of 96</td></tr></table>
+<p>In total gmp-ecm found 333 and yafu 388 of 864, and of all the
+factors yafu reported 0 failed to divide the input.  So at these sizes yafu's curves are at least
+as good as gmp-ecm's and cost 4 to 5 times less.  Across input size and B1, under the same conditions, in
+core-seconds per curve:</p>
+<table><tr><th>input, bits</th><th>B1</th><th>gmp-ecm</th><th>yafu, B2 as gmp-ecm</th><th>ratio</th><th>yafu, B2 from memory limit</th></tr><tr><td>768</td><td>2,000</td><td>0.0175</td><td>0.0052</td><td>3.4</td><td>0.0060</td></tr><tr><td>768</td><td>11,000</td><td>0.0385</td><td>0.0106</td><td>3.6</td><td>0.0146</td></tr><tr><td>768</td><td>50,000</td><td>0.1605</td><td>0.0347</td><td>4.6</td><td>0.0400</td></tr><tr><td>768</td><td>250,000</td><td>0.7285</td><td>0.1842</td><td>4.0</td><td>0.1958</td></tr><tr><td>768</td><td>1,000,000</td><td>2.9621</td><td>0.5880</td><td>5.0</td><td>0.7497</td></tr><tr><td>1030</td><td>2,000</td><td>0.0126</td><td>0.0060</td><td>2.1</td><td>0.0070</td></tr><tr><td>1030</td><td>11,000</td><td>0.0637</td><td>0.0148</td><td>4.3</td><td>0.0175</td></tr><tr><td>1030</td><td>50,000</td><td>0.2680</td><td>0.0599</td><td>4.5</td><td>0.0786</td></tr><tr><td>1030</td><td>250,000</td><td>1.2224</td><td>0.3023</td><td>4.0</td><td>0.3152</td></tr><tr><td>1030</td><td>1,000,000</td><td>5.0041</td><td>0.9499</td><td>5.3</td><td>1.1862</td></tr><tr><td>1030</td><td>3,000,000</td><td>13.8028</td><td>2.6893</td><td>5.1</td><td>2.9379</td></tr><tr><td>1330</td><td>2,000</td><td>0.0242</td><td>0.0077</td><td>3.1</td><td>0.0094</td></tr><tr><td>1330</td><td>11,000</td><td>0.1256</td><td>0.0232</td><td>5.4</td><td>0.0268</td></tr><tr><td>1330</td><td>50,000</td><td>0.5435</td><td>0.0952</td><td>5.7</td><td>0.1191</td></tr><tr><td>1330</td><td>250,000</td><td>2.5626</td><td>0.4652</td><td>5.5</td><td>0.5819</td></tr><tr><td>1330</td><td>1,000,000</td><td>10.5625</td><td>1.5057</td><td>7.0</td><td>1.8432</td></tr></table>
+<p>The advantage grows with the input size, to 5&ndash;7 times at 1330 bits, and is smallest at
+B1&nbsp;=&nbsp;2,000, where a process of 8 curves lasts a twentieth of a second (yafu itself starts in
+11&nbsp;ms).  yafu's default stage 2, which takes B2 from a memory limit, costs 5&ndash;30% more per curve
+than the gmp-ecm B2 used above.</p>
+<p>What this does not show: a calibration of yafu's success rate as fine as the one of section 4 for
+gmp-ecm, which the stopping rule needs; behaviour at the shallow tiers when curves come in batches of 8;
+and any use of it by the prover, which still calls gmp-ecm.  yafu is not in this repository; the build
+line and the two drivers are in <code>data/yafu_test.py</code> and <code>data/yafu_cost.py</code>.</p>
+
+
+<h2>9. What I would do next</h2>
 <ol>
 <li><b>Put the stopping rule into <code>prove_level_cm</code>.</b> Replace the caps, the index and the
 widen rule by a table lookup (coverage class, sweep, tail bits) computed once per level by
@@ -318,18 +439,19 @@ widen rule by a table lookup (coverage class, sweep, tail bits) computed once pe
 curves of a deep sweep over idle cores when few tails are left.  Validate on nextprime(2<sup>768</sup>)
 against today's numbers, then at 1030 bits, where the model expects 30&ndash;50 core-hours per top-level
 winner against 330&ndash;410 for the reference.</li>
-<li><b>Root-finding through the class group (section 6).</b> Implement the two-level decomposition
-for the big prime: a decomposed output mode in the CRT code and a <code>cm_method</code> path that finds a
-root of V with <code>fproot</code>, evaluates the degree-n polynomial at it and finds a root of that.
-Then the paper's second algorithm if the CRT data for the interpolants becomes the limit.  The 17
-journalled winners (<code>data/exp768_winners.jsonl</code>) are ready-made test cases.</li>
-<li><b>Price construction into the stopping rule.</b> A winner's value should be net of its build
-cost, which depends on h, on the invariant available and, after the previous item, on the shape of the
-class group.  Until the decomposition exists it pays to wait for a winner with a small class number.</li>
-<li><b>Stage 1.</b> Either wire the non-IFMA avx-ecm in as a stage-1 engine with gmp-ecm
-<code>-resume</code> for stage 2 (1.35&ndash;1.5 times per curve, measured), or build yafu's IFMA ECM and
-repeat section 3.2 on it (up to 2 times if it is correct).  Both need the 208-bit rounding and the
-start-up sieve handled at the shallow tiers.</li>
+<li><b>yafu as the ECM engine (section 8).</b> Measure its per-curve success by factor size as in
+section 4, wire it into the prover in batches of 8 curves, and recompute the stopping rule with its costs:
+a 4 to 5 times cheaper curve moves every threshold.</li>
+<li><b>Price construction into the stopping rule.</b> A winner's value should be net of its build cost.
+After section 7 that cost depends on how the class group splits rather than on h: a winner whose class
+number has a large prime factor still costs a minute or two.  The subgroup choice and its estimate are
+available before any ECM is spent.</li>
+<li><b>Height bounds for the decomposition (section 7).</b> Replace the scaled bounds by bounds computed
+from the eta values for the eta quotients and Atkin functions, check the factor used for the trace in the
+sign-free variant, and halve the plain bound in the ramified case.</li>
+<li><b>Root-finding above degree 4096.</b> <code>fproot</code>'s parallel multiplication keeps 40 to 65
+cores busy for a gain of 1.1 to 3; the parallel first step could be extended to those degrees, or the
+multiplication fixed.  The paper's second algorithm is not needed for space at these sizes.</li>
 <li><b>Tighten the model.</b> Measure &pi; and the cost per curve at B1&nbsp;=&nbsp;10<sup>7</sup> and
 3&middot;10<sup>7</sup>, which the 1030-bit policy uses and which are extrapolated here; find where the
 15&ndash;25% optimism comes from (the run counts at the deep sweeps are the place to look); extend it
@@ -339,7 +461,7 @@ winner is the fixed point of the stopping problem), with a direct experimental c
 
 </ol>
 
-<h2>8. Files</h2>
+<h2>10. Files</h2>
 <ul>
 <li>Prover: <code>ecpp/shortECPP.py</code>, <code>ecpp/dscan.c</code> (<code>fbmin=</code>,
 <code>roots=</code>), <code>ecpp/smoothtest.c</code> (<code>n2=</code>, <code>prp=1</code>);
@@ -355,6 +477,18 @@ orders), <code>data/exp768_policy.json</code>, <code>data/exp768_policy_run.json
 <code>data/exp768_run.log</code>, <code>data/exp768_prep.log</code>, the 17 winners
 <code>data/exp768_winners.jsonl</code>, the certificate <code>data/p768_cert.txt</code>, the baseline run
 <code>data/p768_baseline.log</code> and the construction timings <code>data/p768_cm_timing.log</code>.</li>
+<li>Decomposition (section 7): <code>classpoly_v1.0.3/compute_classpoly.c</code>, <code>classpoly_crt.c</code>,
+<code>qform.c</code> (<code>qform_sum_jbounds_box</code>), <code>ecpp/cm_method.c</code>, <code>ecpp/fproot.c</code>;
+test <code>ecpp/test_tower.py</code>; timings <code>data/tower_cm_192.log</code> (final),
+<code>data/tower_cm_192_pass3.log</code> (before the parallel root step),
+<code>data/tower_cm_192_pass1_partial.log</code> (before the sign-free variant), subgroup lists
+<code>data/tower_candidates.log</code>, sweeps <code>data/tower_sweep_prefix.log</code>,
+<code>data/tower_sweep_box.log</code>, <code>data/tower_scan_small.log</code>, heights over Z
+<code>data/tower_heights.log</code>, the rebuilt 768-bit chain <code>data/p768_tower_cert.log</code>, and the
+scripts <code>data/tower_*.py</code>, <code>data/tower_*.sh</code>.</li>
+<li>yafu (section 8): <code>data/yafu_test.py</code>, <code>data/yafu_cost.py</code>, results
+<code>data/yafu_test.json</code>, <code>data/yafu_cost.json</code>, logs <code>data/yafu_test.log</code>,
+<code>data/yafu_cost.log</code>, <code>data/yafu_build.log</code>.</li>
 <li>This page: <code>make_report.py</code> fills <code>index.template.html</code> and <code>sections.html</code>
 from <code>data/</code> and the model.  It needs the two pools of real orders as pickles, which are too large
 to commit: the 768-bit one is written by <code>data/make_policy.py</code> from

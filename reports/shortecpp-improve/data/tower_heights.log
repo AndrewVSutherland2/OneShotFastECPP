@@ -1,0 +1,11 @@
+# True heights over Z of two decompositions of D=-18960475695 (invariant w_{5,7}, level ramified), computed on the spot box with
+# CLASSPOLY_TOWER_N=<n> CLASSPOLY_TOWER_SLACK=12 classpoly -18960475695 -1 0 <file> 1 ; "height H (B)": H is the true height, B the bound used (with slack).
+# Without the slack the bound for n=2341 is 69890 bits, and the run with that bound ended in "Exceeded height safety margin".
+Decomposing with subgroup of order n=2341, m=16 cosets, height bound 69890 bits (plain: 349640)
+bits = 78532.34
+bits = 78557.5
+height 71992 (78276)
+Decomposing with subgroup of order n=4682, m=8 cosets, height bound 66412 bits (plain: 349640)
+bits = 74637.10
+bits = 74642.3
+height 65463 (74381)

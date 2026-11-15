@@ -1,0 +1,11 @@
+scan 0..400 inv=0: 183 decompositions, 0 reverted
+scan 400..800 inv=0: 357 decompositions, 0 reverted
+scan 800..1200 inv=0: 434 decompositions, 0 reverted
+REPEATED D=-1603 h=6 n=3 inv=-1: Decomposition of the class polynomial for D=-1603, inv=171 with n=3, m=2 has a repeated coset value, reverting to the plain class polynomial
+scan 1200..1600 inv=0: 473 decompositions, 0 reverted
+scan 1600..2000 inv=0: 536 decompositions, 0 reverted
+scan 0..400 inv=-1: 116 decompositions, 0 reverted
+scan 1200..1600 inv=-1: 393 decompositions, 0 reverted
+scan 1600..2000 inv=-1: 428 decompositions, 1 reverted
+scan 400..800 inv=-1: 250 decompositions, 0 reverted
+scan 800..1200 inv=-1: 324 decompositions, 0 reverted
