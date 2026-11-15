@@ -309,9 +309,9 @@ void qform_sum_jbounds_subgroup (double *psummax, double *pmaxdelta, long p[IQ_M
     On return *psummax is the sum over cosets of the largest log|j| in the coset, *pmaxdelta the largest over cosets of the sum of the
     others; both are natural logarithms divided by hf.
 */
-void qform_sum_jbounds_box (double *psummax, double *pmaxdelta, long n[IQ_MAX_GENS], long c[IQ_MAX_GENS], int k, int d0, long D, double hf)
+void qform_sum_jbounds_lat (double *psummax, double *pmaxdelta, long n[IQ_MAX_GENS], long d[IQ_MAX_GENS], uint32_t hm[IQ_MAX_GENS], int nh, int k, int d0, long D, double hf)
 {
-    long m[IQ_MAX_GENS], e[IQ_MAX_GENS], C[IQ_MAX_GENS];
+    long m[IQ_MAX_GENS], e[IQ_MAX_GENS];
     register long i, j, t, n0, cosets, coset, cnt;
     register double x, summax, maxdelta, totsummax, totmaxdelta;
     double *sm, *mx;
@@ -324,13 +324,13 @@ void qform_sum_jbounds_box (double *psummax, double *pmaxdelta, long n[IQ_MAX_GE
         for ( i = 1 ; i < qform_table_next ; i++ ) qform_jb_table[i] = qform_jbound(qform_table[i].a,D);
         qform_jb_table_D = D;
     }
-    if ( d0 < 0 || d0 >= k ) { err_printf ("invalid d0=%d in qform_sum_jbounds_box\n", d0); exit (0); }
+    if ( d0 < 0 || d0 >= k ) { err_printf ("invalid d0=%d in qform_sum_jbounds_lat\n", d0); exit (0); }
     evec_n_to_m (m,n,k);
-    if ( m[k-1] != qform_table_next ) { err_printf ("presentation order doesn't match table in qform_sum_jbounds_box (next=%d)\n", qform_table_next); exit (0); }
+    if ( m[k-1] != qform_table_next ) { err_printf ("presentation order doesn't match table in qform_sum_jbounds_lat (next=%d)\n", qform_table_next); exit (0); }
     n0 = ( d0 ? m[d0-1] : 1 );
-    for ( cosets = 1, u = d0 ; u < k ; u++ ) {
-        if ( c[u] <= 0 || (n[u]%c[u]) ) { err_printf ("invalid c[%d]=%ld for n[%d]=%ld in qform_sum_jbounds_box\n", u, c[u], u, n[u]); exit (0); }
-        C[u] = cosets;  cosets *= c[u];
+    for ( cosets = 1L << nh, u = d0 ; u < k ; u++ ) {
+        if ( d[u] <= 0 || (n[u]%d[u]) ) { err_printf ("invalid d[%d]=%ld for n[%d]=%ld in qform_sum_jbounds_lat\n", u, d[u], u, n[u]); exit (0); }
+        cosets *= d[u];
     }
     cnt = m[k-1]/n0;
     sm = malloc (2*cosets*sizeof(*sm));  mx = sm + cosets;
@@ -341,7 +341,7 @@ void qform_sum_jbounds_box (double *psummax, double *pmaxdelta, long n[IQ_MAX_GE
         for ( t = 0 ; t < cnt ; t++ ) {
             i = n0*t + j;
             x = ( i ? qform_jb_table[i] : qform_jbound(1,D) ) / hf;                 // the identity is not stored in the table
-            for ( coset = 0, u = d0 ; u < k ; u++ ) coset += (e[u]%c[u])*C[u];
+            coset = qform_lat_coset (e, d, hm, nh, k, d0);
             sm[coset] += x;  if ( x > mx[coset] ) mx[coset] = x;
             for ( u = d0 ; u < k && ++e[u] == n[u] ; u++ ) e[u] = 0;                // next exponent vector, low digit first
         }
