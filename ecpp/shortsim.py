@@ -48,6 +48,15 @@ NB = 1536                     # grid: sizes 0..NB-1 bits
 NFFT = 4096
 
 
+def set_grid(nbits):
+    """Size the bit grid for moduli of nbits bits (the default holds 1535 bits).
+    Everything built afterwards (Ladder, IndexTable, ...) uses the new grid; a
+    transform of twice the grid length keeps the convolutions free of wrap-around."""
+    global NB, NFFT
+    NFFT = 1 << max(11, (2 * (nbits + 8) - 1).bit_length())
+    NB = NFFT // 2
+
+
 # --------------------------------------------------------------- special functions
 def _dickman_table(umax=40.0, h=1.0 / 2048):
     n = int(umax / h) + 1
@@ -562,6 +571,144 @@ def emulate(lad, pool, rng, admit, hb=None, verbose=True, idx=None):
                     dead += 1
         stats.append(dict(tier=j, run=len(adm), split=nsplit, wins=wins, dead=dead, cost=cost))
     return stats, wins_fresh
+
+
+# --------------------------------------------------------------- break-even rewards
+def class_window(c, lam):
+    """Window weights of coverage class c: the n^2-smooth part s of the order has
+    log2 s in [c - 1/2, c + 1/2).  The divisors m of s cover every delta in
+    (0, log2 s) -- take the primes of s in descending order: the powers of the
+    largest tile (0, e1 log p1), and each further prime extends every tile
+    boundary to the right by its own power -- so the profile of a class is an
+    initial segment, with half weight on the two end cells.  (The revised
+    format's radical cap could cut it short; it binds for s above 2^80 only.)"""
+    win = np.zeros(NB)
+    lami = int(round(lam))
+    for k in range(c + 1):
+        r = lami - k
+        if 0 <= r < NB:
+            win[r] = 0.5 if k in (0, c) else 1.0
+    return win
+
+
+class IndexTable:
+    """Break-even rewards of every state of a candidate.
+
+    r(c, j, t) is the least value of a win, in core-seconds, at which running
+    sweep j+1 on a composite tail of t bits in coverage class c pays under the
+    best continuation; its reciprocal is the candidate's index (win probability
+    per core-second under the best stopping rule), so sorting by r is the order
+    in which work should be done, and "r <= R" is the stopping rule when a win is
+    worth R.  The table does not depend on what fresh orders cost.  pwin(c, j, t)
+    is the chance that this one sweep wins, which lets a scheduler add up the wins
+    the model expects from the work it has actually done.  Alongside,
+    for a fresh composite tail and each reward of the grid: value V0 and expected
+    ECM cost C0 under the rule "r <= R", from which the price at which buying
+    fresh orders breaks even (threshold) and the expected wins and cost per
+    order follow for any mix of fresh orders.
+
+    Solved on a geometric grid of rewards by the dynamic programme of
+    solve_class, all classes at once; the break-even point between two grid
+    values is interpolated linearly in the continuation value."""
+
+    def __init__(self, lad, lam, cmax=100, rlo=30.0, rhi=3.0e7, ratio=1.3, threads=1):
+        self.lad, self.lam, self.cmax = lad, lam, cmax
+        G = int(math.ceil(math.log(rhi / rlo) / math.log(ratio))) + 1
+        self.rgrid = rlo * ratio ** np.arange(G)
+        J = len(lad.tiers)
+        t = np.arange(NB, dtype=float)
+        self._tc = np.array([lad.tier_cost(j, np.maximum(t, 64.0)) for j in range(J)])
+        self._Gf = [np.fft.rfft(lad.Gphi[j], NFFT) for j in range(J)]
+        self._bad = [(t < D) | (lad.Z[j] < 1e-200) for j in range(J)]
+        wins = np.array([class_window(c, lam) for c in range(cmax + 1)])
+        # a tail shorter than the window's far end holds no admissible prime: such
+        # a candidate is dead, and the model's weights there are numerical noise
+        dead = t[None, :] < (int(round(lam)) - np.arange(cmax + 1) - 1)[:, None]
+        nchunk = max(1, min(threads, (cmax + 1) // 4))
+        parts = np.array_split(np.arange(cmax + 1), nchunk)
+        if nchunk > 1:
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=nchunk) as ex:
+                res = list(ex.map(lambda cs: self._solve(wins[cs], dead[cs]), parts))
+        else:
+            res = [self._solve(wins, dead)]
+        self.rmin = np.concatenate([x[0] for x in res], axis=0)       # (class, sweep, bits)
+        self.V0 = np.concatenate([x[1] for x in res], axis=1)         # (reward, class, bits)
+        self.C0 = np.concatenate([x[2] for x in res], axis=1)
+        # chance that one sweep turns the tail into a prime inside the window
+        self.pw = np.zeros((cmax + 1, J, NB), dtype=np.float32)
+        for j in range(J):
+            pt = math.exp(-lad.Lam[j + 1]) * lad.prime[None, :] * wins
+            Y = np.fft.irfft(np.fft.rfft(pt, NFFT, axis=1) * self._Gf[j][None, :], NFFT, axis=1)[:, :NB]
+            w = math.exp(-lad.Lphi[j]) * (Y - lad.Gphi[j][0] * pt) / lad.Z[j][None, :]
+            w[:, self._bad[j]] = 0.0
+            w[dead] = 0.0
+            self.pw[:, j, :] = np.clip(w, 0.0, 1.0)
+
+    def _solve(self, wins, dead):
+        lad = self.lad
+        J = len(lad.tiers)
+        n = wins.shape[0]
+        G = len(self.rgrid)
+        rmin = np.full((n, J, NB), np.inf, dtype=np.float32)
+        prev = np.zeros((n, J, NB))
+        V0 = np.zeros((G, n, NB), dtype=np.float32)
+        C0 = np.zeros((G, n, NB), dtype=np.float32)
+        rp = 0.0
+        for g, r in enumerate(self.rgrid):
+            V = np.zeros((n, NB))
+            C = np.zeros((n, NB))
+            for j in range(J - 1, -1, -1):
+                pt = (math.exp(-lad.Lam[j + 1]) * r) * lad.prime[None, :] * wins
+                zn = lad.Z[j + 1][None, :]
+                X = np.concatenate([zn * V + pt, zn * C])
+                Y = np.fft.irfft(np.fft.rfft(X, NFFT, axis=1) * self._Gf[j][None, :], NFFT, axis=1)[:, :NB]
+                e = math.exp(-lad.Lphi[j])
+                iz = 1.0 / lad.Z[j][None, :]
+                cont = e * (Y[:n] - lad.Gphi[j][0] * pt) * iz - self._tc[j][None, :]
+                cont[:, self._bad[j]] = -1.0
+                cont[dead] = -1.0
+                np.clip(cont, -1e30, 1e30, out=cont)
+                go = cont > 0
+                new = go & ~np.isfinite(rmin[:, j, :])
+                if new.any():
+                    if g:
+                        pc = prev[:, j, :][new]
+                        rmin[:, j, :][new] = rp + (r - rp) * (-pc) / np.maximum(cont[new] - pc, 1e-300)
+                    else:
+                        rmin[:, j, :][new] = r
+                prev[:, j, :] = cont
+                V = np.where(go, cont, 0.0)
+                C = np.where(go, np.clip(e * Y[n:] * iz, 0.0, 1e30) + self._tc[j][None, :], 0.0)
+            V0[g] = V
+            C0[g] = C
+            rp = r
+        return rmin, V0, C0
+
+    def r(self, cls, j, tbits):
+        return float(self.rmin[min(cls, self.cmax), j, min(tbits, NB - 1)])
+
+    def pwin(self, cls, j, tbits):
+        """Probability that sweep j+1 wins from this state."""
+        return float(self.pw[min(cls, self.cmax), j, min(tbits, NB - 1)])
+
+    def fresh(self, H):
+        """H[c][t] = number of fresh composite tails of t bits in class c.  Returns
+        (F, E): summed value and summed expected ECM cost at each grid reward."""
+        return (np.tensordot(self.V0, H, axes=([1, 2], [0, 1])),
+                np.tensordot(self.C0, H, axes=([1, 2], [0, 1])))
+
+    def threshold(self, price, F):
+        """The reward at which a fresh order (mean value F by grid reward) is worth
+        its price: the cost per win that the supply can sustain."""
+        ok = F > 0
+        if not ok.any():
+            return float(self.rgrid[-1])
+        return float(np.exp(np.interp(math.log(max(price, 1e-12)), np.log(F[ok]), np.log(self.rgrid[ok]))))
+
+    def at(self, R, A):
+        """Interpolate a per-reward array (F or E) at the reward R."""
+        return float(np.interp(math.log(R), np.log(self.rgrid), A))
 
 
 # --------------------------------------------------------------- data loading

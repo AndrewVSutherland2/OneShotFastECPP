@@ -153,8 +153,8 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   nextprime(2^768): 17 winners for 26.9 core-h of ECM (model: 24 for 32; 20.9 with the
   measured ECM success table `reports/shortecpp-improve/data/pi_calib.json`) — 1.6 core-h per
   winner; the prover with its old scheduler, same prime and box, needed 59 core-h of search
-  for its first winner (148 for the 765-bit campaign prime).  NOT yet in the prover's
-  scheduler.  Consequence: construction is now the bottleneck, and it is root-finding —
+  for its first winner (148 for the 765-bit campaign prime).  (In the prover since
+  2026-11-15, see the stopping-rule entry below.)  Consequence: construction is now the bottleneck, and it is root-finding —
   `cm_method` at 769 bits, 192 cores: h = 11,364 (inv 159) class poly 0.5 s + root 110 s;
   degree 58,520: 3.4 s + 364 s; h = 149,392 (inv 26): 525 s + 816 s.  The class-group
   decomposition of arXiv:1009.1082 is not in the tree (classpoly has only the word-size
@@ -204,6 +204,45 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   (twisted Edwards, FFT stage 2) is NOT the standalone avx-ecm, whose IFMA build is wrong.  Runs
   8 curves per call (vector width); expression goes on stdin when not a tty.  Not wired into the
   prover.  Report sections 7-8 of `reports/shortecpp-improve/`.
+- **Stopping-rule scheduler (2026-11-15, same branch)**: levels of >= 500 bits
+  (`POLICY_MIN_BITS`) are run by `ecpp/shortsched.py`; smaller ones, and `sched=old`, by the old
+  tiered rounds.  The level is treated as a bandit problem.  `shortsim.IndexTable` gives every
+  candidate state (coverage class, sweeps done, tail bits) its break-even reward r, the value of
+  a win in core-seconds at which the next sweep pays; the table does not depend on the price of
+  fresh orders and takes ~2 s per level.  `Sched` works candidates in increasing r, and only
+  while r <= R, the reward at which a fresh order is worth the scan's marginal price (from the
+  same table and the histogram of orders seen); R rises as the scan widens and parked
+  candidates come back.  `level_loop` runs it against a driver: `RuleDriver` in shortECPP.py
+  (dscan chunks doubling B on a share of the cores, gmp-ecm units) or `SimDriver` (virtual time,
+  tails drawn from the model: `shortsched.py sim <pool.pkl> threads=..`).  Things that matter:
+  (1) a candidate's class is just round(log2 s): the divisors of the smooth part s cover every
+  delta in (0, log2 s), so no divisor enumeration is needed (s is the B-smooth part in the
+  revised format, so the strip is called with n2 = V2_BCAP there);
+  (2) sweeps are cut into units of a few seconds and the sweeps of one B1 may be in flight
+  together, otherwise the winner's deep sweeps run one after the other while the other cores
+  do work the sequential rule would never have done; a larger B1 waits for the smaller;
+  (3) the supply price depends strongly on the prime (2,422 vs 6,303 solvable D below 6e7 for
+  two 768-bit primes), so nothing about it is assumed: it is measured chunk by chunk;
+  (4) gmp-ecm's cost is calibrated per run (`ecm_machine_factor`: one B1=5e4 benchmark with all
+  threads busy, scaling `shortsim.SEC1030_LOADED`); measured/modelled cost came out 0.96-1.15
+  per B1; success probabilities are `ecpp/ecm_pi.json` (= the report's pi_calib.json);
+  (5) the log prints the wins the model expected from the work done -- at a level's first win
+  that number is Exp(1) if the model is right, which is the calibration check.
+  Measured, 13 fresh 768-bit primes on the 16-core box (32 threads): whole chain in a mean of
+  202 s (median 112 s), search 1.5 thread-hours on average, expected wins at the win 0.65 +- 0.29
+  (so the model is not optimistic); the old scheduler needed 59 and 148 core-h of search on a
+  c8a for two primes of this size.  Simulation (768 bits, c8a costs): machine cost per level
+  1.8 core-h at 4 threads, 1.6 at 32, 1.6-1.9 at 192 (about 30 s wall), 2.7 at 768; 1030 bits on
+  192 cores: 37 core-h, 685 s wall (the August campaign: 812 core-h).  Build side, found on the
+  way: `build_level` skips hits with an odd prime dividing gcd(m, v) on the H_D curve (they can
+  only work from the volcano floor; 14.8 s -> 2.9 s when it happens) and, when the curves with
+  the computed j have the wrong order (`j_order_ok`), recomputes j from the plain class
+  polynomial instead of dropping the winner; classpoly's decomposition also takes subgroups
+  given by sign-invariant lattices (see compute_classpoly.c; 26 s -> 12 s for the one real
+  winner in 29 that needed it).  Height bound: per Drew, optimise for speed and rely on the
+  downstream checks; the measured true/bound ratio for non-j invariants has median 0.77 and a
+  tail to 1.03, so the 5% slack + retry is left as is (slack tuning moves <= 5% of CRT time).
+  Tests: `ecpp/test_sched.py`.  Report section 9 of `reports/shortecpp-improve/`.
 
 ## Build & test
 ```sh
@@ -215,6 +254,7 @@ make test [MAXD=1000]        # classpoly vs PARI (Tests 1/2/3); ~2.5 min
 python3 ecpp/test_dscan.py   # validate the discriminant scan vs PARI + brute force
 python3 ecpp/test_smooth.py  # validate smoothness engine vs PARI (Test A + end-to-end gate)
 python3 ecpp/test_tower.py   # class-group decomposition: classpoly CLASSPOLY_TOWER + cm_method vs PARI (~2 min)
+python3 ecpp/test_sched.py   # stopping-rule scheduler: break-even table vs reference DP, queue mechanics, simulated level
 make -C ecpp voneshot && python3 ecpp/test_voneshot.py  # C one-shot verifier vs voneshot.py (differential)
 ecpp/voneshot $(cat certs/25519.txt)   # C verifier, same CLI as voneshot.py; --bench <certfile> times it
 make -C ecpp vshort2 && python3 ecpp/test_vshort2.py  # C short-ECPP verifier (faithful + --fast) vs vshort2.py
