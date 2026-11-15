@@ -27,6 +27,7 @@ usage: shortECPP.py (p=<decimal> | c=<digits: p=nextprime(10^c)>)
                       [threads=N] [out=<file>] [tag=<name>] [B0=<dscan start>]
                       [Bmax=<dscan cap>] [maxfb=<factor-base cap>] [seed=1]
                       [v=1] [v2=1] [resume=1] [sched=auto|rule|old]
+                      [engine=auto|gmp|yafu] [yafu=<binary>]
 
 The scan's factor base is always capped: at maxfb if given (top level only),
 otherwise at fb_cap(B), which grows with the scan bound.  Its square roots are
@@ -37,6 +38,12 @@ scheduler (shortsched.py: candidates are worked in the order of their
 break-even reward and only while that is below what a fresh order from the scan
 is worth); smaller levels, and everything with sched=old, by the tiered rounds
 of ladder_rounds.  sched=rule fails if numpy is missing instead of falling back.
+
+engine: the ECM program of the stopping-rule levels.  yafu (its AVX-512 ECM,
+8 curves per call; binary from yafu= or SHORTECPP_YAFU, built with
+USE_AVX512IFMA=1) costs several times less per curve than gmp-ecm and has its
+own success table and cost table (shortsim.ENGINES); auto uses it when a binary
+is given.  The tiered rounds and P-1 always use gmp-ecm.
 """
 
 import concurrent.futures
@@ -139,7 +146,15 @@ ECM_ENV["PATH"] = (os.path.join(REPO_DIR, "classpoly_v1.0.3") + ":" + ECPP_DIR +
 
 SCHED = os.environ.get("SHORTECPP_SCHED", "auto")    # auto | rule | old (sched= argument)
 POLICY_MIN_BITS = 500             # the model behind the rule needs q well above ECM's reach
-ECM_PI = os.path.join(ECPP_DIR, "ecm_pi.json")       # measured gmp-ecm success per curve
+ENGINE = os.environ.get("SHORTECPP_ECM", "auto")     # auto | gmp | yafu (engine= argument)
+YAFU_BIN = os.environ.get("SHORTECPP_YAFU", "")      # yafu= argument
+_YAFU_CWD = None                  # yafu reads yafu.ini from its working directory: give it an empty one
+# The strip is mostly serial: 4,000 orders of 768 bits take 1.65 s on one thread,
+# 0.41 s on 8 and on 16, 0.53 s on 32; 40,000 take 2.8 s on 8 and 2.7 s on 32.  The
+# rule scheduler therefore gives it 8 threads and frees the scan's other threads
+# for ECM while it runs (on 192 cores it used to hold 50 or more for a second per
+# chunk).
+STRIP_THREADS = 8
 
 VERBOSE = 1
 CAMP_DIR = os.path.join(REPO_DIR, "work", "shortcamp")
@@ -407,33 +422,127 @@ def parse_ecm(out, nums):
     return res
 
 
+_YAFU_EXPR = re.compile(r"^(?:>> )?=== Starting work on batchfile expression #(\d+) ===")
+_YAFU_PART = re.compile(r"^(P|PRP|C)\d+ = (\d+)\s*$")
+
+
+def parse_yafu(out, nums):
+    """yafu's report for the expressions ecm(n, curves), one per input, in the
+    form parse_ecm returns: {n: (factors, cofactor, cofactor_is_prp)} for the
+    inputs it split.  yafu lists the parts it ended with (P/PRP = probable
+    prime, C = composite); the largest is taken as the cofactor, and a split is
+    kept only if the parts multiply back to the input."""
+    res = {}
+    cur, parts = None, []
+
+    def flush():
+        if cur is not None and len(parts) >= 2 and math.prod(v for (_, v) in parts) == cur:
+            k = max(range(len(parts)), key=lambda i: parts[i][1])
+            res[cur] = ([v for i, (_, v) in enumerate(parts) if i != k], parts[k][1], parts[k][0] != "C")
+    for line in out.replace("\r", "\n").splitlines():
+        m = _YAFU_EXPR.match(line)
+        if m:
+            flush()
+            k = int(m.group(1)) - 1
+            cur, parts = (nums[k] if 0 <= k < len(nums) else None), []
+            continue
+        m = _YAFU_PART.match(line)
+        if m:
+            parts.append((m.group(1), int(m.group(2))))
+    flush()
+    return res
+
+
+def yafu_cwd():
+    global _YAFU_CWD
+    if _YAFU_CWD is None:
+        import atexit
+        import tempfile
+        _YAFU_CWD = tempfile.mkdtemp(prefix="shortecpp_yafu_")
+        atexit.register(shutil.rmtree, _YAFU_CWD, True)
+    return _YAFU_CWD
+
+
+_ENGINE_OK = None
+
+
+def ecm_engine():
+    """The ECM program of the stopping-rule levels: "yafu" or "gmp".  yafu is
+    used when a binary is given and passes a self-test (a planted 31-bit factor
+    of a 450-bit number must come back, with the cofactor called prime); a
+    binary that fails it -- wrong build for this CPU, changed output format --
+    is refused with engine=yafu and replaced by gmp-ecm with engine=auto."""
+    global YAFU_BIN, _ENGINE_OK
+    if ENGINE == "gmp":
+        return "gmp"
+    if _ENGINE_OK is not None:
+        return _ENGINE_OK
+    if not YAFU_BIN and ENGINE == "yafu":
+        YAFU_BIN = shutil.which("yafu") or ""
+    why = "no yafu binary (yafu=<path> or SHORTECPP_YAFU)"
+    if YAFU_BIN and os.access(YAFU_BIN, os.X_OK):
+        f, g = 1191999629, (1 << 419) + 299          # both prime
+        try:
+            res = EcmRunner("yafu").run([f * g], 11000, 24, 120)
+        except OSError as e:
+            res, why = None, "yafu did not run: %r" % (e,)
+        if res and res.get(f * g) == ([f], g, True):
+            _ENGINE_OK = "yafu"
+            return _ENGINE_OK
+        if res is not None:
+            why = "yafu failed its self-test (%s)" % YAFU_BIN
+    if ENGINE == "yafu":
+        sys.exit("engine=yafu: " + why)
+    if YAFU_BIN:
+        log("  %s; using gmp-ecm" % why)
+    _ENGINE_OK = "gmp"
+    return _ENGINE_OK
+
+
 class EcmRunner:
-    """Runs gmp-ecm processes for one round and can stop them all at once.
+    """Runs ECM processes for one round and can stop them all at once.
 
     Each call handles a list of numbers in one process (gmp-ecm takes one input
-    per line), which keeps the launch rate down at the shallow tiers where a
-    tail needs a fraction of a second.  abort() kills every running process and
-    makes pending calls return None, so a round ends as soon as a winner is in
-    hand instead of when its slowest tail finishes."""
+    per line, yafu one expression per line), which keeps the launch rate down at
+    the shallow tiers where a tail needs a fraction of a second.  abort() kills
+    every running process and makes pending calls return None, so a round ends
+    as soon as a winner is in hand instead of when its slowest tail finishes.
 
-    def __init__(self):
+    engine "yafu": yafu's AVX-512 ECM, 8 curves at a time (curves is rounded up
+    to a multiple of 8 by yafu), FFT stage 2 with a B2 that depends on B1 only
+    (-avxecm_stg2 1), APR-CL proofs of prime cofactors switched off (-aprcl_p 1:
+    two seconds each at 1000 bits, and the prover tests them itself).  The curves
+    are seeded from the clock, the process id and the system's random source, so
+    processes running at once use different curves.  P-1 always goes to gmp-ecm."""
+
+    def __init__(self, engine="gmp"):
         self.lock = threading.Lock()
         self.procs = set()
         self.stopped = False
+        self.engine = engine
 
     def run(self, nums, b1, curves, timeout, method="ecm"):
         if self.stopped:
             return None
-        cmd = [ECM_BIN] + (["-pm1"] if method == "pm1" else []) + ["-c", str(curves), str(b1)]
+        yafu = self.engine == "yafu" and method == "ecm"
+        if yafu:
+            cmd = [YAFU_BIN, "-B1ecm", str(b1), "-threads", "1", "-avxecm_stg2", "1", "-aprcl_p", "1",
+                   "-logfile", os.devnull, "-session", os.devnull]
+            inp = "".join("ecm(%d,%d)\n" % (n, curves) for n in nums)
+            cwd = yafu_cwd()
+        else:
+            cmd = [ECM_BIN] + (["-pm1"] if method == "pm1" else []) + ["-c", str(curves), str(b1)]
+            inp = "\n".join(str(n) for n in nums) + "\n"
+            cwd = None
         p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
-                             stderr=subprocess.DEVNULL, text=True, env=ECM_ENV)
+                             stderr=subprocess.DEVNULL, text=True, env=ECM_ENV, cwd=cwd)
         with self.lock:
             if self.stopped:
                 p.kill()
             else:
                 self.procs.add(p)
         try:
-            out, _ = p.communicate("\n".join(str(n) for n in nums) + "\n", timeout=timeout)
+            out, _ = p.communicate(inp, timeout=timeout)
         except subprocess.TimeoutExpired:
             p.kill()
             out, _ = p.communicate()          # keep whatever it had finished
@@ -442,7 +551,7 @@ class EcmRunner:
                 self.procs.discard(p)
         if self.stopped:
             return None
-        return parse_ecm(out, nums)
+        return parse_yafu(out, nums) if yafu else parse_ecm(out, nums)
 
     def abort(self):
         with self.lock:
@@ -1109,14 +1218,16 @@ def use_rule(nb):
     return _HAVE_RULE
 
 
-def ecm_machine_factor(nb, threads):
-    """Seconds per gmp-ecm curve here, with `threads` processes at once, relative
-    to shortsim.SEC1030_LOADED (a c8a.48xlarge with every core busy).  Measured
-    once per run: two curves at B1 = 50000 on a number of nb bits with no factor
-    in reach, one process per thread."""
-    if threads in _MACHINE:
-        return _MACHINE[threads]
+def ecm_machine_factor(nb, threads, engine="gmp"):
+    """Seconds per ECM curve here, with `threads` processes at once, relative to
+    the engine's table in shortsim.ENGINES (a c8a.48xlarge with every core
+    busy).  Measured once per run: two curves (yafu: one batch of 8) at
+    B1 = 50000 on a number of nb bits with no factor in reach, one process per
+    thread."""
+    if (threads, engine) in _MACHINE:
+        return _MACHINE[(threads, engine)]
     import shortsim as ss
+    prof = ss.ENGINES[engine]
     rng = random.Random(12345)
 
     def prime(bits):
@@ -1125,19 +1236,19 @@ def ecm_machine_factor(nb, threads):
             if is_prp(n, 8):
                 return n
     N = prime(nb // 2) * prime(nb - nb // 2)
-    b1, curves = 50000, 2
+    b1, curves = 50000, 2 * prof["quantum"]
 
     def one(_):
         t = time.time()
-        EcmRunner().run([N], b1, curves, 600)
+        EcmRunner(engine).run([N], b1, curves, 600)
         return time.time() - t
     with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as ex:
         ts = sorted(ex.map(one, range(threads)))
     per = ts[len(ts) // 2] / curves
-    f = per / (ss.SEC1030_LOADED[b1] * (nb / 1030.0) ** 1.5)
-    _MACHINE[threads] = f = min(20.0, max(0.2, f))
-    log("  gmp-ecm here: %.3f s per curve at B1=%d on %d bits with %d processes -> cost factor %.2f"
-        % (per, b1, nb, threads, f))
+    f = per / ss.make_cost(prof["sec"], prof["exponent"], prof["step"], scalar=True)(b1, nb)
+    _MACHINE[(threads, engine)] = f = min(20.0, max(0.2, f))
+    log("  %s here: %.4f s per curve at B1=%d on %d bits with %d processes -> cost factor %.2f"
+        % ("yafu" if engine == "yafu" else "gmp-ecm", per, b1, nb, threads, f))
     return f
 
 
@@ -1148,8 +1259,9 @@ class RuleDriver:
     what came back."""
 
     def __init__(self, p, nb, L, threads, stats, B0, Bmax, fixed_cap, roots, nsm, small_primes,
-                 winners, process_result, settle_tail, try_build, grow=2.0):
+                 winners, process_result, settle_tail, try_build, grow=2.0, engine="gmp"):
         self.p, self.nb, self.L, self.threads, self.stats = p, nb, L, threads, stats
+        self.engine = engine
         self.small_primes = small_primes
         self.ecm_seen = 0.0
         self.Bmax, self.fixed_cap, self.roots, self.nsm, self.grow = Bmax, fixed_cap, roots, nsm, grow
@@ -1158,7 +1270,7 @@ class RuleDriver:
         self.t0 = time.time()
         self.q = queue.Queue()
         self.ex = concurrent.futures.ThreadPoolExecutor(max_workers=threads + 4)
-        self.runner = EcmRunner()
+        self.runner = EcmRunner(engine)
         self.procs = set()
         self.epoch = 0
         self.B, self.Bnext = 0, min(B0, Bmax)
@@ -1199,9 +1311,12 @@ class RuleDriver:
                                  self.roots, reg=self.procs)
                 t1 = time.time()
                 Ns = sorted({N for (_, t, _) in recs for N in (self.p + 1 - t, self.p + 1 + t) if N % 4 == 0})
-                strip = smooth_strip(Ns, ns, self.nsm, reg=self.procs)
+                k = min(ns, STRIP_THREADS)
+                if k < ns:
+                    self.q.put((ep, ("scanthreads", k)))
+                strip = smooth_strip(Ns, k, self.nsm, reg=self.procs)
                 t2 = time.time()
-                self.q.put((ep, ("orders", (lo, hi, fbc, recs, strip, (t1 - t0) * ns, (t2 - t1) * ns, ns))))
+                self.q.put((ep, ("orders", (lo, hi, fbc, recs, strip, (t1 - t0) * ns, (t2 - t1) * k, ns))))
             except Exception as e:            # killed by abort(), or a real failure
                 self.q.put((ep, ("scanfail", repr(e))))
         threading.Thread(target=scan, daemon=True).start()
@@ -1261,7 +1376,7 @@ class RuleDriver:
             try:
                 res = runner.run(tails, u.b1, u.n, tmo, u.method)
             except Exception as e:
-                log("    gmp-ecm unit failed: %r" % (e,))
+                log("    ECM unit failed: %r" % (e,))
                 res = {}
             if res is not None:
                 self.q.put((ep, ("ecm", u, (tails, res, time.time() - t))))
@@ -1294,7 +1409,7 @@ class RuleDriver:
             found, cof, cprp = res[t]
             self.nsplit += 1
             self.process_result(c, found, cof)
-            if c.tail == cof:                         # gmp-ecm already tested this cofactor
+            if c.tail == cof:                         # the ECM program already tested this cofactor
                 self.settle_tail(c, cprp)
             elif not c.dead and c.tail > 1:           # the unit ran on a multiple of the present tail
                 self.settle_tail(c, pow(2, c.tail - 1, c.tail) == 1)
@@ -1307,7 +1422,7 @@ class RuleDriver:
     def abort(self):
         self.epoch += 1
         self.runner.abort()
-        self.runner = EcmRunner()
+        self.runner = EcmRunner(self.engine)
         for pr in list(self.procs):
             try:
                 pr.kill()
@@ -1318,11 +1433,13 @@ class RuleDriver:
         self.stats["ecm_s"] = self.stats.get("ecm_s", 0.0) + st["ecm_s"] - self.ecm_seen
         self.ecm_seen = st["ecm_s"]
         ratios = " ".join("%g:%.2f" % (b1, self.act[b1] / self.est[b1]) for b1 in sorted(self.act) if self.est[b1] > 0)
+        eb = st.get("expwin_b1") or {}
         log("    search: %d orders, scan %.0f + ecm %.0f core-s (%.0f above the rule), %.1fs wall, %d units, "
             "%d splits, rule R = %.0f core-s; the model expected %.2f wins from this work; "
-            "measured/modelled ECM cost by B1: %s"
+            "measured/modelled ECM cost by B1: %s; wins expected by B1: %s; won at B1=%s"
             % (st["orders"], st["scan_s"], st["ecm_s"], st.get("over_s", 0.0), st["wall"], st["units"],
-               self.nsplit, st["R"], st["expwin"], ratios))
+               self.nsplit, st["R"], st["expwin"], ratios,
+               " ".join("%g:%.3f" % (b1, eb[b1]) for b1 in sorted(eb)), st.get("win_b1")))
         return self.try_build()
 
     def close(self):
@@ -1335,26 +1452,25 @@ def run_rule_level(p, nb, L, n2, small_primes, threads, stats, B0, Bmax_given, f
     import shortsim as ss
     import shortsched as sd
     lam = math.log2(L)
-    f = ecm_machine_factor(nb, threads)
+    engine = ecm_engine()
+    f = ecm_machine_factor(nb, threads, engine)
     # the scan is bounded by the rule (its price), not by a budget: 1e13 is the
     # range dscan's 64-bit products and a factor base of 1e8 primes are good for
     Bmax = Bmax_given if Bmax_given else 10 ** 13
     nsm = V2_BCAP if V2_BCAP else n2          # fillers use primes up to B only in the revised format
     drv = RuleDriver(p, nb, L, threads, stats, B0, Bmax, fixed_cap, roots, nsm, small_primes,
-                     winners, process_result, settle_tail, try_build)
+                     winners, process_result, settle_tail, try_build, engine=engine)
     try:
         t0 = time.time()
         ss.set_grid(nb)
-        sec = {b1: v * f for b1, v in ss.SEC1030_LOADED.items()}
-        tiers = sd.default_tiers()
-        lad = ss.Ladder(tiers, ss.EcmModel(ECM_PI), y0bits=Y0.bit_length() - 1, cost=ss.make_cost(sec))
+        em, sec, mcost, quantum = ss.engine_model(engine, f, ECPP_DIR)
+        cost = ss.engine_model(engine, f, ECPP_DIR, scalar=True)[2]
+        tiers = sd.default_tiers(engine)
+        lad = ss.Ladder(tiers, em, y0bits=Y0.bit_length() - 1, cost=mcost)
         tab = ss.IndexTable(lad, lam, threads=min(8, threads))
         log("  level %d bits: rule table in %.1fs (%d sweeps, rewards %.0f..%.0f core-s)"
             % (nb, time.time() - t0, len(tiers), tab.rgrid[0], tab.rgrid[-1]))
-
-        def cost(b1, tb):
-            return sec[b1] * (max(tb, 64) / 1030.0) ** 1.5
-        return sd.level_loop(drv, tab, tiers, cost)
+        return sd.level_loop(drv, tab, tiers, cost, {"quantum": quantum})
     finally:
         drv.close()
 
@@ -1550,6 +1666,11 @@ def main():
     if "sched" in args:
         global SCHED
         SCHED = args["sched"]
+    global ENGINE, YAFU_BIN
+    ENGINE = args.get("engine", ENGINE)
+    YAFU_BIN = args.get("yafu", YAFU_BIN)
+    if ENGINE not in ("auto", "gmp", "yafu"):
+        sys.exit("engine must be auto, gmp or yafu")
     threads = int(args.get("threads", str(os.cpu_count())))
     seed = int(args.get("seed", "1"))
     B0 = int(float(args["B0"])) if "B0" in args else None

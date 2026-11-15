@@ -27,12 +27,23 @@ candidates that the sequential rule would never have touched.  A larger B1 is
 not started before the smaller ones have reported.
 
 Sched holds the queues and knows nothing about processes; level_loop runs a
-level against a driver, which is either the prover (shortECPP.py: gmp-ecm,
-dscan) or SimDriver below (virtual time, tails drawn from the model), so the
-same code is exercised by simulation and by the real thing.
+level against a driver, which is either the prover (shortECPP.py: gmp-ecm or
+yafu, dscan) or SimDriver below (virtual time, tails drawn from the model), so
+the same code is exercised by simulation and by the real thing.
+
+The ECM program enters in three places only: the cost of a curve, the success
+table behind the break-even table (shortsim.ENGINES), and the number of curves
+it runs at once (quantum: 1 for gmp-ecm, 8 for yafu's AVX-512 ECM), of which
+every unit is a multiple.
+
+The log adds up the wins the model expects from the units handed out, in total
+and by B1, and records the B1 of the unit that completed the first winner: at a
+level's first win the total is exponentially distributed with mean 1 if the
+model's win rates are right.
 
 usage (simulation): shortsched.py sim <pool.pkl> [threads=192] [runs=200]
-                        [seed=1] [bits=769] [key=value ...]
+                        [seed=1] [bits=769] [engine=gmp|yafu] [cost=1.0]
+                        [tiers=B1xCURVESxSWEEPS,...] [key=value ...]
 """
 
 import bisect
@@ -68,10 +79,15 @@ def sched_init(c, cls, tb):
 
 class Sched:
     def __init__(self, tab, tiers, threads, cost, unit_frac=0.05, unit_min=1.5, chunk_secs=1.5,
-                 chunk_max=32):
+                 chunk_max=32, quantum=1):
         """tab: shortsim.IndexTable; tiers: [(method, B1, curves)] as given to the
-        Ladder behind tab; cost(B1, tail bits): core-seconds per curve."""
+        Ladder behind tab; cost(B1, tail bits): core-seconds per curve; quantum:
+        curves the engine runs at once (8 for yafu's AVX-512 ECM), every unit is a
+        multiple of it."""
         self.tab, self.tiers, self.threads, self.cost = tab, list(tiers), threads, cost
+        self.quantum = quantum
+        if any(c % quantum for (_, _, c) in self.tiers):
+            raise ValueError("every sweep must be a multiple of %d curves" % quantum)
         self.unit_frac, self.unit_min = unit_frac, unit_min
         self.chunk_secs, self.chunk_max = chunk_secs, chunk_max
         self.stages = []                    # (first sweep, [cumulative curve counts of its sweeps])
@@ -85,6 +101,7 @@ class Sched:
         self.unit_secs = unit_min
         self.nabandoned = 0
         self.expwin = 0.0                   # wins the model expects from the units handed out
+        self.expwin_b1 = {}                 # ... by B1
 
     def set_reward(self, R):
         """Units are kept short against the time the machine needs for one win, so
@@ -163,10 +180,12 @@ class Sched:
                     est += self.cost(b1, e[3].tb) * left
                 n = left
             else:
-                n = max(1, min(left, int(self.unit_secs / e1)))
+                q = self.quantum
+                n = max(q, min(left, q * int(self.unit_secs / (q * e1))))
                 cands, est = [c], e1 * n
             pw = n / float(self.tiers[bj][2]) * sum(self.tab.pwin(x.cls, bj, x.tb) for x in cands)
             self.expwin += pw
+            self.expwin_b1[b1] = self.expwin_b1.get(b1, 0.0) + pw
             for x in cands:
                 x.sent += n
                 x.infl += 1
@@ -190,6 +209,7 @@ class Sched:
     def cancel(self, u):
         """u was killed before it reported."""
         self.expwin -= u.pw
+        self.expwin_b1[u.b1] = self.expwin_b1.get(u.b1, 0.0) - u.pw
         for c in u.cands:
             c.infl -= 1
             c.sent -= u.n
@@ -229,6 +249,7 @@ def level_loop(drv, tab, tiers, cost, par=None):
                       chunk, or None when the scan cannot go further
       start_scan(ns), start_unit(unit)
       wait(timeout) -> list of events ("orders", payload) / ("ecm", unit, payload)
+                       / ("scanthreads", k): the running scan now uses only k threads
       take_orders(payload) -> (fresh composite candidates with sched_init done,
                                number of orders bought, core-seconds they cost)
       apply(unit, payload): update tails, mark resolved candidates dead, note wins
@@ -241,7 +262,7 @@ def level_loop(drv, tab, tiers, cost, par=None):
     share_lo, share_hi = par.get("share_lo", 0.15), par.get("share_hi", 0.6)
     tick = par.get("tick", 10.0)
     sch = Sched(tab, tiers, drv.threads, cost, unit_frac=par.get("unit_frac", 0.05),
-                unit_min=par.get("unit_min", 1.5))
+                unit_min=par.get("unit_min", 1.5), quantum=int(par.get("quantum", 1)))
     H = np.zeros((tab.cmax + 1, ss.NB))
     K = 0                  # orders bought
     spent_scan = 0.0       # core-seconds
@@ -254,6 +275,7 @@ def level_loop(drv, tab, tiers, cost, par=None):
     uid = 0
     t0 = drv.now()
     tlog = t0
+    win_b1 = None          # B1 of the unit whose report completed the first winner (0: won at intake)
     blog = (0.0, -1.0)     # (backlog, time it was computed)
     bpass = 0              # loop passes since
     nunits = 0
@@ -319,8 +341,11 @@ def level_loop(drv, tab, tiers, cost, par=None):
             scan = drv.threads
         # ---- events
         for ev in drv.wait(tick):
+            had = drv.has_winner()
             if ev[0] == "orders":
                 cands, n, cst = drv.take_orders(ev[1])
+                if not had and drv.has_winner():
+                    win_b1 = 0
                 scan = None
                 K += n
                 spent_scan += cst
@@ -330,9 +355,14 @@ def level_loop(drv, tab, tiers, cost, par=None):
                 F, E = tab.fresh(H)
                 Fk, Ek = F / K, E / K
                 reprice()
+            elif ev[0] == "scanthreads":
+                if scan is not None:        # the rest of the scan (the strip) needs fewer threads
+                    scan = min(scan, ev[1])
             else:
                 u = ev[1]
                 drv.apply(u, ev[2])
+                if not had and drv.has_winner():
+                    win_b1 = u.b1
                 spent_ecm += drv.now() - u.t0
                 sch.finished(u)
                 running.pop(u.uid, None)
@@ -345,9 +375,10 @@ def level_loop(drv, tab, tiers, cost, par=None):
             scan = None
             res = drv.build({"orders": K, "scan_s": spent_scan, "ecm_s": spent_ecm,
                              "wall": drv.now() - t0, "units": nunits, "R": R, "expwin": sch.expwin,
-                             "over_s": over})
+                             "over_s": over, "expwin_b1": dict(sch.expwin_b1), "win_b1": win_b1})
             if res is not None:
                 return res
+            win_b1 = None
         now = drv.now()
         if now - tlog >= tick and K:
             tlog = now
@@ -499,24 +530,33 @@ def sim_main(argv):
     scale = float(kv.get("cost", 1.0))
     ss.set_grid(bits)
     here = os.path.dirname(os.path.abspath(__file__))
-    em = ss.EcmModel(os.path.join(here, "ecm_pi.json"))
-    sec = {b1: v * scale for b1, v in ss.SEC1030_LOADED.items()}
-    cost = ss.make_cost(sec)
-    tiers = default_tiers()
+    engine = kv.get("engine", "gmp")
+    em, sec, cost, quantum = ss.engine_model(engine, scale, here)
+    tiers = default_tiers(engine)
+    if "tiers" in kv:                         # tiers=B1xCURVESxSWEEPS,...
+        tiers = []
+        for t in kv["tiers"].split(","):
+            b1, c, k = t.split("x")
+            tiers += [("ecm", int(float(b1)), int(c))] * int(k)
     lad = ss.Ladder(tiers, em, y0bits=26, cost=cost)
     t0 = time.time()
     tab = ss.IndexTable(lad, pool.lam, threads=8)
     print("table built in %.1fs (%d rewards, %d sweeps)" % (time.time() - t0, len(tab.rgrid), len(tiers)))
     par = {k: float(kv[k]) for k in ("relax", "unit_frac", "unit_min", "share_lo", "share_hi", "bpass") if k in kv}
+    par["quantum"] = quantum
     dk = {k: float(kv[k]) for k in ("a", "rate", "strip", "B0", "g", "Bmax", "noise") if k in kv}
     rows = []
     t0 = time.time()
+    won, exp_b1 = {}, {}
     for k in range(runs):
         rng = np.random.default_rng(seed * 100003 + k)
         drv = SimDriver(pool, lad, tab, threads, rng, cost, verbose=(kv.get("v") == "1" and k == 0), **dk)
         st = level_loop(drv, tab, tiers, cost, par)
         rows.append((st["wall"], st["orders"], st["scan_s"], st["ecm_s"], st["units"], st["R"], st["expwin"],
                      st["over_s"]))
+        won[st["win_b1"]] = won.get(st["win_b1"], 0) + 1
+        for b1, v in st["expwin_b1"].items():
+            exp_b1[b1] = exp_b1.get(b1, 0.0) + v
     a = np.array(rows)
     busy = a[:, 2] + a[:, 3]
     print("%d levels simulated in %.0fs, %d threads" % (runs, time.time() - t0, threads))
@@ -530,13 +570,21 @@ def sim_main(argv):
           % a[:, 6].mean())
     print("  ECM handed out above the rule to cores that would have idled: %.0f%% of the ECM work"
           % (100 * a[:, 7].sum() / a[:, 3].sum()))
+    print("  first wins by the B1 of the unit that completed them (0 = at intake), and the wins the model expected there:")
+    print("    " + "  ".join("%g: %d / %.1f" % (b1, won.get(b1, 0), exp_b1.get(b1, 0.0))
+                             for b1 in sorted(set(won) | set(exp_b1), key=lambda x: x or 0)))
     return a
 
 
-def default_tiers():
-    """The ladder of sweeps the rule chooses from: (method, B1, curves per sweep)."""
-    spec = [(2000, 12, 1), (11000, 20, 1), (50000, 16, 2), (250000, 12, 4),
-            (1000000, 12, 6), (3000000, 12, 8), (10000000, 12, 8), (30000000, 12, 4)]
+def default_tiers(engine="gmp"):
+    """The ladder of sweeps the rule chooses from: (method, B1, curves per sweep).
+    yafu runs 8 curves at a time, so its sweeps are multiples of 8."""
+    if engine == "yafu":
+        spec = [(2000, 16, 1), (11000, 24, 1), (50000, 16, 2), (250000, 16, 3),
+                (1000000, 16, 5), (3000000, 16, 6), (10000000, 16, 6), (30000000, 16, 4)]
+    else:
+        spec = [(2000, 12, 1), (11000, 20, 1), (50000, 16, 2), (250000, 12, 4),
+                (1000000, 12, 6), (3000000, 12, 8), (10000000, 12, 8), (30000000, 12, 4)]
     tiers = []
     for (b1, c, k) in spec:
         tiers += [("ecm", b1, c)] * k

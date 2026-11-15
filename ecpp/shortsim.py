@@ -121,6 +121,10 @@ B2_DEFAULT = {2000: 147396, 11000: 1873422, 50000: 12746592, 250000: 128992510,
               30000000: 144289975846}
 # gmp-ecm P-1 default stage-2 bounds
 B2_PM1 = {500000: 1.3e9, 10000000: 1.0e11}
+# yafu 3.1.9 AVX-ECM with -avxecm_stg2 1 (FFT stage 2; its B2 depends on B1 only)
+B2_YAFU = {2000: 132359, 11000: 1446869, 50000: 14241149, 250000: 156787994,
+           1000000: 966061634, 3000000: 4542893354, 10000000: 25952321849,
+           30000000: 127773807524}
 
 
 def ecm_pi_theory(bits, b1, b2=None, lndelta=math.log(24.0)):
@@ -137,9 +141,10 @@ class EcmModel:
     """pi(b) per tier: measured cells where the calibration has enough hits,
     the theoretical curve (rescaled to join the last good cell) beyond them."""
 
-    def __init__(self, calib=None, lndelta=math.log(24.0)):
+    def __init__(self, calib=None, lndelta=math.log(24.0), b2=None):
         self.cells = {}
         self.lndelta = lndelta
+        self.b2 = b2 or B2_DEFAULT            # the engine's stage-2 bound per B1
         if calib and os.path.exists(calib):
             for c in json.load(open(calib)):
                 self.cells.setdefault((c["method"], c["b1"]), []).append(c)
@@ -149,14 +154,14 @@ class EcmModel:
         if method == "pm1":
             th = ecm_pi_theory(bits, b1, B2_PM1.get(b1, 100.0 * b1), math.log(2.0))
         else:
-            th = ecm_pi_theory(bits, b1, None, self.lndelta)
+            th = ecm_pi_theory(bits, b1, self.b2.get(b1), self.lndelta)
         cells = sorted(self.cells.get((method, b1), []), key=lambda c: c["bits"])
         good = [c for c in cells if c["hits"] >= 8 and c["curves"] > 0]
         if len(good) < 3:
             return th
         xb = np.array([c["bits"] for c in good], dtype=float)
         pm = np.array([min(c["hits"] / c["curves"], 0.999) for c in good])
-        th_at = ecm_pi_theory(xb, b1, B2_PM1.get(b1) if method == "pm1" else None,
+        th_at = ecm_pi_theory(xb, b1, B2_PM1.get(b1) if method == "pm1" else self.b2.get(b1),
                               math.log(2.0) if method == "pm1" else self.lndelta)
         # work with the log of the ratio to theory: smooth, and extrapolates sensibly
         lr = np.log(pm / np.maximum(th_at, 1e-300))
@@ -241,10 +246,30 @@ class Ladder:
 
 
 # --------------------------------------------------------------- cost model
-def make_cost(sec1030, exponent=1.5):
-    """sec1030: {B1: core-seconds per gmp-ecm curve on a 1030-bit modulus}."""
+def make_cost(sec1030, exponent=1.5, step=None, scalar=False):
+    """Cost of a curve as a function of (B1, size of the number in bits).
+    sec1030: {B1: core-seconds per curve on a 1030-bit modulus}; exponent: its
+    growth with the size, a number or {B1: number, None: default}; step =
+    (bits, factor): numbers above `bits` cost `factor` times more.  scalar=True
+    gives a plain-float version for the scheduler's inner loop (sizes below 64
+    bits are costed as 64)."""
+    if isinstance(exponent, dict):
+        expo = {b1: exponent.get(b1, exponent[None]) for b1 in sec1030}
+    else:
+        expo = {b1: exponent for b1 in sec1030}
+    if scalar:
+        sb, sf = step if step else (float("inf"), 1.0)
+
+        def cost1(b1, tbits):
+            t = tbits if tbits > 64 else 64
+            c = sec1030[b1] * (t / 1030.0) ** expo[b1]
+            return c * sf if t > sb else c
+        return cost1
+
     def cost(b1, tbits):
-        return sec1030[b1] * (np.asarray(tbits, dtype=float) / 1030.0) ** exponent
+        t = np.asarray(tbits, dtype=float)
+        c = sec1030[b1] * (t / 1030.0) ** expo[b1]
+        return c * np.where(t > step[0], step[1], 1.0) if step else c
     return cost
 
 
@@ -259,6 +284,40 @@ SEC1030_LOADED = {2000: 0.0134, 11000: 0.064, 50000: 0.263, 250000: 1.215,
 # curves): includes launch overhead and idle cores.
 SEC1030_CAMPAIGN = {2000: 0.048, 11000: 0.101, 50000: 0.336, 250000: 1.36,
                     1000000: 4.68, 3000000: 12.0}
+
+# yafu 3.1.9 (AVX-ECM, built with USE_AVX512IFMA=1, run with -avxecm_stg2 1):
+# core-seconds per curve on a 1030-bit modulus, a process running lists of
+# numbers with 16 or 24 curves each as the prover does (start-up amortised).
+# 11000 to 3e6 were measured on the c8a under full load (data/yafu_cost.json);
+# 2000, 1e7 and 3e7 on the 16-core box with all 32 threads busy
+# (data/yafu_cost2_local.json), where the 11000 to 250000 figures are the
+# c8a's within 3% and the deeper ones 14-19% higher, and are scaled accordingly.
+SEC1030_YAFU = {2000: 0.0036, 11000: 0.0148, 50000: 0.0599, 250000: 0.302,
+                1000000: 0.950, 3000000: 2.69, 10000000: 9.9, 30000000: 36.0}
+
+# What the scheduler needs to know about an ECM program: cost per curve at 1030
+# bits and its growth with the size of the number, the measured success table,
+# the stage-2 bounds behind it, and how many curves it runs at once.  yafu's
+# cost grows like bits^1.36 from 260 to 1030 bits (less at small B1, where the
+# set-up per number counts) and is 12-16% above that law beyond 1040 bits, where
+# its arithmetic changes (20 words of 52 bits).
+ENGINES = {
+    "gmp": {"sec": SEC1030_LOADED, "exponent": 1.5, "step": None, "pi": "ecm_pi.json", "b2": B2_DEFAULT,
+            "quantum": 1},
+    "yafu": {"sec": SEC1030_YAFU, "exponent": {None: 1.36, 2000: 0.97, 11000: 1.28}, "step": (1040, 1.14),
+             "pi": "ecm_pi_yafu.json", "b2": B2_YAFU, "quantum": 8},
+}
+
+
+def engine_model(name, scale=1.0, pidir=None, scalar=False):
+    """(EcmModel, {B1: core-seconds per curve at 1030 bits}, cost(B1, tail bits),
+    curves per batch) for the ECM engine `name`; scale multiplies its costs.
+    scalar=True: the cost function takes and returns plain floats."""
+    e = ENGINES[name]
+    pidir = pidir or os.path.dirname(os.path.abspath(__file__))
+    sec = {b1: v * scale for b1, v in e["sec"].items()}
+    return (EcmModel(os.path.join(pidir, e["pi"]), b2=e["b2"]), sec,
+            make_cost(sec, e["exponent"], e["step"], scalar), e["quantum"])
 
 
 # --------------------------------------------------------------- candidates

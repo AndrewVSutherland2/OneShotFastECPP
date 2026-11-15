@@ -88,23 +88,33 @@ discarded cofactor is never factored, so each level only needs its curve order t
 "√-semismooth": one prime just below √p, everything else ECM-findable.
 
 Per level it runs this repository's toolchain end to end: `dscan` (Cornacchia discriminant
-scan; the `maxfb=` option bounds the factor base so 10⁵-candidate pools stay affordable at
-1000+ bits), `smoothtest` (batched Bernstein remainder trees against a cached primorial),
-staged `gmp-ecm` peeling under a Bayesian index scheduler (coverage ~ln s, per-curve failure
-discounts, round-robin sub-sweeps, an economic widen-vs-deepen trigger), then `classpoly`/
-`cm_method` for the winner's curve (2-volcano floor descent when p ≡ 3 mod 4 requires it) and
-`short.gp` for the levels below 135 bits.  Every chain is verified by `vsmallECPP.py` plus an
-independent PARI `ellmul` cross-check before it is written.
+scan with a capped factor base), `smoothtest` (batched Bernstein remainder trees against a
+cached primorial), ECM on the rough tails of the candidate orders, then `classpoly`/
+`cm_method` for the winner's curve (class-group decomposition of the class polynomial,
+volcano-floor descent where the exact order needs it) and `short.gp` for the levels below
+135 bits.  Every chain is verified by the format's verifier plus an independent PARI `ellmul`
+cross-check before it is written.
+
+Which tail gets which curves is decided, for levels of 500 bits and more, by a stopping rule
+(`ecpp/shortsched.py`, model in `ecpp/shortsim.py`): every candidate state has a break-even
+reward, candidates are worked in that order and only while it is below what a fresh order
+from the scan is worth at the scan's current price.  Smaller levels use tiered rounds.  The
+ECM program is gmp-ecm, or yafu's AVX-512 ECM (`engine=yafu yafu=<binary>`, about four times
+cheaper per curve; it has its own cost and success tables).  See
+`reports/shortecpp-improve/` for the model, the measurements and the runs behind this.
 
 ```sh
 . ./setenv.sh
 python3 ecpp/shortECPP.py c=150 threads=32          # nextprime(10^150)
 python3 ecpp/shortECPP.py p=<decimal> tag=myprime   # any (probable) prime
-# knobs: B0=/Bmax= (discriminant-scan schedule), maxfb= (factor-base cap),
+# knobs: v2=1 (the revised format), sched=auto|rule|old, engine=auto|gmp|yafu, yafu=<binary>,
+#        B0=/Bmax= (discriminant-scan range), maxfb= (factor-base cap),
 #        resume=1 (replay the winner journal after a crash/preemption), out=<file>
 ```
 
-Needs a `gmp-ecm` binary (`CHAIN_ECM` env or `ecm` on PATH).  With it, this prover produced
+Needs a `gmp-ecm` binary (`CHAIN_ECM` env or `ecm` on PATH) and, for the stopping rule,
+numpy.  On one 192-core machine a 768-bit prime takes about 45 seconds and a 1030-bit prime
+3 to 20 minutes (gmp-ecm; November 2026).  With its first scheduler, in August 2026, this prover produced
 the ShortPrimalityProofs table entries for nextprime(10^c), c = 210, …, 310 — the largest a
 1030-bit prime exceeding Bernstein's 1025-bit AKS example — in one day on spot instances
 (≈3,500 CPU core-hours; see `reports/short-ecpp-records/` for the full campaign report and

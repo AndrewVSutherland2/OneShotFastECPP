@@ -12,13 +12,18 @@
      is an initial segment of total length log2 s;
   D  queue mechanics on a toy ladder with a hand-made table: order of work,
      the stopping rule, chunking, sweeps of one B1 in flight together but no
-     larger B1 before the smaller has reported, cancel;
+     larger B1 before the smaller has reported, cancel; with an engine that
+     runs 8 curves at a time (yafu) every unit is a multiple of 8;
   E  simulated levels end to end (virtual time, tails from the model): they
      terminate with a win, the work done is of the size the model predicts and
      the cores are kept busy; a winner whose build fails resumes the search; a
-     scan that cannot go further ends in a win or a clean failure.
+     scan that cannot go further ends in a win or a clean failure;
+  F  the yafu engine: its report is parsed into the same splits as gmp-ecm's
+     (on recorded output, and against gmp-ecm on planted factors when a yafu
+     binary is given in SHORTECPP_YAFU), and a simulated level with its tiers,
+     costs and success table ends with a win.
 
-usage: test_sched.py            (about 20 s)
+usage: test_sched.py            (about 30 s)
 """
 import math
 import os
@@ -178,6 +183,28 @@ def test_queue():
     d = C(3)
     sch2.push(d)
     check("a state no reward makes worthwhile is abandoned", d.dead and sch2.nabandoned == 1)
+    # an engine that runs 8 curves at a time
+    t8 = [("ecm", 2000, 16), ("ecm", 50000, 16), ("ecm", 50000, 16), ("ecm", 1000000, 32)]
+    sch3 = sd.Sched(FakeTable(), t8, 8, lambda b1, tb: secs[b1], unit_min=1.5, chunk_secs=1.5, quantum=8)
+    e = [C(9), C(9)]
+    for c in e:
+        sch3.push(c)
+    seen = []
+    for _ in range(40):
+        us = sch3.take(8, 1e9)
+        if not us:
+            break
+        seen += us
+        for x in us:
+            sch3.finished(x)
+    check("with quantum 8 every unit is a multiple of 8 curves", bool(seen) and all(x.n % 8 == 0 and x.n >= 8 for x in seen)
+          and all(c.st == 3 for c in e), "%d units, sizes %s" % (len(seen), sorted({x.n for x in seen})))
+    try:
+        sd.Sched(FakeTable(), tiers, 8, lambda b1, tb: 1.0, quantum=8)
+        bad = False
+    except ValueError:
+        bad = True
+    check("... and sweeps that are not are refused", bad)
 
 
 def test_sim(tiers, lad, cost, tab, lam):
@@ -244,11 +271,129 @@ def test_sim(tiers, lad, cost, tab, lam):
           and "exhausted" in ends, " ".join(ends))
 
 
+YAFU_SAMPLE = """
+>> === Starting work on batchfile expression #1 ===
+ecm(%(n1)d,24)
+=============================================
+ecm: 8/24 curves on C312 @ B1=11000, B2=1446869\recm: 8/24 curves on C312 @ B1=11000, B2=1446869
+ecm: process took 0.1561 seconds.
+ecm: found c22 factor = %(f23)d
+ecm: found prp11 factor = %(f1)d
+
+***factors found***
+C22 = %(f23)d
+PRP11 = %(f1)d
+C280 = %(g)d
+
+ans = %(g)d
+
+=== Starting work on batchfile expression #2 ===
+ecm(%(n2)d,16)
+***factors found***
+C300 = %(n2)d
+
+ans = %(n2)d
+
+=== Starting work on batchfile expression #3 ===
+ecm(%(n3)d,16)
+ecm: found prp10 factor = %(f1)d
+ecm: found prp297 (co)factor = %(h)d
+
+***factors found***
+PRP10 = %(f1)d
+PRP297 = %(h)d
+
+ans = 1
+
+=== Starting work on batchfile expression #4 ===
+ecm(%(n4)d,16)
+***factors found***
+PRP10 = %(f1)d
+C200 = %(g)d
+eof; done processing batchfile
+"""
+
+
+def test_yafu(tiers_gmp, lam):
+    print("F: the yafu engine")
+    import shortECPP as sp
+    f1, f2, f3 = 20699021657, 1546280705083, 2920621559
+    g = (2 ** 521 - 1) * (2 ** 607 - 1)
+    h = 2 ** 607 - 1
+    v = {"f1": f1, "f23": f2 * f3, "g": g, "h": h, "n1": f1 * f2 * f3 * g, "n2": g * 3 + 2, "n3": f1 * h,
+         "n4": f1 * g * 7}
+    nums = [v["n1"], v["n2"], v["n3"], v["n4"]]
+    res = sp.parse_yafu(YAFU_SAMPLE % v, nums)
+    check("yafu report: factors, composite cofactor", res.get(v["n1"]) == ([f2 * f3, f1], g, False))
+    check("yafu report: nothing found is no split", v["n2"] not in res)
+    check("yafu report: probable-prime cofactor", res.get(v["n3"]) == ([f1], h, True))
+    check("yafu report: parts that do not multiply back are dropped", v["n4"] not in res and len(res) == 2)
+    ybin = os.environ.get("SHORTECPP_YAFU", "")
+    if ybin and os.access(ybin, os.X_OK) and sp.ECM_BIN:
+        sp.YAFU_BIN = ybin
+        rng = random.Random(5)
+
+        def prime(bits):
+            while True:
+                n = rng.getrandbits(bits) | (1 << (bits - 1)) | 1
+                if sp.is_prp(n, 8):
+                    return n
+        big = prime(400) * prime(420)
+        tails = [prime(30) * prime(33) * big, prime(31) * prime(700), big, prime(28) * prime(36) * prime(34) * big]
+        ry = sp.EcmRunner("yafu").run(tails, 11000, 24, 300)
+        rg = sp.EcmRunner("gmp").run(tails, 11000, 24, 300)
+        same = all((t in ry) == (t in rg) and (t not in ry or (ry[t][1], ry[t][2]) == (rg[t][1], rg[t][2])) for t in tails)
+        check("yafu and gmp-ecm split planted factors alike", same and len(ry) == 3,
+              "%d and %d of 4 split" % (len(ry), len(rg)))
+    else:
+        print("  (no yafu binary in SHORTECPP_YAFU: live comparison skipped)")
+    if not os.path.exists(os.path.join(HERE, ss.ENGINES["yafu"]["pi"])):
+        print("  (no yafu success table: simulated level skipped)")
+        return
+    em, sec, cost, quantum = ss.engine_model("yafu", 1.0, HERE)
+    cost1 = ss.engine_model("yafu", 1.0, HERE, scalar=True)[2]
+    grid = [(b1, tb) for b1 in sec for tb in (30, 64, 300, 1030, 1040, 1041, 1300)]
+    same = all(abs(cost1(b1, tb) - float(cost(b1, max(tb, 64)))) <= 1e-12 * cost1(b1, tb) for b1, tb in grid)
+    st = ss.ENGINES["yafu"]["step"]
+    check("cost of a yafu curve: scalar and array forms agree, step above %d bits" % st[0],
+          same and abs(cost1(50000, 1030) - sec[50000]) < 1e-12 and cost1(50000, st[0] + 1) > st[1] * cost1(50000, st[0]) * 0.999
+          and quantum == 8)
+    tiers = sd.default_tiers("yafu")
+    lad = ss.Ladder(tiers, em, y0bits=26, cost=cost)
+    tab = ss.IndexTable(lad, lam, cmax=60, threads=4)
+    py = em.pi("ecm", 50000, np.array([50.0, 70.0, 90.0]))
+    check("yafu success table loads", bool(np.all(py > 0) and np.all(np.diff(py) < 0)), "pi(50, 70, 90 bits at B1=5e4) = %s" % np.round(py, 5))
+
+    class Pool:
+        pass
+    rng = np.random.default_rng(12)
+    n = 60000
+    pool = Pool()
+    pool.w = np.minimum(rng.exponential(13.0, size=n) + 1.0, 90.0)
+    pool.t = 769.0 - pool.w - rng.exponential(22.0, size=n)
+    pool.prp = rng.random(n) < 0.06
+    pool.lam = lam
+    work, sizes = [], set()
+    for k in range(8):
+        drv = sd.SimDriver(pool, lad, tab, 64, np.random.default_rng(300 + k), cost)
+        start = drv.start_unit
+
+        def spy(u, start=start):
+            sizes.add(u.n % 8)
+            start(u)
+        drv.start_unit = spy
+        st = sd.level_loop(drv, tab, tiers, cost, {"quantum": quantum})
+        work.append(st["scan_s"] + st["ecm_s"])
+    check("8 simulated levels with yafu end with a win, units in batches of 8", len(work) == 8 and sizes == {0},
+          "mean %.0f core-s" % (sum(work) / len(work)))
+
+
 def main():
     tiers, lad, cost, tab, lam = test_table()
     test_coverage()
     test_queue()
     test_sim(tiers, lad, cost, tab, lam)
+    test_yafu(tiers, lam)
     print("ALL OK" if not FAILS else "FAILED: %s" % ", ".join(FAILS))
     sys.exit(1 if FAILS else 0)
 

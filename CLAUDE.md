@@ -238,8 +238,16 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   181,428 orders, scan 13.4 + ECM 29.8 thread-h = 32 c8a core-h; expected wins at the win 0.66;
   top-level D = -155,888,345,711, A_47 class polynomial of degree 251,808 built in 105 s, nearly
   all CRT at 32 threads).  The last scan chunk arrived 5 min before the win (14% of the search
-  hardly used): chunks double B, a smaller factor late in a level would trim that.  Not yet run
-  on a c8a.  Build side, found on the
+  hardly used): chunks double B (simulated growth of 1.5 or 1.25 is no better, so that stays).
+  **On a c8a.48xlarge (192 cores, 2026-11-15, `data/rule_c8a/`)**: 26 primes of 768 bits in
+  44 s per chain on average (median 36 s; search 28 s, 1.46 core-h of work, cores 97% busy;
+  1.56 core-h of CPU per prime in all), 3 primes of 1030 bits in 167 / 1,157 / 690 s (search
+  6.8 / 42.9 / 24.6 core-h; 10^310+733 is the 167 s one), all 29 verified twice in 53 minutes.
+  Simulation and reality agree (768: 32 s and 1.6-1.9 core-h simulated), and over all 38 real
+  768-bit runs the expected wins at the first win average 0.80 (exact model: 1 +- 0.16); first
+  wins come from the B1 = 2.5e5..3e6 sweeps, as the model says.  What is left at 1030 bits is
+  the build: 305 s and 195 s for two of the three, i.e. root-finding at prime degree 19,583 and
+  10,891 on ~50 of the 192 cores.  Build side, found on the
   way: `build_level` skips hits with an odd prime dividing gcd(m, v) on the H_D curve (they can
   only work from the volcano floor; 14.8 s -> 2.9 s when it happens) and, when the curves with
   the computed j have the wrong order (`j_order_ok`), recomputes j from the plain class
