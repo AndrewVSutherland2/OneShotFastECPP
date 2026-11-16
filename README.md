@@ -91,11 +91,13 @@ Per level it runs this repository's toolchain end to end: `dscan` (Cornacchia di
 scan with a capped factor base), `smoothtest` (batched Bernstein remainder trees against a
 cached primorial), ECM on the rough tails of the candidate orders, then `classpoly`/
 `cm_method` for the winner's curve (class-group decomposition of the class polynomial,
-volcano-floor descent where the exact order needs it) and `short.gp` for the levels below
-135 bits.  Every chain is verified by the format's verifier plus an independent PARI `ellmul`
+volcano-floor descent where the exact order needs it) and `short.gp` for the last level or
+two (below 64 to 94 bits in the revised format, where a prime above the recursion floor no
+longer fits).  The first scan, the strip bound and the number of threads follow the size of
+the level, so small primes cost what they should: half a second at 10⁵⁰.  Every chain is verified by the format's verifier plus an independent PARI `ellmul`
 cross-check before it is written.
 
-Which tail gets which curves is decided, for levels of 500 bits and more, by a stopping rule
+Which tail gets which curves is decided, for levels of 280 bits and more, by a stopping rule
 (`ecpp/shortsched.py`, model in `ecpp/shortsim.py`): every candidate state has a break-even
 reward, candidates are worked in that order and only while it is below what a fresh order
 from the scan is worth at the scan's current price.  Smaller levels use tiered rounds.  The
@@ -113,8 +115,16 @@ python3 ecpp/shortECPP.py p=<decimal> tag=myprime   # any (probable) prime
 ```
 
 Needs a `gmp-ecm` binary (`CHAIN_ECM` env or `ecm` on PATH) and, for the stopping rule,
-numpy.  On one 192-core machine a 768-bit prime takes about 45 seconds and a 1030-bit prime
-3 to 20 minutes (gmp-ecm; November 2026).  With its first scheduler, in August 2026, this prover produced
+numpy.  `CLASSPOLY_PHI_DIR` should hold the full set of modular polynomials: the repository
+carries them up to degree 71, and about one winner in ten at 768 to 1000 bits needs more (the
+prover then says which file is missing and goes on with the search).
+
+On one 192-core machine with yafu (November 2026) every entry of the ShortPrimalityProofs
+table from 10¹⁰ to 10³²⁰ is proved faster than the table records, by a factor 5 to 750 in CPU
+time: a second up to 10¹²⁰, 4 to 15 s from 10¹⁵⁰ to 10²²⁰, half a minute to four and a half
+minutes from 10²³⁰ to 10³²⁰ (10³¹⁰ + 733: 268 s), 17 minutes and 42 core-hours for the
+seventeen entries from 10¹⁶⁰ on.  With gmp-ecm a 768-bit prime takes about 35 seconds there
+and a 1030-bit prime 3 to 20 minutes.  With its first scheduler, in August 2026, this prover produced
 the ShortPrimalityProofs table entries for nextprime(10^c), c = 210, …, 310 — the largest a
 1030-bit prime exceeding Bernstein's 1025-bit AKS example — in one day on spot instances
 (≈3,500 CPU core-hours; see `reports/short-ecpp-records/` for the full campaign report and

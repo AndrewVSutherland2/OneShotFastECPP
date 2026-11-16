@@ -266,8 +266,8 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   other threads for ECM meanwhile (event "scanthreads").
 - **yafu as the ECM engine (2026-11-15, same branch)**: `shortECPP.py engine=yafu yafu=<binary>`
   (or `SHORTECPP_YAFU`; `engine=auto` uses yafu when a binary is given and passes a planted-
-  factor self-test) runs the stopping-rule levels with yafu 3.1.9's AVX-512 ECM; levels below
-  500 bits and P-1 stay with gmp-ecm.  Per engine, `shortsim.ENGINES` holds the cost of a curve
+  factor self-test) runs the stopping-rule levels with yafu 3.1.9's AVX-512 ECM; the tiered
+  rounds (levels below 280 bits since 2026-11-16, 500 before) and P-1 stay with gmp-ecm.  Per engine, `shortsim.ENGINES` holds the cost of a curve
   at 1030 bits (`SEC1030_YAFU`: 0.0036 / 0.0148 / 0.0599 / 0.302 / 0.95 / 2.69 / 9.9 / 36 core-s
   at B1 = 2e3 .. 3e7, i.e. 3.3-5.2x cheaper than gmp-ecm), its growth with size (yafu:
   bits^1.36 up to 1040 bits = 20 words of 52 bits, 14% above that law beyond), B2 per B1, the
@@ -295,8 +295,57 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   gmp-ecm run had 0.66), i.e. 22 against 66 thread-h of search per expected win; its winner is
   D = -83,632,771, the August campaign's.  In that run 27% of the ECM time was "above the
   rule" (cores waiting for a scan chunk; simulation: 1%) -- the scan's share of the cores
-  should be sized from the observed backlog, not done yet.  Not yet run on a c8a (needs its
-  own spot approval).  Report section 11.
+  should be sized from the observed backlog, not done yet (tried 2026-11-16 and dropped, see
+  the next entry).  Report section 11.
+- **The whole ShortPrimalityProofs table on a c8a with yafu (2026-11-16, same branch)**: every
+  entry nextprime(10^c), c = 10..320, is proved faster than the README records, by 5x to 750x
+  in CPU time; c = 160..320 take 17 minutes and 42 core-hours in all on 192 cores (recorded:
+  4,180 core-hours), c = 10..150 take 19 s; 10^310+733 takes 268 s.  The thirteen 768-bit
+  primes: chain 21 s mean / 14 s median, 0.52 core-h of CPU (gmp-ecm, same box: 34 s / 27 s,
+  1.11).  Data `reports/shortecpp-improve/data/yafu_c8a_{1,2,3}/` (three passes, 95 min of
+  aws-spot-7), `bench_table.py`, report section 12.  c = 330..400 NOT rerun (estimate: 5-10
+  hours of one box).  What the runs turned up, all fixed:
+  (1) yafu's `ecm(n, curves)` drops an input after the batch of 8 curves in which a factor
+  appears, even if the cofactor is composite (gmp-ecm goes on with the cofactor).  The model's
+  state "j sweeps done, tail of t bits" means a tail that survived the sweeps IN FULL, so
+  crediting the curves run and re-offering the rest is wrong too; `EcmRunner._run_yafu` reruns
+  the remaining curves on the cofactor until the sweep is complete (`parse_yafu(...).ran` =
+  curves run, from yafu's progress lines "ecm: K/TOTAL curves").
+  (2) Small levels are sized to their work: `level_params(nb, threads, bound)` gives the strip
+  bound (2^16 below 200 bits, 2^20 below 320, else 2^26; `set_strip_bound`), the first scan
+  (1e5 below 200 bits ... 1e7 below 500) and the thread cap (2^((nb-180)/40)); the gp tail
+  takes over only below `cm_min_bits` = 2 * bits(recursion floor) + 24 (64-94 bits in the
+  revised format, was 135).  `POLICY_MIN_BITS = 280`: for the rule below 500 bits the model's
+  bound D follows the size (`shortsim.medium_bits` = bits/3, capped at 160; `set_grid` sets
+  it), the ladder is cut where its curves would reach D (`default_tiers(engine, nbits)`), the
+  reward grid scales as (bits/500)^8, the machine benchmark is skipped below 400 bits, and a
+  shared ECM process stops growing at 0.05 expected wins (`Sched(unit_pw=)`).  Model check at
+  299 bits by brute force (`data/small_model_check.py`: every order of a scan through the
+  whole ladder): 94 winners against 97 modelled, sweep by sweep 9/33/37/15 against
+  14.1/38.5/31.2/15.0.  The "expected wins at the first win" check is NOT valid at small
+  sizes: the first handful of units carry about three expected wins, so the count at the win
+  averages 3 whatever the model.
+  (3) classpoly aborted silently when a modular polynomial was missing: the repo carries
+  Phi_l for l <= 71 only, and about one winner in ten at 768-1000 bits needs more (Phi_101
+  for Weber f was the case seen).  `git archive` to a spot box ships only that subset: COPY
+  THE FULL `phi_files/` (2.2 GB, 3 min) to any box that runs the prover.  The message now goes
+  to stderr whatever the verbosity and `get_j` gives up on such a D at once
+  (`_CM_UNBUILDABLE`).
+  (4) `shortsim.IndexTable` was computed in threads to no effect (GIL); it now runs its
+  classes in child interpreters fed over pipes (`_solve_in_processes`; identical tables,
+  4.0 s -> 0.6 s per level on the c8a).  Not `multiprocessing` with a fork server: that
+  re-imports the caller's main script, and an unguarded script reruns itself in every worker.
+  Measured and NOT changed: on 192 cores with yafu 40-100% of the ECM core-seconds are handed
+  out "above the rule" (cores without work below R while a scan chunk runs); giving the scan
+  more cores instead costs more per win in simulation (0.78 against 0.65 core-h at 768 bits),
+  because it buys the next, dearer chunk sooner while the work above the rule is mostly work
+  brought forward.  Next lever is the build: root-finding seconds are
+  0.0145 x^0.93 (bits/768)^2.74 on the c8a within a factor 1.25, x = the larger part of the
+  most balanced factorisation of h(D) (`data/build_fit.py`, 31 builds); builds are a third of
+  search + build at 768 bits with yafu (median 2.7 s, mean 5.7 s, tail to 90 s; at 1030 bits
+  median 13 s, mean 53 s, tail to 305 s), and x grows with |D| (mean 150 near 1e7, 6,500 near
+  1e11).  PARI gives 20,000 class numbers in 3-7 s, so a candidate's build cost can be
+  charged at intake; the scheduler does not do it yet.
 
 ## Build & test
 ```sh
@@ -308,7 +357,7 @@ make test [MAXD=1000]        # classpoly vs PARI (Tests 1/2/3); ~2.5 min
 python3 ecpp/test_dscan.py   # validate the discriminant scan vs PARI + brute force
 python3 ecpp/test_smooth.py  # validate smoothness engine vs PARI (Test A + end-to-end gate)
 python3 ecpp/test_tower.py   # class-group decomposition: classpoly CLASSPOLY_TOWER + cm_method vs PARI (~2 min)
-python3 ecpp/test_sched.py   # stopping-rule scheduler: break-even table vs reference DP, queue mechanics, simulated level
+python3 ecpp/test_sched.py   # stopping-rule scheduler: break-even table vs reference DP, queue mechanics, simulated levels (SHORTECPP_YAFU=<binary> adds the live yafu checks)
 make -C ecpp voneshot && python3 ecpp/test_voneshot.py  # C one-shot verifier vs voneshot.py (differential)
 ecpp/voneshot $(cat certs/25519.txt)   # C verifier, same CLI as voneshot.py; --bench <certfile> times it
 make -C ecpp vshort2 && python3 ecpp/test_vshort2.py  # C short-ECPP verifier (faithful + --fast) vs vshort2.py
