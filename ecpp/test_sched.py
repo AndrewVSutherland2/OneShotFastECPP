@@ -29,6 +29,7 @@ import math
 import os
 import random
 import sys
+import time
 
 import numpy as np
 
@@ -449,7 +450,50 @@ def test_small():
         st = sd.level_loop(drv, tab, tiers, cost, {"quantum": quantum})
         work.append(st["scan_s"] + st["ecm_s"])
     check("6 simulated 300-bit levels end with a win", len(work) == 6 and max(work) < 2000, "mean %.1f core-s" % (sum(work) / len(work)))
+    # a winner in reserve: the loop goes on until the driver says build
+    drv = sd.SimDriver(pool, lad, tab, 8, np.random.default_rng(1), ss.engine_model("yafu", 1.0, HERE, scalar=True)[2])
+    calls = []
+
+    def hold(R, drv=drv):
+        calls.append(drv.wins)
+        return len(calls) > 25
+    drv.should_build = hold
+    st = sd.level_loop(drv, tab, tiers, cost, {"quantum": quantum})
+    drv0 = sd.SimDriver(pool, lad, tab, 8, np.random.default_rng(1), ss.engine_model("yafu", 1.0, HERE, scalar=True)[2])
+    st0 = sd.level_loop(drv0, tab, tiers, cost, {"quantum": quantum})
+    check("a winner kept in reserve: the search goes on, the first win's figures are kept",
+          len(calls) == 26 and st["wall"] > st0["wall"] and abs(st["first_win_wall"] - st0["wall"]) < 1e-9
+          and st["expwin"] <= st0["expwin"] + 1e-9 and calls[-1] >= calls[0] >= 1,
+          "%d more wins while waiting, %.1f s against %.1f s" % (calls[-1] - calls[0], st["wall"], st0["wall"]))
     ss.set_grid(1527)
+    # build estimates and the accept-or-pass step of the prover's driver
+    est = sp.build_estimate([450490639, 140861442439, 4315], 769)
+    check("build estimate from the class number", len(est) == 3 and 40 < est[450490639] < 60 and est[4315] < 1.0
+          and est[140861442439] > 100, "%.1f s for h = 2 x 6379 at 769 bits" % est.get(450490639, 0))
+    sp.BUILD_EST.clear()
+
+    class W:
+        def __init__(self, d):
+            self.d = d
+
+    class D:
+        pass
+    d = D()
+    d.winners, d.nb, d.threads, d.build_ref, d.pass_t0, d.pass_n = [(0, W(450490639), 0, [])], 769, 192, 2.5, None, 0
+    quiet, sp.log = sp.log, (lambda m: None)
+    hold1 = sp.RuleDriver.should_build(d, 1600.0)          # 51 s against 8 + 2.5 s
+    d.winners.append((0, W(4315), 0, []))
+    hold2 = sp.RuleDriver.should_build(d, 1600.0)          # a cheap winner has arrived
+    d2 = D()
+    d2.winners, d2.nb, d2.threads, d2.build_ref, d2.pass_t0, d2.pass_n = [(0, W(450490639), 0, [])], 769, 32, 2.5, None, 0
+    hold3 = sp.RuleDriver.should_build(d2, 1600.0)         # on 32 threads the next winner is 50 s away
+    d.winners = [(0, W(450490639), 0, [])]
+    d.pass_t0 = time.time() - 60.0
+    hold4 = sp.RuleDriver.should_build(d, 1600.0)          # waited as long as the build would have taken
+    sp.log = quiet
+    sp.BUILD_EST.clear()
+    check("a costly winner waits for a cheap one, but not on few cores or for long", (hold1, hold2, hold3, hold4) == (False, True, True, True),
+          str((hold1, hold2, hold3, hold4)))
 
 
 def main():

@@ -731,6 +731,35 @@ def accept_q(cand, q, p, L, n2, small_primes):
 # ------------------------------------------------------------ winner -> level
 _CM_UNBUILDABLE = set()          # discriminants whose class polynomial cannot be computed on this installation
 
+# What a build will cost, before it is run.  It is root-finding at the larger
+# part x of the most balanced factorisation of the class number (cm_method's
+# decomposition splits there): 0.0145 x^0.93 (bits/768)^2.74 seconds on a
+# 192-core Zen 5 box, within a factor 1.25 over 31 builds of 500 to 1064 bits
+# (reports/shortecpp-improve/data/build_fit.py).  _BUILD_SCALE carries the
+# ratio seen in this run's own builds to the next estimates.
+BUILD_EST = {}                   # |D| -> estimated seconds (try_build takes the cheapest winner first)
+_BUILD_SCALE = [1.0]
+_LAST_ROOT = {}                  # |D| -> root-finding seconds cm_method reported
+
+
+def build_estimate(ds, nb):
+    """Estimated build seconds for the discriminants -d, d in ds, at a level of
+    nb bits ({d: seconds}; class numbers from PARI, a fraction of a millisecond
+    each).  A discriminant PARI did not answer for is left out."""
+    ds = [d for d in dict.fromkeys(ds)]
+    if not ds:
+        return {}
+    script = "bal(h)=my(v=divisors(h));h/v[(#v+1)\\2];\n" + "".join("print(%d,\" \",bal(qfbclassno(-%d)));\n" % (d, d) for d in ds)
+    out = {}
+    try:
+        for line in gp(script, timeout=300).splitlines():
+            w = line.split()
+            if len(w) == 2:
+                out[int(w[0])] = _BUILD_SCALE[0] * (0.0145 * int(w[1]) ** 0.93 + 0.5) * (nb / 768.0) ** 2.74
+    except (RuntimeError, ValueError, subprocess.TimeoutExpired):
+        pass
+    return out
+
 
 def get_j(p, d, ells=None, jobs=0, attempts=3, plain=False):
     """j-invariant of a curve with CM by -d over F_p (cm_method, polclass
@@ -759,6 +788,9 @@ def get_j(p, d, ells=None, jobs=0, attempts=3, plain=False):
                     for ln in r.stderr.splitlines():      # degrees, timings, and whether a retry was needed
                         if ln.startswith("[H_D"):
                             log("    cm_method D=-%d: %s" % (d, ln.strip("[] ")))
+                            m = re.search(r"roots?: ([\d.]+)s(?: \+ ([\d.]+)s)?", ln)
+                            if m:
+                                _LAST_ROOT[d] = float(m.group(1)) + float(m.group(2) or 0)
                     return int(w[1])
         log("    cm_method D=-%d attempt %d/%d: exit %d, no j; tail: %s" % (
             d, att + 1, attempts, r.returncode,
@@ -1102,11 +1134,15 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
             note_prime_factor(c, c.tail)
 
     def try_build():
-        winners.sort(key=lambda w: w[1].d)
+        winners.sort(key=lambda w: (BUILD_EST.get(w[1].d, 0.0), w[1].d))
         while winners:
             o, c, q, hits = winners.pop(0)
             t1 = time.time()
             lev = build_level(p, c, q, hits, rng, jobs=threads)
+            est, act = BUILD_EST.get(c.d), _LAST_ROOT.get(c.d)
+            if est and act and est > 2.0 and act > 2.0:
+                # this machine against the fit, carried at half weight
+                _BUILD_SCALE[0] = min(8.0, max(0.25, _BUILD_SCALE[0] * (act / est) ** 0.5))
             if lev:
                 A, x, o = lev
                 log("  level %d bits: built D=-%d h~%d in %.1fs; o has %d bits, q %d bits (total %.1fs, %d cands, %.0f ecm-s)"
@@ -1390,6 +1426,9 @@ class RuleDriver:
         self.act, self.est = {}, {}           # core-seconds by B1: measured, modelled
         self.nsplit = 0
         self.prefetched = True                # the first chunk starts now, while the table is built
+        self.build_ref = 0.0                  # estimated build of a typical candidate, seconds (see should_build)
+        self.build_refs = []
+        self.pass_t0, self.pass_n = None, 0
         self._launch_scan(threads)
 
     def now(self):
@@ -1465,6 +1504,14 @@ class RuleDriver:
                                             radlim=V2_RADLIM).sum())
             sched_init(c, int(round(W)), int(round(math.log2(c.tail))))
             live.append(c)
+        if live and self.nb >= 500:
+            # what a typical winner of this pool costs to build: the median
+            # estimate over a sample of the candidates bought so far
+            sample = sorted({c.d for c in live})
+            sample = sample[::max(1, len(sample) // 48)][:64]
+            self.build_refs += list(build_estimate(sample, self.nb).values())
+            if self.build_refs:
+                self.build_ref = sorted(self.build_refs)[len(self.build_refs) // 2]
         self.B, self.Bnext = hi, min(self.Bmax, int(hi * self.grow))
         self.cap_prev = max(self.cap_prev, fbc)
         self.last = (max(len(fresh), 1), cs, cstrip, lo, hi)
@@ -1530,6 +1577,30 @@ class RuleDriver:
     def has_winner(self):
         return bool(self.winners)
 
+    def should_build(self, R):
+        """Whether to stop the search and build the cheapest winner in hand.  A
+        winner whose class number has a large prime factor takes one to five
+        minutes to build where the next winner is often seconds away: it is
+        kept in reserve while its estimated build exceeds the expected wait for
+        another winner (R core-seconds on all the threads) plus a typical
+        build, and for no longer than that build would have taken."""
+        ws = [w[1].d for w in self.winners]
+        new = [d for d in ws if d not in BUILD_EST]
+        if new:
+            BUILD_EST.update(build_estimate(new, self.nb))
+        tb = min(BUILD_EST.get(d, 0.0) for d in ws)
+        now = time.time()
+        wait = (R / self.threads if 0 < R < float("inf") else 0.0) + self.build_ref
+        if tb <= max(wait, 5.0) or (self.pass_t0 is not None and now - self.pass_t0 >= tb):
+            return True
+        if self.pass_t0 is None:
+            self.pass_t0 = now
+        if len(ws) > self.pass_n:
+            self.pass_n = len(ws)
+            log("    %d winner(s) kept in reserve: the cheapest build is estimated at %.0f s, another winner and its build at %.0f s"
+                % (len(ws), tb, wait))
+        return False
+
     def abort(self):
         self.epoch += 1
         self.runner.abort()
@@ -1551,6 +1622,7 @@ class RuleDriver:
             % (st["orders"], st["scan_s"], st["ecm_s"], st.get("over_s", 0.0), st["wall"], st["units"],
                self.nsplit, st["R"], st["expwin"], ratios,
                " ".join("%g:%.3f" % (b1, eb[b1]) for b1 in sorted(eb)), st.get("win_b1")))
+        self.pass_t0, self.pass_n = None, 0
         return self.try_build()
 
     def close(self):

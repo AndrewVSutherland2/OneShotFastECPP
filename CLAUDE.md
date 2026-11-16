@@ -345,7 +345,14 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   search + build at 768 bits with yafu (median 2.7 s, mean 5.7 s, tail to 90 s; at 1030 bits
   median 13 s, mean 53 s, tail to 305 s), and x grows with |D| (mean 150 near 1e7, 6,500 near
   1e11).  PARI gives 20,000 class numbers in 3-7 s, so a candidate's build cost can be
-  charged at intake; the scheduler does not do it yet.
+  charged at intake; the scheduler does not do that yet.  At the win it does:
+  `RuleDriver.should_build` (called by `level_loop` when a winner is in hand) keeps the
+  winner in reserve and lets the search go on while its estimated build (`build_estimate`:
+  the law above, scaled by this run's own builds) exceeds R/threads + the median estimate
+  over a sample of the pool, for at most the time that build would have taken; `try_build`
+  takes the cheapest winner first.  On 192 cores at 768 bits the threshold is ~10 s; on 32
+  threads it is a minute, so nothing is passed there.  Unit-tested and simulated, NOT yet
+  exercised on a c8a.
 
 ## Build & test
 ```sh

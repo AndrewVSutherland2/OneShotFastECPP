@@ -269,6 +269,8 @@ def level_loop(drv, tab, tiers, cost, par=None):
                                number of orders bought, core-seconds they cost)
       apply(unit, payload): update tails, mark resolved candidates dead, note wins
       has_winner(), abort() (kill everything in flight), build() -> result or None
+      should_build(R) (optional): False keeps the search going with a winner in
+                      hand, when its build would cost more than finding another
     """
     import numpy as np
     import shortsim as ss
@@ -295,6 +297,7 @@ def level_loop(drv, tab, tiers, cost, par=None):
     bpass = 0              # loop passes since
     nunits = 0
     over = 0.0             # core-seconds handed out above the rule (cores that would have idled)
+    first = None           # (expected wins, wall) at the first win in hand
 
     def reprice():
         nonlocal R, share
@@ -382,6 +385,14 @@ def level_loop(drv, tab, tiers, cost, par=None):
                 sch.finished(u)
                 running.pop(u.uid, None)
         if drv.has_winner():
+            if first is None:
+                # the model's count at the first win is the calibration figure;
+                # what is in flight has not reported and does not belong to it
+                infl = sum(u.pw for u in running.values())
+                first = (sch.expwin - infl, drv.now() - t0)
+            hold = getattr(drv, "should_build", None)
+            if hold is not None and not hold(R):
+                continue                    # a winner in reserve: its build costs more than finding another
             drv.abort()
             for u in running.values():
                 sch.cancel(u)
@@ -389,11 +400,13 @@ def level_loop(drv, tab, tiers, cost, par=None):
             running.clear()
             scan = None
             res = drv.build({"orders": K, "scan_s": spent_scan, "ecm_s": spent_ecm,
-                             "wall": drv.now() - t0, "units": nunits, "R": R, "expwin": sch.expwin,
+                             "wall": drv.now() - t0, "units": nunits, "R": R,
+                             "expwin": first[0] if hold is not None else sch.expwin, "first_win_wall": first[1],
                              "over_s": over, "expwin_b1": dict(sch.expwin_b1), "win_b1": win_b1})
             if res is not None:
                 return res
             win_b1 = None
+            first = None
         now = drv.now()
         if now - tlog >= tick and K:
             tlog = now

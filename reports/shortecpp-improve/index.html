@@ -941,7 +941,13 @@ builds of the four c8a data sets:</p>
 search plus build.  The cost also grows with the discriminant: x averages 150 for |D| near 10<sup>7</sup>,
 950 near 10<sup>9</sup>, 6,500 near 10<sup>11</sup> and 17,600 near 10<sup>12</sup>, which at 1030 bits are
 builds of 3&nbsp;s, 19&nbsp;s, 114&nbsp;s and 290&nbsp;s.  A candidate's value is its chance of winning less
-what its build costs, and the second term is known at intake.  The scheduler ignores it so far.</p>
+what its build costs, and the second term is known at intake.  The scheduler does not use it at intake
+yet.  At the win it now does: a winner whose estimated build exceeds the expected wait for another winner
+(R core-seconds on all the threads) plus a typical build is kept in reserve while the search goes on, for
+at most the time its own build would have taken (<code>RuleDriver.should_build</code>).  On 192 cores at
+768 bits that wait is 8&nbsp;s, so the 90-second builds would be passed; on the 32 threads of the driver box
+it is a minute and nothing is passed.  The step is tested on simulated levels and in unit tests; no run on
+192 cores has exercised it yet.</p>
 
 <h3>12.5 The scan's share of the cores</h3>
 <p>On 192 cores with yafu, 40 to 100% of the ECM core-seconds of a level are handed out "above the rule",
@@ -956,7 +962,8 @@ reward rises with every chunk.  The change is not in.</p>
 <ol>
 <li><b>Count the build in a candidate's value (section 12.4).</b> The build time of a winner is known from
 its class number within a factor 1.25, and it is a third of a 768-bit level on 192 cores, with a tail of
-one to five minutes.  Charge each candidate its build at intake (class numbers of a whole chunk take
+one to five minutes.  Keeping a costly winner in reserve is in but unmeasured; the 768-bit set on a 192-core
+box would measure it in five minutes.  The fuller form: charge each candidate its build at intake (class numbers of a whole chunk take
 seconds), so that the rule works a candidate while its break-even reward plus the machine time of its build
 is below R; the value of a fresh order then has to count the builds of the orders too.</li>
 <li><b>The entries 10<sup>330</sup> to 10<sup>400</sup>.</b> Not run.  From the cost of 10<sup>300</sup> to
