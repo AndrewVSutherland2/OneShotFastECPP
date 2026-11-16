@@ -48,13 +48,24 @@ NB = 1536                     # grid: sizes 0..NB-1 bits
 NFFT = 4096
 
 
+def medium_bits(nbits):
+    """The bound D between "medium" primes and the rough cofactor for moduli of
+    nbits bits.  A win is a rough cofactor that is one prime q of about nbits/2
+    bits less the coverage, so D has to stay below that: a third of the size,
+    which is 160 bits from 485 bits up.  The sweeps offered at a size (see
+    shortsched.default_tiers) are the ones that do not reach primes of D bits."""
+    return min(160, max(48, int(round(0.33 * nbits))))
+
+
 def set_grid(nbits):
-    """Size the bit grid for moduli of nbits bits (the default holds 1535 bits).
-    Everything built afterwards (Ladder, IndexTable, ...) uses the new grid; a
-    transform of twice the grid length keeps the convolutions free of wrap-around."""
-    global NB, NFFT
-    NFFT = 1 << max(11, (2 * (nbits + 8) - 1).bit_length())
+    """Size the model for moduli of nbits bits: the bit grid (the default holds
+    1535 bits) and the bound D of the medium primes.  Everything built afterwards
+    (Ladder, IndexTable, ...) uses the new values; a transform of twice the grid
+    length keeps the convolutions free of wrap-around."""
+    global NB, NFFT, D
+    NFFT = 1 << max(10, (2 * (nbits + 8) - 1).bit_length())
     NB = NFFT // 2
+    D = medium_bits(nbits)
 
 
 # --------------------------------------------------------------- special functions

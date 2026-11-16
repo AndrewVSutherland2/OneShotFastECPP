@@ -5,8 +5,9 @@
 At each level (modulus p, top-level n fixed for the whole chain, n2 = n^2):
   1. dscan enumerates (D,t,v) with 4p = t^2 + |D| v^2; candidate curve orders
      are N = p+1-t and p+1+t with 4 | N (Montgomery-representable side pairs).
-  2. smoothtest strips every candidate's y0-smooth part S (y0 = 2^26, batched
-     Bernstein remainder trees against a cached prime product); the n2-smooth
+  2. smoothtest strips every candidate's y0-smooth part S (y0 = 2^26, less at
+     small levels, see level_params; batched Bernstein remainder trees against
+     a cached prime product); the n2-smooth
      part s | S supplies the certificate cofactor m, the rest of S is discarded
      into the untracked cofactor c (which never needs factoring), and the rough
      tail T = N/S is peeled by gmp-ecm.  Which tail gets which curves is decided
@@ -18,8 +19,10 @@ At each level (modulus p, top-level n fixed for the whole chain, n2 = n^2):
      curve comes from H_D (cm_method / classpoly, PARI polclass fallback), the
      Montgomery A from the u-cubic, and the point of exact order o from the
      x-only ladder; the certificate stores (A, x, o) and descends to q.
-Levels below CM_MIN_BITS are finished by short.gp (SEA is cheap there), called
-with the top-level n2.  The chain is verified by vshort2.verify (v2=1, the
+Levels too small for a q above the recursion floor (cm_min_bits: 64 to 94 bits
+in the revised format) are finished by short.gp, called with the top-level n2.
+The first scan, the strip bound and the number of threads follow the size of
+the level (level_params), so that a 170-bit prime costs half a second.  The chain is verified by vshort2.verify (v2=1, the
 revised format; vsmallECPP.verify for the original) and independently
 cross-checked level by level in PARI before it is written.
 
@@ -33,7 +36,7 @@ The scan's factor base is always capped: at maxfb if given (top level only),
 otherwise at fb_cap(B), which grows with the scan bound.  Its square roots are
 cached per modulus under work/rootcache/ for the life of the level.
 
-sched: levels of POLICY_MIN_BITS bits and more are run by the stopping-rule
+sched: levels of POLICY_MIN_BITS (280) bits and more are run by the stopping-rule
 scheduler (shortsched.py: candidates are worked in the order of their
 break-even reward and only while that is below what a fresh order from the scan
 is worth); smaller levels, and everything with sched=old, by the tiered rounds
@@ -125,7 +128,36 @@ ECM_ENV["LD_LIBRARY_PATH"] = _ecm_lib + ":" + ECM_ENV.get("LD_LIBRARY_PATH", "")
 # found by the first ECM tier.
 Y0 = 1 << 26
 PCACHE = os.path.join(REPO_DIR, "work/pcache/oneshot_P_%d.bin" % Y0)
-CM_MIN_BITS = 135                 # below this, short.gp (SEA) finishes the chain
+CM_MIN_BITS = 0                   # below this, short.gp (SEA) finishes the chain; 0: cm_min_bits()
+
+
+def cm_min_bits(floor):
+    """Smallest level given to the CM search.  Its q must exceed the recursion
+    floor (n^2, or B^2 in the revised format: a terminal prime below it comes
+    from the gp tail only) and is about half the level less the cofactor m, so
+    the level needs twice the floor's bits and room for m."""
+    return CM_MIN_BITS if CM_MIN_BITS else max(48, 2 * floor.bit_length() + 24)
+
+
+def level_params(nb, threads, bound):
+    """(strip bound in bits, first scan bound, threads) for a level of nb bits.
+    The defaults of the large levels are fixed costs that swamp a small one:
+    the 2^26 strip is a second of work whatever the number of orders, a scan to
+    3e7 buys thousands of orders where a 200-bit level needs fifty, and
+    processes with more threads than there is work spend their time waiting.
+    bound: the smoothness bound of the certificate, which the strip must reach."""
+    y0 = 26 if nb >= 320 else 20 if nb >= 200 else 16
+    y0 = max(y0, bound.bit_length())
+    B0 = (10 ** 5 if nb < 200 else 3 * 10 ** 5 if nb < 260 else 10 ** 6 if nb < 320 else
+          3 * 10 ** 6 if nb < 400 else 10 ** 7 if nb < 500 else None)
+    thr = max(1, min(threads, int(2.0 ** ((nb - 180) / 40.0))))
+    return y0, B0, thr
+
+
+def set_strip_bound(bits):
+    global Y0, PCACHE
+    Y0 = 1 << bits
+    PCACHE = os.path.join(REPO_DIR, "work/pcache/oneshot_P_%d.bin" % Y0)
 
 # Revised (August 2026) format support: when V2_BCAP > 0, fillers are restricted
 # to primes <= V2_BCAP = ceil(n^2/log2 n) with log2 rad(m) <= V2_RADLIM =
@@ -145,7 +177,7 @@ ECM_ENV["PATH"] = (os.path.join(REPO_DIR, "classpoly_v1.0.3") + ":" + ECPP_DIR +
                    + ECM_ENV.get("PATH", ""))
 
 SCHED = os.environ.get("SHORTECPP_SCHED", "auto")    # auto | rule | old (sched= argument)
-POLICY_MIN_BITS = 500             # the model behind the rule needs q well above ECM's reach
+POLICY_MIN_BITS = 280             # below this a level costs less than the rule's set-up
 ENGINE = os.environ.get("SHORTECPP_ECM", "auto")     # auto | gmp | yafu (engine= argument)
 YAFU_BIN = os.environ.get("SHORTECPP_YAFU", "")      # yafu= argument
 _YAFU_CWD = None                  # yafu reads yafu.ini from its working directory: give it an empty one
@@ -426,29 +458,54 @@ _YAFU_EXPR = re.compile(r"^(?:>> )?=== Starting work on batchfile expression #(\
 _YAFU_PART = re.compile(r"^(P|PRP|C)\d+ = (\d+)\s*$")
 
 
+_YAFU_PROG = re.compile(r"^ecm: (\d+)/(\d+) curves on ")
+
+
+class EcmResult(dict):
+    """{n: (factors, cofactor, cofactor_is_prp)} for the inputs that were split.
+    ran: {n: curves run} for the inputs on which the engine stopped before the
+    curves asked for were done."""
+
+    def __init__(self):
+        dict.__init__(self)
+        self.ran = {}
+
+
 def parse_yafu(out, nums):
     """yafu's report for the expressions ecm(n, curves), one per input, in the
     form parse_ecm returns: {n: (factors, cofactor, cofactor_is_prp)} for the
     inputs it split.  yafu lists the parts it ended with (P/PRP = probable
     prime, C = composite); the largest is taken as the cofactor, and a split is
-    kept only if the parts multiply back to the input."""
-    res = {}
-    cur, parts = None, []
+    kept only if the parts multiply back to the input.
+
+    yafu stops working on an input after the batch of 8 curves in which a factor
+    appears, whatever is left of the curves asked for and even if the cofactor
+    is composite (gmp-ecm goes on with the cofactor).  Its progress lines
+    "ecm: K/TOTAL curves" give the curves it ran; they are returned in .ran for
+    the inputs that stopped short, so the caller can credit the right number."""
+    res = EcmResult()
+    cur, parts, prog = None, [], None
 
     def flush():
         if cur is not None and len(parts) >= 2 and math.prod(v for (_, v) in parts) == cur:
             k = max(range(len(parts)), key=lambda i: parts[i][1])
             res[cur] = ([v for i, (_, v) in enumerate(parts) if i != k], parts[k][1], parts[k][0] != "C")
+            if prog is not None and prog[0] < prog[1]:
+                res.ran[cur] = prog[0]
     for line in out.replace("\r", "\n").splitlines():
         m = _YAFU_EXPR.match(line)
         if m:
             flush()
             k = int(m.group(1)) - 1
-            cur, parts = (nums[k] if 0 <= k < len(nums) else None), []
+            cur, parts, prog = (nums[k] if 0 <= k < len(nums) else None), [], None
             continue
         m = _YAFU_PART.match(line)
         if m:
             parts.append((m.group(1), int(m.group(2))))
+            continue
+        m = _YAFU_PROG.match(line)
+        if m:
+            prog = (int(m.group(1)), int(m.group(2)))
     flush()
     return res
 
@@ -524,16 +581,48 @@ class EcmRunner:
     def run(self, nums, b1, curves, timeout, method="ecm"):
         if self.stopped:
             return None
-        yafu = self.engine == "yafu" and method == "ecm"
-        if yafu:
-            cmd = [YAFU_BIN, "-B1ecm", str(b1), "-threads", "1", "-avxecm_stg2", "1", "-aprcl_p", "1",
-                   "-logfile", os.devnull, "-session", os.devnull]
-            inp = "".join("ecm(%d,%d)\n" % (n, curves) for n in nums)
-            cwd = yafu_cwd()
-        else:
-            cmd = [ECM_BIN] + (["-pm1"] if method == "pm1" else []) + ["-c", str(curves), str(b1)]
-            inp = "\n".join(str(n) for n in nums) + "\n"
-            cwd = None
+        if self.engine == "yafu" and method == "ecm":
+            return self._run_yafu(nums, b1, curves, timeout)
+        cmd = [ECM_BIN] + (["-pm1"] if method == "pm1" else []) + ["-c", str(curves), str(b1)]
+        out = self._communicate(cmd, "\n".join(str(n) for n in nums) + "\n", timeout, None)
+        return None if out is None else parse_ecm(out, nums)
+
+    def _run_yafu(self, nums, b1, curves, timeout):
+        """All `curves` curves on every number.  yafu drops an input after the
+        batch in which a factor appears, so the curves it left are run on the
+        composite cofactor in a further process, until none are left (gmp-ecm
+        does the same within one call)."""
+        cmd = [YAFU_BIN, "-B1ecm", str(b1), "-threads", "1", "-avxecm_stg2", "1", "-aprcl_p", "1",
+               "-logfile", os.devnull, "-session", os.devnull]
+        res = {}
+        todo = [(n, n, curves) for n in nums]         # (input, what is left of it, curves left)
+        t_end = time.time() + timeout
+        while todo:
+            out = self._communicate(cmd, "".join("ecm(%d,%d)\n" % (cur, left) for (_, cur, left) in todo),
+                                    max(1.0, t_end - time.time()), yafu_cwd())
+            if out is None:
+                return None
+            r = parse_yafu(out, [cur for (_, cur, _) in todo])
+            nxt = []
+            for (n, cur, left) in todo:
+                if cur not in r:
+                    continue                          # all its curves ran and found nothing
+                found, cof, cprp = r[cur]
+                if n in res:                          # the same input twice in one call
+                    found = res[n][0] + [f for f in found if f not in res[n][0]]
+                    if res[n][1] < cof:
+                        cof, cprp = res[n][1], res[n][2]
+                res[n] = (found, cof, cprp)
+                left -= r.ran.get(cur, left)
+                if left > 0 and cof > 1 and not cprp:
+                    nxt.append((n, cof, left))
+            todo = nxt
+            if time.time() >= t_end:
+                break
+        return res
+
+    def _communicate(self, cmd, inp, timeout, cwd):
+        """Output of one process, or None if the round was stopped."""
         p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                              stderr=subprocess.DEVNULL, text=True, env=ECM_ENV, cwd=cwd)
         with self.lock:
@@ -549,9 +638,7 @@ class EcmRunner:
         finally:
             with self.lock:
                 self.procs.discard(p)
-        if self.stopped:
-            return None
-        return parse_yafu(out, nums) if yafu else parse_ecm(out, nums)
+        return None if self.stopped else out
 
     def abort(self):
         with self.lock:
@@ -642,12 +729,17 @@ def accept_q(cand, q, p, L, n2, small_primes):
 
 
 # ------------------------------------------------------------ winner -> level
+_CM_UNBUILDABLE = set()          # discriminants whose class polynomial cannot be computed on this installation
+
+
 def get_j(p, d, ells=None, jobs=0, attempts=3, plain=False):
     """j-invariant of a curve with CM by -d over F_p (cm_method, polclass
     fallback).  The root-find's equal-degree splitting is randomized and an
     attempt can come back rootless (exit 0, no j line), so retry a few times
     before giving up on the discriminant.  plain=True makes cm_method use the
     class polynomial itself instead of its class-group decomposition."""
+    if d in _CM_UNBUILDABLE:
+        return None
     cmd = [os.path.join(ECPP_DIR, "cm_method"), "D=-%d" % d, "p=%d" % p]
     if plain:
         cmd.append("tower=0")
@@ -671,6 +763,15 @@ def get_j(p, d, ells=None, jobs=0, attempts=3, plain=False):
         log("    cm_method D=-%d attempt %d/%d: exit %d, no j; tail: %s" % (
             d, att + 1, attempts, r.returncode,
             (r.stderr or r.stdout)[-260:].replace("\n", " | ")))
+        m = re.search(r"Unable to locate file (\S+)", r.stderr or "")
+        if m:
+            # nothing random about this one: the class group of D needs an isogeny
+            # degree whose modular polynomial is not installed
+            _CM_UNBUILDABLE.add(d)
+            log("    D=-%d cannot be built here: %s is missing (the repository carries the modular "
+                "polynomials up to 71 only; CLASSPOLY_PHI_DIR should hold the full set)"
+                % (d, os.path.basename(m.group(1))))
+            return None
     if ells is None and d <= 3 * 10 ** 6:
         out = gp("r=polrootsmod(polclass(-%d),%d);\n"
                  "if(#r==0,print(\"NOROOT\"),print(lift(r[1])));\n" % (d, p), timeout=1800)
@@ -890,6 +991,10 @@ def ladder_rounds(nbits):
                  ("pm1", 500000, [1], 0),
                  ("ecm", 50000, [14, 14], 0), ("ecm", 250000, [10] * 4, 0),
                  ("ecm", 1000000, [16] * 4, 0)]
+        # a small level is cheaper to widen than to work deep: the cofactor to
+        # clear has about nbits/2 bits
+        top = 11000 if nbits < 230 else 50000 if nbits < 320 else 250000 if nbits < 410 else 1000000
+        tiers = [t for t in tiers if t[1] <= top or (t[0] == "pm1" and nbits >= 320)]
     if os.environ.get("SHORTECPP_PM1", "1") == "0":
         tiers = [t for t in tiers if t[0] != "pm1"]
     out = []
@@ -922,7 +1027,9 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
     L = rt + 1 + isqrt(4 * rt)
     rng = random.Random(seed * 1000003 + nb)
     Bmax_given = Bmax
-    B0, Bmax = b_schedule(nb, B0, Bmax)
+    y0b, B0s, threads = level_params(nb, threads, V2_BCAP if V2_BCAP else n2)
+    set_strip_bound(y0b)
+    B0, Bmax = b_schedule(nb, B0 if B0 else B0s, Bmax)
     # The factor base is capped from the first scan (maxfb= fixes the cap,
     # otherwise it follows B) and its square roots are kept on disk for the
     # level, so a widening pays only for the primes the larger cap adds.
@@ -1224,8 +1331,12 @@ def ecm_machine_factor(nb, threads, engine="gmp"):
     busy).  Measured once per run: two curves (yafu: one batch of 8) at
     B1 = 50000 on a number of nb bits with no factor in reach, one process per
     thread."""
-    if (threads, engine) in _MACHINE:
-        return _MACHINE[(threads, engine)]
+    if engine in _MACHINE:
+        return _MACHINE[engine]
+    if nb < 400:
+        # the benchmark would cost more than a small level; the table's costs
+        # are right within a factor 1.4 on the machines seen so far
+        return 1.0
     import shortsim as ss
     prof = ss.ENGINES[engine]
     rng = random.Random(12345)
@@ -1246,7 +1357,7 @@ def ecm_machine_factor(nb, threads, engine="gmp"):
         ts = sorted(ex.map(one, range(threads)))
     per = ts[len(ts) // 2] / curves
     f = per / ss.make_cost(prof["sec"], prof["exponent"], prof["step"], scalar=True)(b1, nb)
-    _MACHINE[(threads, engine)] = f = min(20.0, max(0.2, f))
+    _MACHINE[engine] = f = min(20.0, max(0.2, f))
     log("  %s here: %.4f s per curve at B1=%d on %d bits with %d processes -> cost factor %.2f"
         % ("yafu" if engine == "yafu" else "gmp-ecm", per, b1, nb, threads, f))
     return f
@@ -1465,9 +1576,13 @@ def run_rule_level(p, nb, L, n2, small_primes, threads, stats, B0, Bmax_given, f
         ss.set_grid(nb)
         em, sec, mcost, quantum = ss.engine_model(engine, f, ECPP_DIR)
         cost = ss.engine_model(engine, f, ECPP_DIR, scalar=True)[2]
-        tiers = sd.default_tiers(engine)
+        tiers = sd.default_tiers(engine, nb)
         lad = ss.Ladder(tiers, em, y0bits=Y0.bit_length() - 1, cost=mcost)
-        tab = ss.IndexTable(lad, lam, threads=min(8, threads))
+        # rewards of interest shrink fast with the size (a win costs 1.5 core-h
+        # at 768 bits, a minute at 520 and a second at 300)
+        scale = min(1.0, (nb / 500.0) ** 8)
+        rlo = min(30.0, 3.0 * scale)
+        tab = ss.IndexTable(lad, lam, rlo=rlo, rhi=3.0e7 if scale >= 1.0 else rlo * 1e5, threads=min(8, threads))
         log("  level %d bits: rule table in %.1fs (%d sweeps, rewards %.0f..%.0f core-s)"
             % (nb, time.time() - t0, len(tiers), tab.rgrid[0], tab.rgrid[-1]))
         return sd.level_loop(drv, tab, tiers, cost, {"quantum": quantum})
@@ -1589,7 +1704,8 @@ def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, res
             p = int(st["p"])
             log("resumed: %d level(s) done, current p has %d bits"
                 % ((len(seq) - 1) // 3, p.bit_length()))
-    while p.bit_length() >= CM_MIN_BITS:
+    cmmin = cm_min_bits(V2_QFLOOR if v2 else n2)
+    while p.bit_length() >= cmmin:
         A, x, o, q, meta = prove_level_cm(p, n2, small_primes, P2, threads, stats,
                                           seed=seed, B0=B0 if p == p0 else None,
                                           Bmax=Bmax if p == p0 else None,
@@ -1603,7 +1719,7 @@ def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, res
                        "meta": levels_meta}, f)
     if p > 1:
         log("finishing below %d bits with %s (p has %d bits)"
-            % (CM_MIN_BITS, "short2.gp" if v2 else "short.gp", p.bit_length()))
+            % (cmmin, "short2.gp" if v2 else "short.gp", p.bit_length()))
         t1 = time.time()
         tail = gp_tail_chain2(p, n) if v2 else gp_tail_chain(p, n2)
         log("  gp tail: %d levels in %.1fs" % (len(tail) // 3, time.time() - t1))

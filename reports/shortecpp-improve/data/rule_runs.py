@@ -18,7 +18,7 @@ import os
 import re
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-SETS = ["rule768_local", "rule1030_local", "rule_c8a", "yafu_c8a", "yafu_local"]
+SETS = ["rule768_local", "rule1030_local", "rule_c8a", "yafu_c8a_1", "yafu_c8a_2", "yafu_local"]
 SEARCH = re.compile(r"search: (\d+) orders, scan (\d+) \+ ecm (\d+) core-s(?: \((\d+) above the rule\))?, ([\d.]+)s wall, (\d+) units, "
                     r"(\d+) splits, rule R = (\d+) core-s(?:; the model expected (-?[\d.]+) wins from this work)?"
                     r"(?:; measured/modelled ECM cost by B1: ([^;\n]*))?")

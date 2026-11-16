@@ -1,0 +1,35 @@
+13:32:13 start on aws-spot-7
+13:33:59 cost table done
+13:34:33 y768_0 done: RUN y768_0 wall=33.22 user=3708.85 sys=180.48 verified=1
+13:34:52 y768_1 done: RUN y768_1 wall=16.62 user=1510.87 sys=86.57 verified=1
+13:35:30 y768_2 done: RUN y768_2 wall=36.24 user=3100.24 sys=131.23 verified=1
+13:35:49 y768_3 done: RUN y768_3 wall=16.87 user=1424.04 sys=106.37 verified=1
+13:37:07 y768_4 done: RUN y768_4 wall=75.75 user=1122.91 sys=97.56 verified=1
+13:37:27 y768_5 done: RUN y768_5 wall=16.76 user=1709.74 sys=105.14 verified=1
+13:37:41 y768_6 done: RUN y768_6 wall=12.48 user=796.58 sys=67.23 verified=1
+13:38:08 y768_7 done: RUN y768_7 wall=23.96 user=2337.15 sys=141.70 verified=1
+13:38:26 y768_8 done: RUN y768_8 wall=16.30 user=1668.52 sys=115.31 verified=1
+13:38:42 y768_9 done: RUN y768_9 wall=13.15 user=1174.75 sys=100.00 verified=1
+13:38:59 y768_10 done: RUN y768_10 wall=14.90 user=1492.05 sys=114.79 verified=1
+13:39:21 y768_11 done: RUN y768_11 wall=19.38 user=1492.21 sys=87.83 verified=1
+13:39:58 y768_12 done: RUN y768_12 wall=35.01 user=2657.16 sys=149.98 verified=1
+13:40:09 c160 done: RUN c160 wall=8.66 user=408.12 sys=38.29 verified=1
+13:40:19 c170 done: RUN c170 wall=7.45 user=258.83 sys=25.83 verified=1
+13:40:29 c180 done: RUN c180 wall=7.97 user=347.75 sys=36.16 verified=1
+13:40:43 c190 done: RUN c190 wall=11.99 user=708.35 sys=49.45 verified=1
+13:40:54 c200 done: RUN c200 wall=8.24 user=371.26 sys=29.80 verified=1
+13:41:10 c210 done: RUN c210 wall=13.63 user=1345.37 sys=95.49 verified=1
+13:41:20 c220 done: RUN c220 wall=7.93 user=430.35 sys=37.06 verified=1
+13:41:54 c230 done: RUN c230 wall=32.04 user=3975.67 sys=199.09 verified=1
+13:42:25 c240 done: RUN c240 wall=28.78 user=3297.47 sys=162.72 verified=1
+13:43:23 c250 done: RUN c250 wall=55.73 user=7182.25 sys=280.84 verified=1
+13:44:00 c260 done: RUN c260 wall=34.70 user=4869.32 sys=214.16 verified=1
+13:47:57 c270 done: RUN c270 wall=234.63 user=26333.55 sys=715.27 verified=1
+13:54:19 c280 done: RUN c280 wall=378.79 user=62952.19 sys=1220.34 verified=1
+13:56:09 c290 done: RUN c290 wall=108.57 user=6699.83 sys=194.71 verified=1
+13:58:29 c300 done: RUN c300 wall=136.99 user=13280.13 sys=336.75 verified=1
+14:08:01 c310 done: RUN c310 wall=569.49 user=100296.99 sys=1782.54 verified=1
+14:10:50 c320 done: RUN c320 wall=167.28 user=27424.51 sys=586.25 verified=1
+14:17:12 y1030_1 done: RUN y1030_1 wall=379.14 user=63650.89 sys=1093.97 verified=1
+14:18:23 y1030_2 done: RUN y1030_2 wall=69.52 user=9603.35 sys=253.59 verified=1
+14:18:25 ALL_DONE

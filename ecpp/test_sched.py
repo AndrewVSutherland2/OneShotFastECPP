@@ -205,6 +205,20 @@ def test_queue():
     except ValueError:
         bad = True
     check("... and sweeps that are not are refused", bad)
+    # candidates that are each a fair chance do not share a process
+    class Hot(FakeTable):
+        def pwin(self, cls, j, tb):
+            return 0.03
+    sch4 = sd.Sched(Hot(), tiers, 2, lambda b1, tb: secs[b1], unit_min=1.5, chunk_secs=1.5, unit_pw=0.05)
+    for c in [C(9) for _ in range(40)]:
+        sch4.push(c)
+    u = sch4.take(1, 1e9)
+    sch5 = sd.Sched(FakeTable(), tiers, 2, lambda b1, tb: secs[b1], unit_min=1.5, chunk_secs=1.5, unit_pw=0.05)
+    for c in [C(9) for _ in range(40)]:
+        sch5.push(c)
+    v = sch5.take(1, 1e9)
+    check("a shared process stops at unit_pw expected wins", len(u[0].cands) == 2 and len(v[0].cands) > 2,
+          "%d candidates at 0.03 each, %d when wins are remote" % (len(u[0].cands), len(v[0].cands)))
 
 
 def test_sim(tiers, lad, cost, tab, lam):
@@ -328,6 +342,8 @@ def test_yafu(tiers_gmp, lam):
     check("yafu report: nothing found is no split", v["n2"] not in res)
     check("yafu report: probable-prime cofactor", res.get(v["n3"]) == ([f1], h, True))
     check("yafu report: parts that do not multiply back are dropped", v["n4"] not in res and len(res) == 2)
+    check("yafu report: an input dropped after its first batch says how many curves ran",
+          res.ran == {v["n1"]: 8}, str({k.bit_length(): x for k, x in res.ran.items()}))
     ybin = os.environ.get("SHORTECPP_YAFU", "")
     if ybin and os.access(ybin, os.X_OK) and sp.ECM_BIN:
         sp.YAFU_BIN = ybin
@@ -345,6 +361,13 @@ def test_yafu(tiers_gmp, lam):
         same = all((t in ry) == (t in rg) and (t not in ry or (ry[t][1], ry[t][2]) == (rg[t][1], rg[t][2])) for t in tails)
         check("yafu and gmp-ecm split planted factors alike", same and len(ry) == 3,
               "%d and %d of 4 split" % (len(ry), len(rg)))
+        # yafu alone stops at the first batch with a factor; the runner must spend the rest of the
+        # sweep on the cofactor: six numbers with a 22- and a 44-bit prime, 48 curves at B1 = 2000
+        # (complete sweeps find all twelve primes 99.8% of the time, first batches only 15%)
+        two = [prime(22) * prime(44) * big for _ in range(6)]
+        r2 = sp.EcmRunner("yafu").run(two, 2000, 48, 300)
+        check("a yafu sweep goes on with the cofactor after a factor", all(t in r2 and r2[t][1] == big for t in two),
+              "%d of 6 fully stripped" % sum(1 for t in two if t in r2 and r2[t][1] == big))
     else:
         print("  (no yafu binary in SHORTECPP_YAFU: live comparison skipped)")
     if not os.path.exists(os.path.join(HERE, ss.ENGINES["yafu"]["pi"])):
@@ -388,12 +411,54 @@ def test_yafu(tiers_gmp, lam):
           "mean %.0f core-s" % (sum(work) / len(work)))
 
 
+def test_small():
+    print("G: small levels")
+    check("medium-prime bound by size", [ss.medium_bits(b) for b in (140, 300, 432, 485, 769, 1330)] == [48, 99, 143, 160, 160, 160])
+    tops = [max(b1 for (_, b1, _) in sd.default_tiers("yafu", b)) for b in (200, 300, 400, 499, 500)]
+    check("the ladder stops earlier at small sizes", tops == [11000, 50000, 250000, 1000000, 30000000]
+          and sd.default_tiers("gmp", 769) == sd.default_tiers("gmp"), str(tops))
+    import shortECPP as sp
+    check("level parameters by size", sp.level_params(167, 192, 3778) == (16, 10 ** 5, 1)
+          and sp.level_params(300, 192, 10938) == (20, 10 ** 6, 8) and sp.level_params(769, 192, 61752)[1:] == (None, 192)
+          and sp.level_params(210, 32, 1 << 21)[0] == 22)
+    check("smallest CM level follows the recursion floor", sp.cm_min_bits(3778 ** 2) == 72 and sp.cm_min_bits(170455 ** 2) == 94)
+    bits, lam = 300, 150.0
+    ss.set_grid(bits)
+    em, sec, cost, quantum = ss.engine_model("yafu", 1.0, HERE)
+    tiers = sd.default_tiers("yafu", bits)
+    lad = ss.Ladder(tiers, em, y0bits=20, cost=cost)
+    scale = (bits / 500.0) ** 8
+    tab = ss.IndexTable(lad, lam, rlo=3.0 * scale, rhi=3.0e5 * scale, threads=2)
+    fin = np.isfinite(tab.rmin[5:40, 0, 200:290])
+    check("300 bits: grid and D shrink, first sweeps have a price", ss.NB == 512 and ss.D == 99 and fin.mean() > 0.9
+          and float(np.nanmin(np.where(fin, tab.rmin[5:40, 0, 200:290], np.nan))) < 5.0,
+          "cheapest first sweep %.2f core-s per win" % float(np.nanmin(np.where(fin, tab.rmin[5:40, 0, 200:290], np.nan))))
+
+    class Pool:
+        pass
+    rng = np.random.default_rng(3)
+    n = 4000
+    pool = Pool()
+    pool.w = np.minimum(rng.exponential(13.0, size=n) + 1.0, 45.0)
+    pool.t = 300.0 - 20.0 - rng.exponential(12.0, size=n)
+    pool.prp = rng.random(n) < 0.06
+    pool.lam = lam
+    work = []
+    for k in range(6):
+        drv = sd.SimDriver(pool, lad, tab, 8, np.random.default_rng(700 + k), ss.engine_model("yafu", 1.0, HERE, scalar=True)[2])
+        st = sd.level_loop(drv, tab, tiers, cost, {"quantum": quantum})
+        work.append(st["scan_s"] + st["ecm_s"])
+    check("6 simulated 300-bit levels end with a win", len(work) == 6 and max(work) < 2000, "mean %.1f core-s" % (sum(work) / len(work)))
+    ss.set_grid(1527)
+
+
 def main():
     tiers, lad, cost, tab, lam = test_table()
     test_coverage()
     test_queue()
     test_sim(tiers, lad, cost, tab, lam)
     test_yafu(tiers, lam)
+    test_small()
     print("ALL OK" if not FAILS else "FAILED: %s" % ", ".join(FAILS))
     sys.exit(1 if FAILS else 0)
 

@@ -34,7 +34,10 @@ the same code is exercised by simulation and by the real thing.
 The ECM program enters in three places only: the cost of a curve, the success
 table behind the break-even table (shortsim.ENGINES), and the number of curves
 it runs at once (quantum: 1 for gmp-ecm, 8 for yafu's AVX-512 ECM), of which
-every unit is a multiple.
+every unit is a multiple.  A unit must run all its curves, going on with the
+cofactor when a factor turns up: the state "j sweeps done, tail of t bits" means
+a tail that has survived those sweeps in full, and a tail that lost a small
+prime to the first few curves of a sweep is not a fresh tail of its new size.
 
 The log adds up the wins the model expects from the units handed out, in total
 and by B1, and records the B1 of the unit that completed the first winner: at a
@@ -79,11 +82,15 @@ def sched_init(c, cls, tb):
 
 class Sched:
     def __init__(self, tab, tiers, threads, cost, unit_frac=0.05, unit_min=1.5, chunk_secs=1.5,
-                 chunk_max=32, quantum=1):
+                 chunk_max=32, quantum=1, unit_pw=0.05):
         """tab: shortsim.IndexTable; tiers: [(method, B1, curves)] as given to the
         Ladder behind tab; cost(B1, tail bits): core-seconds per curve; quantum:
         curves the engine runs at once (8 for yafu's AVX-512 ECM), every unit is a
-        multiple of it."""
+        multiple of it; unit_pw: candidates stop being added to a shared process
+        once the model expects that many wins from it (at a small level the best
+        few candidates are each a fair chance, and what runs alongside the unit
+        that wins is wasted)."""
+        self.unit_pw = unit_pw
         self.tab, self.tiers, self.threads, self.cost = tab, list(tiers), threads, cost
         self.quantum = quantum
         if any(c % quantum for (_, _, c) in self.tiers):
@@ -171,13 +178,15 @@ class Sched:
                 # candidates of the same sweep, but leave work for the other cores
                 cands, est = [c], e1 * left
                 kmax = max(1, min(self.chunk_max, len(h) // max(1, nfree)))
-                while est < self.chunk_secs and len(cands) < kmax:
+                pws = self.tab.pwin(c.cls, bj, c.tb)
+                while est < self.chunk_secs and len(cands) < kmax and pws < self.unit_pw:
                     e = self._top(h)
                     if e is None or e[0] > rcap or self.position(e[3])[1] != left:
                         break
                     heapq.heappop(h)
                     cands.append(e[3])
                     est += self.cost(b1, e[3].tb) * left
+                    pws += self.tab.pwin(e[3].cls, bj, e[3].tb)
                 n = left
             else:
                 q = self.quantum
@@ -576,15 +585,23 @@ def sim_main(argv):
     return a
 
 
-def default_tiers(engine="gmp"):
+def default_tiers(engine="gmp", nbits=None):
     """The ladder of sweeps the rule chooses from: (method, B1, curves per sweep).
-    yafu runs 8 curves at a time, so its sweeps are multiples of 8."""
+    yafu runs 8 curves at a time, so its sweeps are multiples of 8.  For moduli
+    of nbits bits the ladder stops at the B1 whose curves still find next to
+    nothing at shortsim.medium_bits(nbits) bits (the model takes larger primes
+    as out of reach): 11000 below 230 bits, 50000 below 320, 250000 below 410,
+    10^6 below 500, everything from there."""
     if engine == "yafu":
         spec = [(2000, 16, 1), (11000, 24, 1), (50000, 16, 2), (250000, 16, 3),
                 (1000000, 16, 5), (3000000, 16, 6), (10000000, 16, 6), (30000000, 16, 4)]
     else:
         spec = [(2000, 12, 1), (11000, 20, 1), (50000, 16, 2), (250000, 12, 4),
                 (1000000, 12, 6), (3000000, 12, 8), (10000000, 12, 8), (30000000, 12, 4)]
+    if nbits is not None:
+        top = 11000 if nbits < 230 else 50000 if nbits < 320 else 250000 if nbits < 410 else \
+            1000000 if nbits < 500 else 30000000
+        spec = [x for x in spec if x[0] <= top]
     tiers = []
     for (b1, c, k) in spec:
         tiers += [("ecm", b1, c)] * k

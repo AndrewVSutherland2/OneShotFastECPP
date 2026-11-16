@@ -1,0 +1,17 @@
+yafu start-up alone: 0.012 s
+{'bits': 532, 'b1': 2000, 'curves': 16, 'tails_per_process': 32, 'process_s': 0.8761706352233887, 'sec_per_curve': 0.001711270771920681, 'idle_single_s': 0.001, 'threads': 192}
+{'bits': 532, 'b1': 11000, 'curves': 24, 'tails_per_process': 21, 'process_s': 3.097963333129883, 'sec_per_curve': 0.0061467526450989735, 'idle_single_s': 0.06969830513000488, 'threads': 192}
+{'bits': 532, 'b1': 50000, 'curves': 16, 'tails_per_process': 7, 'process_s': 2.567945957183838, 'sec_per_curve': 0.022928088903427124, 'idle_single_s': 0.21048423767089844, 'threads': 192}
+{'bits': 532, 'b1': 250000, 'curves': 16, 'tails_per_process': 1, 'process_s': 1.884552240371704, 'sec_per_curve': 0.1177845150232315, 'idle_single_s': 0.9978723239898681, 'threads': 192}
+{'bits': 532, 'b1': 1000000, 'curves': 16, 'tails_per_process': 1, 'process_s': 6.4190733432769775, 'sec_per_curve': 0.4011920839548111, 'idle_single_s': 3.654149503707886, 'threads': 192}
+{'bits': 768, 'b1': 2000, 'curves': 16, 'tails_per_process': 32, 'process_s': 1.2147150039672852, 'sec_per_curve': 0.002372490242123604, 'idle_single_s': 0.008331985473632814, 'threads': 192}
+{'bits': 768, 'b1': 11000, 'curves': 24, 'tails_per_process': 15, 'process_s': 3.197701930999756, 'sec_per_curve': 0.00888250536388821, 'idle_single_s': 0.09621259689331055, 'threads': 192}
+{'bits': 768, 'b1': 50000, 'curves': 16, 'tails_per_process': 5, 'process_s': 2.7172093391418457, 'sec_per_curve': 0.03396511673927307, 'idle_single_s': 0.26362177848815915, 'threads': 192}
+{'bits': 768, 'b1': 250000, 'curves': 16, 'tails_per_process': 1, 'process_s': 2.6197705268859863, 'sec_per_curve': 0.16373565793037415, 'idle_single_s': 1.2621116352081299, 'threads': 192}
+{'bits': 768, 'b1': 1000000, 'curves': 16, 'tails_per_process': 1, 'process_s': 8.761261940002441, 'sec_per_curve': 0.5475788712501526, 'idle_single_s': 4.554036350250244, 'threads': 192}
+{'bits': 1030, 'b1': 2000, 'curves': 16, 'tails_per_process': 32, 'process_s': 2.4595437049865723, 'sec_per_curve': 0.004803796298801899, 'idle_single_s': 0.02386495590209961, 'threads': 192}
+{'bits': 1030, 'b1': 11000, 'curves': 24, 'tails_per_process': 6, 'process_s': 2.292621374130249, 'sec_per_curve': 0.015920981764793396, 'idle_single_s': 0.2147526454925537, 'threads': 192}
+{'bits': 1030, 'b1': 50000, 'curves': 16, 'tails_per_process': 2, 'process_s': 1.9623439311981201, 'sec_per_curve': 0.061323247849941254, 'idle_single_s': 0.577187271118164, 'threads': 192}
+{'bits': 1030, 'b1': 250000, 'curves': 16, 'tails_per_process': 1, 'process_s': 4.993999481201172, 'sec_per_curve': 0.31212496757507324, 'idle_single_s': 2.7454919528961184, 'threads': 192}
+{'bits': 1030, 'b1': 1000000, 'curves': 16, 'tails_per_process': 1, 'process_s': 16.938377380371094, 'sec_per_curve': 1.0586485862731934, 'idle_single_s': 10.146841974258423, 'threads': 192}
+YCOST2_DONE
