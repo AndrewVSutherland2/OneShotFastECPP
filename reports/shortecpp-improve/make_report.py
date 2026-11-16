@@ -668,6 +668,40 @@ if os.path.exists(yl):
                         + "".join("<tr><td>%d</td>%s</tr>" % (sz, "".join("<td>%.4f</td>" % t[(sz, b)] for b in b1s)) for sz in sizes)
                         + "</table>")
 
+bj = os.path.join(DATA, "bench_c8a.json")
+if os.path.exists(bj):
+    bd = json.load(open(bj))["entries"]
+
+    def dur(x):
+        return "%.1f s" % x if x < 100 else "%s s" % fmt(x) if x < 7200 else "%.1f h" % (x / 3600.0)
+
+    def cpu(x):
+        return "%.1f s" % x if x < 10 else "%s s" % fmt(x) if x < 3600 else "%.1f core-h" % (x / 3600.0)
+    trs = []
+    for r in bd:
+        b_ = r["best"]
+        rec = cpu(r["recorded_cpu"]) if r["recorded_cpu"] >= 5 else ("< 1 s" if r["c"] == 10 else "~%d s" % r["recorded_cpu"])
+        recw = "%s on %d" % (dur(r["recorded_wall"]), r["recorded_cores"]) if r["recorded_wall"] else "&ndash;"
+        trs.append("<tr><td>10<sup>%d</sup></td><td>%d</td><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>"
+                   % (r["c"], b_["bits"], b_["levels"], rec, recw, dur(b_["wall"]), cpu(b_["cpu"]),
+                      "%s&times;" % fmt(r["recorded_cpu"] / max(b_["cpu"], 0.01))))
+    R["BENCH_TABLE"] = ("<table><tr><th>prime after</th><th>bits</th><th>levels</th><th>recorded CPU</th><th>recorded wall, cores</th>"
+                        "<th>now: wall on 192</th><th>now: CPU</th><th>CPU, recorded / now</th></tr>" + "".join(trs) + "</table>")
+    big = [r for r in bd if r["c"] >= 160]
+    small = [r for r in bd if r["c"] <= 150]
+    ratios = [r["recorded_cpu"] / max(r["best"]["cpu"], 0.01) for r in bd]
+    R["BENCH_MIN_RATIO"] = "%d" % min(ratios)
+    R["BENCH_MAX_RATIO"] = "%d" % max(ratios)
+    R["BENCH_WALL_MIN"] = "%.0f" % (sum(r["best"]["wall"] for r in big) / 60.0)
+    R["BENCH_CPU_H"] = "%.0f" % (sum(r["best"]["cpu"] for r in big) / 3600.0)
+    R["BENCH_REC_H"] = fmt(sum(r["recorded_cpu"] for r in big) / 3600.0)
+    R["BENCH_TOTALS"] = ("The fifteen entries up to 10<sup>150</sup> take %.0f s of wall time and %s CPU-seconds in all (recorded: %s "
+                         "CPU-seconds); the seventeen from 10<sup>160</sup> to 10<sup>320</sup> take %.0f minutes and %.0f core-hours "
+                         "(recorded: %s core-hours)."
+                         % (sum(r["best"]["wall"] for r in small), fmt(sum(r["best"]["cpu"] for r in small)), fmt(sum(r["recorded_cpu"] for r in small)),
+                            sum(r["best"]["wall"] for r in big) / 60.0, sum(r["best"]["cpu"] for r in big) / 3600.0,
+                            fmt(sum(r["recorded_cpu"] for r in big) / 3600.0)))
+
 tpl = open(os.path.join(HERE, "index.template.html")).read()
 body = open(os.path.join(HERE, "sections.html")).read()
 # sections.html holds the prose blocks, each introduced by a line "#### NAME"

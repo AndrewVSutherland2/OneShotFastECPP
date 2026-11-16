@@ -705,6 +705,34 @@ def _solve_classes(ctx, wins, dead):
     return rmin, V0, C0
 
 
+def _solve_in_processes(ctx, jobs):
+    """_solve_classes(ctx, wins, dead) for each (wins, dead) of jobs, each in a child interpreter."""
+    import concurrent.futures
+    import pickle
+    import subprocess
+    here = os.path.dirname(os.path.abspath(__file__))
+    code = "import sys; sys.path.insert(0, %r); import shortsim; shortsim._worker_main()" % here
+    procs = [subprocess.Popen([sys.executable, "-c", code], stdin=subprocess.PIPE, stdout=subprocess.PIPE) for _ in jobs]
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=len(procs)) as ex:
+            outs = list(ex.map(lambda pj: pj[0].communicate(pickle.dumps((ctx,) + pj[1], protocol=4), timeout=900)[0],
+                               zip(procs, jobs)))
+    finally:
+        for p in procs:
+            if p.poll() is None:
+                p.kill()
+    if any(p.returncode != 0 for p in procs):
+        raise RuntimeError("a table worker exited with status %s" % [p.returncode for p in procs])
+    return [pickle.loads(o) for o in outs]
+
+
+def _worker_main():
+    import pickle
+    ctx, wins, dead = pickle.load(sys.stdin.buffer)
+    pickle.dump(_solve_classes(ctx, wins, dead), sys.stdout.buffer, protocol=4)
+    sys.stdout.buffer.flush()
+
+
 class IndexTable:
     """Break-even rewards of every state of a candidate.
 
@@ -744,20 +772,15 @@ class IndexTable:
         nchunk = max(1, min(threads, (cmax + 1) // 4))
         parts = np.array_split(np.arange(cmax + 1), nchunk)
         res = None
-        if nchunk > 1:
+        if nchunk > 1 and G * J * (cmax + 1) * NFFT > 5e7:
             # processes, not threads: the programme is thousands of short numpy
             # calls, and threads spend their time handing the interpreter lock
-            # around (8 threads: no gain; 8 processes: 5x).  A fork server keeps
-            # the workers clear of the caller's threads.
+            # around (8 threads: no gain; 8 processes: 5x).  Plain child
+            # interpreters fed over pipes, so that nothing of the caller (its
+            # threads, its main module) is carried into them.
             try:
-                import concurrent.futures
-                import multiprocessing
-                mpc = multiprocessing.get_context("forkserver")
-                mpc.set_forkserver_preload(["numpy", "shortsim"])
-                with concurrent.futures.ProcessPoolExecutor(max_workers=nchunk, mp_context=mpc) as ex:
-                    futs = [ex.submit(_solve_classes, ctx, wins[cs], dead[cs]) for cs in parts]
-                    res = [f.result(timeout=600) for f in futs]
-            except Exception as e:                      # a worker died or there is no fork server: one process will do
+                res = _solve_in_processes(ctx, [(wins[cs], dead[cs]) for cs in parts])
+            except Exception as e:                      # one process will do
                 sys.stderr.write("IndexTable: worker processes failed (%r), computing in one process\n" % (e,))
                 res = None
         if res is None:
