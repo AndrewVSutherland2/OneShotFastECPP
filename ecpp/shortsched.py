@@ -16,7 +16,13 @@ implemented here:
     nothing is abandoned for good, R rises with the price and a parked candidate
     comes back when R reaches it;
   * the scan runs when the work below R is about to run out, on the share of the
-    cores that its price has in the cost of a fresh order.
+    cores that its price has in the cost of a fresh order.  Cores left without
+    work below R while it runs take what lies just above (up to relax x R, see
+    level_loop): with a fast ECM program on many cores that is a large part of
+    the ECM work (40-100% of it on 192 cores with yafu), but it is work brought
+    forward, not wasted, since R rises with every chunk.  Giving the scan more
+    cores instead buys the next, dearer chunk sooner and costs more per win
+    (simulated at 768 bits on 192 threads: 0.78 against 0.65 core-hours).
 
 Two things are needed to keep a many-core machine honest.  A sweep of c curves
 is split into units of a few seconds (curves are independent trials, so a

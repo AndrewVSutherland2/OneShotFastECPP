@@ -1,0 +1,25 @@
+[14:52:50] revised format: B = 18426, log2 rad <= 47, recursion floor B^2 = 339517476
+[14:52:50] proving p0 (399 bits), n2 = 159201
+[14:52:50]   level 399 bits: rule table in 0.5s (7 sweeps, rewards 0..50892 core-s)
+[14:52:50]   level 399 bits: dscan[0,3e+06) maxfb=1e+06 on 44 threads: +972 D -> +766 orders (668 live), 3 core-s (strip 2) = 0.0045 per order; 0 winners
+[14:52:50]   level 399 bits: dscan[3e+06,6e+06) maxfb=1e+06 on 19 threads: +372 D -> +272 orders (235 live), 1 core-s (strip 1) = 0.0055 per order; 0 winners
+[14:52:51]     WINNER D=-5186855 q 178 bits, o=m*q with m=4753248 (|D| h~2277)
+[14:52:51]     search: 1038 orders, scan 5 + ecm 8 core-s (4 above the rule), 0.4s wall, 64 units, 148 splits, rule R = 5 core-s; the model expected 1.63 wins from this work; measured/modelled ECM cost by B1: 2000:0.69 11000:0.73 50000:0.64; wins expected by B1: 2000:0.270 11000:0.722 50000:0.637 250000:0.000; won at B1=11000
+[14:52:51]     cm_method D=-5186855: H_D^inv(deg 1776 = 48 x 37, inv 1): 0.157s   roots: 0.043s + 0.047s   1 j-candidate(s)
+[14:52:51]   level 399 bits: built D=-5186855 h~2277 in 0.4s; o has 200 bits, q 178 bits (total 1.5s, 1038 cands, 8 ecm-s)
+[14:52:51]   level 178 bits: dscan[0,100000) maxfb=1e+06 +272 D -> +256 orders (214 live) in 0.0s (strip 0.0s), 0 winners
+[14:52:51]     WINNER D=-9995 q 85 bits, o=m*q with m=28 (|D| h~99)
+[14:52:51]     WINNER D=-20356 q 87 bits, o=m*q with m=5 (|D| h~142)
+[14:52:51]     WINNER D=-22499 q 54 bits, o=m*q with m=44195070124 (|D| h~149)
+[14:52:51]     WINNER D=-80059 q 65 bits, o=m*q with m=14151770 (|D| h~282)
+[14:52:51]     WINNER D=-2803 q 84 bits, o=m*q with m=43 (|D| h~52)
+[14:52:51]     ecm B1=2000 c=10 on 214 tails: 25 split, 5 winners, 0.2s (stopped at the first winner, 32 tails done)
+[14:52:51]     cm_method D=-2803: H_D^inv(deg 9, inv 171): 0.018s   root: 0.001s   1 j-candidate(s)
+[14:52:51]   level 178 bits: built D=-2803 h~52 in 0.0s; o has 90 bits, q 84 bits (total 0.3s, 1294 cands, 8 ecm-s)
+[14:52:51] finishing below 88 bits with short2.gp (p has 84 bits)
+[14:52:52]   gp tail: 1 levels in 0.2s
+[14:52:52] chain complete: 3 levels, 2.0s; verifying...
+[14:52:52] vshort2.verify = True   PARI cross-check = True
+[14:52:52] certificate written to /home/ubuntu/rule/out3/c120.cert.txt (verified twice)
+RUN c120 wall=2.06 user=22.15 sys=1.42
+EXIT 0

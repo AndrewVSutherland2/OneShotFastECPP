@@ -1,0 +1,40 @@
+[14:21:44] revised format: B = 61685, log2 rad <= 81, recursion floor B^2 = 3805039225
+[14:21:44] proving p0 (769 bits), n2 = 591361
+[14:21:45]   yafu here: 0.0406 s per curve at B1=50000 on 769 bits with 192 processes -> cost factor 1.01
+[14:21:49]   level 769 bits: rule table in 3.2s (28 sweeps, rewards 3..34802392 core-s)
+[14:21:49]   level 769 bits: dscan[0,6e+07) maxfb=1e+06 on 192 threads: +6271 D -> +6240 orders (5842 live), 64 core-s (strip 6) = 0.0102 per order; 0 winners
+[14:21:49]   level 769 bits: dscan[6e+07,1.2e+08) maxfb=1e+06 on 59 threads: +2255 D -> +2194 orders (2063 live), 21 core-s (strip 4) = 0.0095 per order; 0 winners
+[14:21:51]   level 769 bits: dscan[1.2e+08,2.4e+08) maxfb=1e+06 on 54 threads: +2997 D -> +3022 orders (2832 live), 34 core-s (strip 5) = 0.0111 per order; 0 winners
+[14:21:53]     WINNER D=-76373380 q 381 bits, o=m*q with m=14 (|D| h~8739)
+[14:21:53]     search: 11456 orders, scan 118 + ecm 613 core-s (424 above the rule), 4.4s wall, 650 units, 2946 splits, rule R = 1140 core-s; the model expected 0.07 wins from this work; measured/modelled ECM cost by B1: 2000:0.86 11000:0.74 50000:0.78 250000:0.76; wins expected by B1: 2000:0.000 11000:0.004 50000:0.056 250000:0.007; won at B1=250000
+[14:21:54]     cm_method D=-76373380: H_D^inv(deg 1320 = 24 x 55, inv 24): 0.142s   roots: 0.151s + 0.247s   1 j-candidate(s)
+[14:21:55]   level 769 bits: built D=-76373380 h~8739 in 1.4s; o has 385 bits, q 381 bits (total 10.0s, 11456 cands, 613 ecm-s)
+[14:21:55]   level 381 bits: rule table in 0.7s (7 sweeps, rewards 0..35178 core-s)
+[14:21:55]   level 381 bits: dscan[0,3e+06) maxfb=1e+06 on 32 threads: +2323 D -> +1860 orders (1599 live), 4 core-s (strip 2) = 0.0020 per order; 0 winners
+[14:21:55]     WINNER D=-972071 q 187 bits, o=m*q with m=15 (|D| h~985)
+[14:21:55]     search: 1860 orders, scan 4 + ecm 2 core-s (7 above the rule), 0.1s wall, 24 units, 3 splits, rule R = 3 core-s; the model expected 0.06 wins from this work; measured/modelled ECM cost by B1: 2000:1.07; wins expected by B1: 2000:0.060; won at B1=2000
+[14:21:57]     cm_method D=-972071: H_D^inv(deg 1009, inv 1): 0.041s   root: 1.997s   1 j-candidate(s)
+[14:21:57]   level 381 bits: built D=-972071 h~985 in 2.1s; o has 192 bits, q 187 bits (total 2.8s, 13316 cands, 615 ecm-s)
+[14:21:57]   level 187 bits: dscan[0,100000) maxfb=1e+06 +393 D -> +270 orders (219 live) in 0.0s (strip 0.0s), 0 winners
+[14:21:58]     WINNER D=-759 q 76 bits, o=m*q with m=168044 (|D| h~27)
+[14:21:58]     WINNER D=-20995 q 47 bits, o=m*q with m=280088124229561 (|D| h~144)
+[14:21:58]     WINNER D=-20995 q 65 bits, o=m*q with m=578683412 (|D| h~144)
+[14:21:58]     WINNER D=-12111 q 51 bits, o=m*q with m=49901105598329 (|D| h~110)
+[14:21:58]     WINNER D=-12111 q 56 bits, o=m*q with m=219002575520 (|D| h~110)
+[14:21:58]     WINNER D=-18751 q 47 bits, o=m*q with m=122309578251612 (|D| h~136)
+[14:21:58]     WINNER D=-46887 q 87 bits, o=m*q with m=156 (|D| h~216)
+[14:21:58]     WINNER D=-46759 q 84 bits, o=m*q with m=743 (|D| h~216)
+[14:21:58]     WINNER D=-50299 q 79 bits, o=m*q with m=36047 (|D| h~224)
+[14:21:58]     WINNER D=-1451 q 77 bits, o=m*q with m=146945 (|D| h~38)
+[14:21:58]     WINNER D=-715 q 70 bits, o=m*q with m=46552487 (|D| h~26)
+[14:21:58]     WINNER D=-1839 q 68 bits, o=m*q with m=83243692 (|D| h~42)
+[14:21:58]     ecm B1=2000 c=10 on 219 tails: 29 split, 12 winners, 0.3s (stopped at the first winner, 32 tails done)
+[14:21:58]     cm_method D=-715: H_D^inv(deg 2, inv 111): 0.011s   root: 0.000s   1 j-candidate(s)   ell=2 floor
+[14:21:58]   level 187 bits: built D=-715 h~26 in 0.0s; o has 96 bits, q 70 bits (total 0.3s, 13586 cands, 615 ecm-s)
+[14:21:58] finishing below 94 bits with short2.gp (p has 70 bits)
+[14:21:58]   gp tail: 1 levels in 0.2s
+[14:21:58] chain complete: 4 levels, 13.4s; verifying...
+[14:21:58] vshort2.verify = True   PARI cross-check = True
+[14:21:58] certificate written to /home/ubuntu/rule/out3/y768_1.cert.txt (verified twice)
+RUN y768_1 wall=13.54 user=805.88 sys=77.44
+EXIT 0

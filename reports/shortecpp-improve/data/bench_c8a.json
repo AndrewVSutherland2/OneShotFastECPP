@@ -1,0 +1,1190 @@
+{
+ "entries": [
+  {
+   "c": 10,
+   "recorded_cpu": 1,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 0.06,
+     "cpu": 0.05,
+     "verified": true,
+     "levels": 1,
+     "bits": 34,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 0.06,
+     "cpu": 0.060000000000000005,
+     "verified": true,
+     "levels": 1,
+     "bits": 34,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 0.06,
+    "cpu": 0.060000000000000005,
+    "verified": true,
+    "levels": 1,
+    "bits": 34,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 20,
+   "recorded_cpu": 1,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 0.46,
+     "cpu": 0.46,
+     "verified": true,
+     "levels": 2,
+     "bits": 67,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 0.1,
+     "cpu": 0.09,
+     "verified": true,
+     "levels": 2,
+     "bits": 67,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 0.1,
+    "cpu": 0.09,
+    "verified": true,
+    "levels": 2,
+    "bits": 67,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 30,
+   "recorded_cpu": 1,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 0.12,
+     "cpu": 0.11,
+     "verified": true,
+     "levels": 2,
+     "bits": 100,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 0.12,
+     "cpu": 0.11,
+     "verified": true,
+     "levels": 2,
+     "bits": 100,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 0.12,
+    "cpu": 0.11,
+    "verified": true,
+    "levels": 2,
+    "bits": 100,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 40,
+   "recorded_cpu": 2,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 0.21,
+     "cpu": 0.21000000000000002,
+     "verified": true,
+     "levels": 2,
+     "bits": 133,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 0.23,
+     "cpu": 0.22999999999999998,
+     "verified": true,
+     "levels": 2,
+     "bits": 133,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 0.23,
+    "cpu": 0.22999999999999998,
+    "verified": true,
+    "levels": 2,
+    "bits": 133,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 50,
+   "recorded_cpu": 3,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 0.56,
+     "cpu": 0.5700000000000001,
+     "verified": true,
+     "levels": 2,
+     "bits": 167,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 0.34,
+     "cpu": 0.33,
+     "verified": true,
+     "levels": 3,
+     "bits": 167,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 0.34,
+    "cpu": 0.33,
+    "verified": true,
+    "levels": 3,
+    "bits": 167,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 60,
+   "recorded_cpu": 3,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 0.54,
+     "cpu": 0.54,
+     "verified": true,
+     "levels": 3,
+     "bits": 200,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 0.53,
+     "cpu": 0.54,
+     "verified": true,
+     "levels": 3,
+     "bits": 200,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 0.53,
+    "cpu": 0.54,
+    "verified": true,
+    "levels": 3,
+    "bits": 200,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 70,
+   "recorded_cpu": 45,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 0.66,
+     "cpu": 1.1300000000000001,
+     "verified": true,
+     "levels": 3,
+     "bits": 233,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 0.68,
+     "cpu": 1.16,
+     "verified": true,
+     "levels": 3,
+     "bits": 233,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 0.68,
+    "cpu": 1.16,
+    "verified": true,
+    "levels": 3,
+    "bits": 233,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 80,
+   "recorded_cpu": 180,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 0.99,
+     "cpu": 2.98,
+     "verified": true,
+     "levels": 3,
+     "bits": 266,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 0.99,
+     "cpu": 2.9499999999999997,
+     "verified": true,
+     "levels": 3,
+     "bits": 266,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 0.99,
+    "cpu": 2.9499999999999997,
+    "verified": true,
+    "levels": 3,
+    "bits": 266,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 90,
+   "recorded_cpu": 350,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 1.17,
+     "cpu": 10.83,
+     "verified": true,
+     "levels": 3,
+     "bits": 299,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 0.87,
+     "cpu": 10.14,
+     "verified": true,
+     "levels": 3,
+     "bits": 299,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 0.87,
+    "cpu": 10.14,
+    "verified": true,
+    "levels": 3,
+    "bits": 299,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 100,
+   "recorded_cpu": 800,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 1.3,
+     "cpu": 12.620000000000001,
+     "verified": true,
+     "levels": 3,
+     "bits": 333,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 1.08,
+     "cpu": 12.180000000000001,
+     "verified": true,
+     "levels": 3,
+     "bits": 333,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 1.08,
+    "cpu": 12.180000000000001,
+    "verified": true,
+    "levels": 3,
+    "bits": 333,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 110,
+   "recorded_cpu": 6300,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 1.27,
+     "cpu": 18.17,
+     "verified": true,
+     "levels": 4,
+     "bits": 366,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 1.09,
+     "cpu": 16.51,
+     "verified": true,
+     "levels": 4,
+     "bits": 366,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 1.09,
+    "cpu": 16.51,
+    "verified": true,
+    "levels": 4,
+    "bits": 366,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 120,
+   "recorded_cpu": 1900,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 2.06,
+     "cpu": 23.57,
+     "verified": true,
+     "levels": 3,
+     "bits": 399,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 1.36,
+     "cpu": 20.47,
+     "verified": true,
+     "levels": 4,
+     "bits": 399,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 1.36,
+    "cpu": 20.47,
+    "verified": true,
+    "levels": 4,
+    "bits": 399,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 130,
+   "recorded_cpu": 1800,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 2.87,
+     "cpu": 80.89,
+     "verified": true,
+     "levels": 4,
+     "bits": 432,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 2.67,
+     "cpu": 79.1,
+     "verified": true,
+     "levels": 4,
+     "bits": 432,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 2.67,
+    "cpu": 79.1,
+    "verified": true,
+    "levels": 4,
+    "bits": 432,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 140,
+   "recorded_cpu": 13700,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 3.78,
+     "cpu": 98.64,
+     "verified": true,
+     "levels": 4,
+     "bits": 466,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 4.87,
+     "cpu": 99.91,
+     "verified": true,
+     "levels": 4,
+     "bits": 466,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 4.87,
+    "cpu": 99.91,
+    "verified": true,
+    "levels": 4,
+    "bits": 466,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 150,
+   "recorded_cpu": 11400,
+   "recorded_wall": null,
+   "recorded_cores": null,
+   "recorded_by": "short.gp",
+   "passes": {
+    "yafu_c8a_2": {
+     "wall": 4.58,
+     "cpu": 114.47,
+     "verified": true,
+     "levels": 3,
+     "bits": 499,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 3.56,
+     "cpu": 111.93,
+     "verified": true,
+     "levels": 4,
+     "bits": 499,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 3.56,
+    "cpu": 111.93,
+    "verified": true,
+    "levels": 4,
+    "bits": 499,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 160,
+   "recorded_cpu": 3500,
+   "recorded_wall": 360,
+   "recorded_cores": 10,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 8.66,
+     "cpu": 446.41,
+     "verified": true,
+     "levels": 4,
+     "bits": 532,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 8.91,
+     "cpu": 497.07,
+     "verified": true,
+     "levels": 4,
+     "bits": 532,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 6.0,
+     "cpu": 297.59999999999997,
+     "verified": true,
+     "levels": 4,
+     "bits": 532,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 6.0,
+    "cpu": 297.59999999999997,
+    "verified": true,
+    "levels": 4,
+    "bits": 532,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 170,
+   "recorded_cpu": 90000.0,
+   "recorded_wall": 15120.0,
+   "recorded_cores": 6,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 7.45,
+     "cpu": 284.65999999999997,
+     "verified": true,
+     "levels": 4,
+     "bits": 565,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 6.51,
+     "cpu": 188.21,
+     "verified": true,
+     "levels": 4,
+     "bits": 565,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 3.66,
+     "cpu": 190.60999999999999,
+     "verified": true,
+     "levels": 4,
+     "bits": 565,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 3.66,
+    "cpu": 190.60999999999999,
+    "verified": true,
+    "levels": 4,
+    "bits": 565,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 180,
+   "recorded_cpu": 5200,
+   "recorded_wall": 540,
+   "recorded_cores": 10,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 7.97,
+     "cpu": 383.90999999999997,
+     "verified": true,
+     "levels": 4,
+     "bits": 598,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 7.29,
+     "cpu": 239.67000000000002,
+     "verified": true,
+     "levels": 4,
+     "bits": 598,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 3.71,
+     "cpu": 222.52,
+     "verified": true,
+     "levels": 4,
+     "bits": 598,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 3.71,
+    "cpu": 222.52,
+    "verified": true,
+    "levels": 4,
+    "bits": 598,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 190,
+   "recorded_cpu": 15300,
+   "recorded_wall": 1560,
+   "recorded_cores": 10,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 11.99,
+     "cpu": 757.8000000000001,
+     "verified": true,
+     "levels": 4,
+     "bits": 632,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 8.04,
+     "cpu": 326.44000000000005,
+     "verified": true,
+     "levels": 4,
+     "bits": 632,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 6.1,
+     "cpu": 413.43,
+     "verified": true,
+     "levels": 4,
+     "bits": 632,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 6.1,
+    "cpu": 413.43,
+    "verified": true,
+    "levels": 4,
+    "bits": 632,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 200,
+   "recorded_cpu": 136800.0,
+   "recorded_wall": 13680.0,
+   "recorded_cores": 10,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 8.24,
+     "cpu": 401.06,
+     "verified": true,
+     "levels": 4,
+     "bits": 665,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 11.62,
+     "cpu": 567.71,
+     "verified": true,
+     "levels": 4,
+     "bits": 665,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 4.75,
+     "cpu": 382.06,
+     "verified": true,
+     "levels": 4,
+     "bits": 665,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 4.75,
+    "cpu": 382.06,
+    "verified": true,
+    "levels": 4,
+    "bits": 665,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 210,
+   "recorded_cpu": 468000.0,
+   "recorded_wall": 46800.0,
+   "recorded_cores": 10,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 13.63,
+     "cpu": 1440.86,
+     "verified": true,
+     "levels": 4,
+     "bits": 698,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 14.25,
+     "cpu": 1386.9599999999998,
+     "verified": true,
+     "levels": 4,
+     "bits": 698,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 14.47,
+     "cpu": 1986.89,
+     "verified": true,
+     "levels": 4,
+     "bits": 698,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 14.47,
+    "cpu": 1986.89,
+    "verified": true,
+    "levels": 4,
+    "bits": 698,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 220,
+   "recorded_cpu": 75600.0,
+   "recorded_wall": 4680.0,
+   "recorded_cores": 16,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 7.93,
+     "cpu": 467.41,
+     "verified": true,
+     "levels": 4,
+     "bits": 731,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 15.3,
+     "cpu": 1074.6200000000001,
+     "verified": true,
+     "levels": 4,
+     "bits": 731,
+     "failed_builds": 0
+    },
+    "yafu_c8a_3": {
+     "wall": 9.77,
+     "cpu": 730.17,
+     "verified": true,
+     "levels": 4,
+     "bits": 731,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 9.77,
+    "cpu": 730.17,
+    "verified": true,
+    "levels": 4,
+    "bits": 731,
+    "failed_builds": 0,
+    "set": "yafu_c8a_3"
+   }
+  },
+  {
+   "c": 230,
+   "recorded_cpu": 212400.0,
+   "recorded_wall": 13320.0,
+   "recorded_cores": 16,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 32.04,
+     "cpu": 4174.76,
+     "verified": true,
+     "levels": 4,
+     "bits": 765,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 38.4,
+     "cpu": 4740.64,
+     "verified": true,
+     "levels": 4,
+     "bits": 765,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 38.4,
+    "cpu": 4740.64,
+    "verified": true,
+    "levels": 4,
+    "bits": 765,
+    "failed_builds": 0,
+    "set": "yafu_c8a_2"
+   }
+  },
+  {
+   "c": 240,
+   "recorded_cpu": 1116000.0,
+   "recorded_wall": 5760.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 28.78,
+     "cpu": 3460.1899999999996,
+     "verified": true,
+     "levels": 5,
+     "bits": 798,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 40.4,
+     "cpu": 5926.44,
+     "verified": true,
+     "levels": 4,
+     "bits": 798,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 40.4,
+    "cpu": 5926.44,
+    "verified": true,
+    "levels": 4,
+    "bits": 798,
+    "failed_builds": 0,
+    "set": "yafu_c8a_2"
+   }
+  },
+  {
+   "c": 250,
+   "recorded_cpu": 1044000.0,
+   "recorded_wall": 5400.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 55.73,
+     "cpu": 7463.09,
+     "verified": true,
+     "levels": 4,
+     "bits": 831,
+     "failed_builds": 1
+    },
+    "yafu_c8a_2": {
+     "wall": 62.03,
+     "cpu": 8929.800000000001,
+     "verified": true,
+     "levels": 4,
+     "bits": 831,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 62.03,
+    "cpu": 8929.800000000001,
+    "verified": true,
+    "levels": 4,
+    "bits": 831,
+    "failed_builds": 0,
+    "set": "yafu_c8a_2"
+   }
+  },
+  {
+   "c": 260,
+   "recorded_cpu": 612000.0,
+   "recorded_wall": 3240.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 34.7,
+     "cpu": 5083.48,
+     "verified": true,
+     "levels": 4,
+     "bits": 864,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 27.46,
+     "cpu": 3266.15,
+     "verified": true,
+     "levels": 4,
+     "bits": 864,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 27.46,
+    "cpu": 3266.15,
+    "verified": true,
+    "levels": 4,
+    "bits": 864,
+    "failed_builds": 0,
+    "set": "yafu_c8a_2"
+   }
+  },
+  {
+   "c": 270,
+   "recorded_cpu": 1872000.0,
+   "recorded_wall": 9720.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 234.63,
+     "cpu": 27048.82,
+     "verified": true,
+     "levels": 5,
+     "bits": 897,
+     "failed_builds": 1
+    },
+    "yafu_c8a_2": {
+     "wall": 86.74,
+     "cpu": 13672.43,
+     "verified": true,
+     "levels": 4,
+     "bits": 897,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 86.74,
+    "cpu": 13672.43,
+    "verified": true,
+    "levels": 4,
+    "bits": 897,
+    "failed_builds": 0,
+    "set": "yafu_c8a_2"
+   }
+  },
+  {
+   "c": 280,
+   "recorded_cpu": 1800000.0,
+   "recorded_wall": 9360.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 378.79,
+     "cpu": 64172.53,
+     "verified": true,
+     "levels": 5,
+     "bits": 931,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 24.55,
+     "cpu": 2406.05,
+     "verified": true,
+     "levels": 5,
+     "bits": 931,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 24.55,
+    "cpu": 2406.05,
+    "verified": true,
+    "levels": 5,
+    "bits": 931,
+    "failed_builds": 0,
+    "set": "yafu_c8a_2"
+   }
+  },
+  {
+   "c": 290,
+   "recorded_cpu": 1368000.0,
+   "recorded_wall": 7200.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 108.57,
+     "cpu": 6894.54,
+     "verified": true,
+     "levels": 5,
+     "bits": 964,
+     "failed_builds": 1
+    },
+    "yafu_c8a_2": {
+     "wall": 101.98,
+     "cpu": 16512.03,
+     "verified": true,
+     "levels": 5,
+     "bits": 964,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 101.98,
+    "cpu": 16512.03,
+    "verified": true,
+    "levels": 5,
+    "bits": 964,
+    "failed_builds": 0,
+    "set": "yafu_c8a_2"
+   }
+  },
+  {
+   "c": 300,
+   "recorded_cpu": 1368000.0,
+   "recorded_wall": 7200.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 136.99,
+     "cpu": 13616.88,
+     "verified": true,
+     "levels": 5,
+     "bits": 997,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 130.2,
+     "cpu": 12167.59,
+     "verified": true,
+     "levels": 4,
+     "bits": 997,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 130.2,
+    "cpu": 12167.59,
+    "verified": true,
+    "levels": 4,
+    "bits": 997,
+    "failed_builds": 0,
+    "set": "yafu_c8a_2"
+   }
+  },
+  {
+   "c": 310,
+   "recorded_cpu": 3456000.0,
+   "recorded_wall": 18000.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 569.49,
+     "cpu": 102079.53,
+     "verified": true,
+     "levels": 4,
+     "bits": 1030,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 268.21,
+     "cpu": 44247.159999999996,
+     "verified": true,
+     "levels": 5,
+     "bits": 1030,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 268.21,
+    "cpu": 44247.159999999996,
+    "verified": true,
+    "levels": 5,
+    "bits": 1030,
+    "failed_builds": 0,
+    "set": "yafu_c8a_2"
+   }
+  },
+  {
+   "c": 320,
+   "recorded_cpu": 1404000.0,
+   "recorded_wall": 8640.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_1": {
+     "wall": 167.28,
+     "cpu": 28010.76,
+     "verified": true,
+     "levels": 5,
+     "bits": 1064,
+     "failed_builds": 0
+    },
+    "yafu_c8a_2": {
+     "wall": 204.98,
+     "cpu": 34638.94,
+     "verified": true,
+     "levels": 5,
+     "bits": 1064,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 204.98,
+    "cpu": 34638.94,
+    "verified": true,
+    "levels": 5,
+    "bits": 1064,
+    "failed_builds": 0,
+    "set": "yafu_c8a_2"
+   }
+  }
+ ],
+ "sets": {
+  "yafu_c8a_1/y768": {
+   "n": 13,
+   "wall_mean": 25.433846153846154,
+   "wall_median": 16.87,
+   "wall_max": 75.75,
+   "cpu_mean": 1975.3276923076921,
+   "failed_builds": 1
+  },
+  "yafu_c8a_1/y1030": {
+   "n": 2,
+   "wall_mean": 224.32999999999998,
+   "wall_median": 379.14,
+   "wall_max": 379.14,
+   "cpu_mean": 37300.9,
+   "failed_builds": 0
+  },
+  "yafu_c8a_2/y768": {
+   "n": 13,
+   "wall_mean": 25.428461538461537,
+   "wall_median": 16.67,
+   "wall_max": 80.91,
+   "cpu_mean": 2128.9376923076925,
+   "failed_builds": 1
+  },
+  "yafu_c8a_2/y1030": {
+   "n": 2,
+   "wall_mean": 218.98000000000002,
+   "wall_median": 392.29,
+   "wall_max": 392.29,
+   "cpu_mean": 36489.06,
+   "failed_builds": 0
+  },
+  "yafu_c8a_3/y768": {
+   "n": 13,
+   "wall_mean": 21.11846153846154,
+   "wall_median": 14.34,
+   "wall_max": 105.43,
+   "cpu_mean": 1879.4892307692307,
+   "failed_builds": 0
+  }
+ }
+}

@@ -661,6 +661,50 @@ def class_window(c, lam):
     return win
 
 
+def _solve_classes(ctx, wins, dead):
+    """IndexTable's dynamic programme for the classes whose windows are the rows
+    of wins.  A plain function of plain data, so that it can run in a worker
+    process (it uses none of the module's grid globals)."""
+    rgrid, J, nb_, nfft = ctx["rgrid"], ctx["J"], ctx["NB"], ctx["NFFT"]
+    Lam, Lphi, prime, Z, Gf, G0, tc, bad = (ctx[k] for k in ("Lam", "Lphi", "prime", "Z", "Gf", "G0", "tc", "bad"))
+    n = wins.shape[0]
+    G = len(rgrid)
+    rmin = np.full((n, J, nb_), np.inf, dtype=np.float32)
+    prev = np.zeros((n, J, nb_))
+    V0 = np.zeros((G, n, nb_), dtype=np.float32)
+    C0 = np.zeros((G, n, nb_), dtype=np.float32)
+    rp = 0.0
+    for g, r in enumerate(rgrid):
+        V = np.zeros((n, nb_))
+        C = np.zeros((n, nb_))
+        for j in range(J - 1, -1, -1):
+            pt = (math.exp(-Lam[j + 1]) * r) * prime[None, :] * wins
+            zn = Z[j + 1][None, :]
+            X = np.concatenate([zn * V + pt, zn * C])
+            Y = np.fft.irfft(np.fft.rfft(X, nfft, axis=1) * Gf[j][None, :], nfft, axis=1)[:, :nb_]
+            e = math.exp(-Lphi[j])
+            iz = 1.0 / Z[j][None, :]
+            cont = e * (Y[:n] - G0[j] * pt) * iz - tc[j][None, :]
+            cont[:, bad[j]] = -1.0
+            cont[dead] = -1.0
+            np.clip(cont, -1e30, 1e30, out=cont)
+            go = cont > 0
+            new = go & ~np.isfinite(rmin[:, j, :])
+            if new.any():
+                if g:
+                    pc = prev[:, j, :][new]
+                    rmin[:, j, :][new] = rp + (r - rp) * (-pc) / np.maximum(cont[new] - pc, 1e-300)
+                else:
+                    rmin[:, j, :][new] = r
+            prev[:, j, :] = cont
+            V = np.where(go, cont, 0.0)
+            C = np.where(go, np.clip(e * Y[n:] * iz, 0.0, 1e30) + tc[j][None, :], 0.0)
+        V0[g] = V
+        C0[g] = C
+        rp = r
+    return rmin, V0, C0
+
+
 class IndexTable:
     """Break-even rewards of every state of a candidate.
 
@@ -694,14 +738,30 @@ class IndexTable:
         # a tail shorter than the window's far end holds no admissible prime: such
         # a candidate is dead, and the model's weights there are numerical noise
         dead = t[None, :] < (int(round(lam)) - np.arange(cmax + 1) - 1)[:, None]
+        ctx = {"rgrid": self.rgrid, "J": J, "NB": NB, "NFFT": NFFT, "Lam": list(lad.Lam), "Lphi": list(lad.Lphi),
+               "prime": lad.prime, "Z": lad.Z, "Gf": self._Gf, "G0": [float(lad.Gphi[j][0]) for j in range(J)],
+               "tc": self._tc, "bad": self._bad}
         nchunk = max(1, min(threads, (cmax + 1) // 4))
         parts = np.array_split(np.arange(cmax + 1), nchunk)
+        res = None
         if nchunk > 1:
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor(max_workers=nchunk) as ex:
-                res = list(ex.map(lambda cs: self._solve(wins[cs], dead[cs]), parts))
-        else:
-            res = [self._solve(wins, dead)]
+            # processes, not threads: the programme is thousands of short numpy
+            # calls, and threads spend their time handing the interpreter lock
+            # around (8 threads: no gain; 8 processes: 5x).  A fork server keeps
+            # the workers clear of the caller's threads.
+            try:
+                import concurrent.futures
+                import multiprocessing
+                mpc = multiprocessing.get_context("forkserver")
+                mpc.set_forkserver_preload(["numpy", "shortsim"])
+                with concurrent.futures.ProcessPoolExecutor(max_workers=nchunk, mp_context=mpc) as ex:
+                    futs = [ex.submit(_solve_classes, ctx, wins[cs], dead[cs]) for cs in parts]
+                    res = [f.result(timeout=600) for f in futs]
+            except Exception as e:                      # a worker died or there is no fork server: one process will do
+                sys.stderr.write("IndexTable: worker processes failed (%r), computing in one process\n" % (e,))
+                res = None
+        if res is None:
+            res = [_solve_classes(ctx, wins, dead)]
         self.rmin = np.concatenate([x[0] for x in res], axis=0)       # (class, sweep, bits)
         self.V0 = np.concatenate([x[1] for x in res], axis=1)         # (reward, class, bits)
         self.C0 = np.concatenate([x[2] for x in res], axis=1)
@@ -714,46 +774,6 @@ class IndexTable:
             w[:, self._bad[j]] = 0.0
             w[dead] = 0.0
             self.pw[:, j, :] = np.clip(w, 0.0, 1.0)
-
-    def _solve(self, wins, dead):
-        lad = self.lad
-        J = len(lad.tiers)
-        n = wins.shape[0]
-        G = len(self.rgrid)
-        rmin = np.full((n, J, NB), np.inf, dtype=np.float32)
-        prev = np.zeros((n, J, NB))
-        V0 = np.zeros((G, n, NB), dtype=np.float32)
-        C0 = np.zeros((G, n, NB), dtype=np.float32)
-        rp = 0.0
-        for g, r in enumerate(self.rgrid):
-            V = np.zeros((n, NB))
-            C = np.zeros((n, NB))
-            for j in range(J - 1, -1, -1):
-                pt = (math.exp(-lad.Lam[j + 1]) * r) * lad.prime[None, :] * wins
-                zn = lad.Z[j + 1][None, :]
-                X = np.concatenate([zn * V + pt, zn * C])
-                Y = np.fft.irfft(np.fft.rfft(X, NFFT, axis=1) * self._Gf[j][None, :], NFFT, axis=1)[:, :NB]
-                e = math.exp(-lad.Lphi[j])
-                iz = 1.0 / lad.Z[j][None, :]
-                cont = e * (Y[:n] - lad.Gphi[j][0] * pt) * iz - self._tc[j][None, :]
-                cont[:, self._bad[j]] = -1.0
-                cont[dead] = -1.0
-                np.clip(cont, -1e30, 1e30, out=cont)
-                go = cont > 0
-                new = go & ~np.isfinite(rmin[:, j, :])
-                if new.any():
-                    if g:
-                        pc = prev[:, j, :][new]
-                        rmin[:, j, :][new] = rp + (r - rp) * (-pc) / np.maximum(cont[new] - pc, 1e-300)
-                    else:
-                        rmin[:, j, :][new] = r
-                prev[:, j, :] = cont
-                V = np.where(go, cont, 0.0)
-                C = np.where(go, np.clip(e * Y[n:] * iz, 0.0, 1e30) + self._tc[j][None, :], 0.0)
-            V0[g] = V
-            C0[g] = C
-            rp = r
-        return rmin, V0, C0
 
     def r(self, cls, j, tbits):
         return float(self.rmin[min(cls, self.cmax), j, min(tbits, NB - 1)])

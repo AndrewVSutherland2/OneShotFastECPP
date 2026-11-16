@@ -1,0 +1,41 @@
+[14:59:59] revised format: B = 47160, log2 rad <= 71, recursion floor B^2 = 2224065600
+[14:59:59] proving p0 (665 bits), n2 = 442225
+[14:59:59]   yafu here: 0.0318 s per curve at B1=50000 on 665 bits with 192 processes -> cost factor 0.96
+[15:00:00]   level 665 bits: rule table in 0.6s (28 sweeps, rewards 29..32131578 core-s)
+[15:00:00]   level 665 bits: dscan[0,3e+07) maxfb=1e+06 on 192 threads: +4505 D -> +4578 orders (4241 live), 43 core-s (strip 4) = 0.0094 per order; 0 winners
+[15:00:00]   level 665 bits: dscan[3e+07,6e+07) maxfb=1e+06 on 65 threads: +1442 D -> +1378 orders (1267 live), 11 core-s (strip 3) = 0.0077 per order; 0 winners
+[15:00:01]   level 665 bits: dscan[6e+07,1.2e+08) maxfb=1e+06 on 60 threads: +1999 D -> +1972 orders (1792 live), 18 core-s (strip 4) = 0.0093 per order; 0 winners
+[15:00:02]     WINNER D=-272292 q 331 bits, o=m*q with m=3 (|D| h~521)
+[15:00:02]     search: 7928 orders, scan 72 + ecm 225 core-s (232 above the rule), 2.3s wall, 380 units, 1523 splits, rule R = 302 core-s; the model expected 0.14 wins from this work; measured/modelled ECM cost by B1: 2000:0.75 11000:0.77 50000:0.83 250000:0.62; wins expected by B1: 2000:0.001 11000:0.015 50000:0.087 250000:0.038; won at B1=250000
+[15:00:02]     cm_method D=-272292: H_D^inv(deg 116 = 4 x 29, inv 171): 0.045s   roots: 0.003s + 0.109s   1 j-candidate(s)
+[15:00:02]   level 665 bits: built D=-272292 h~521 in 0.2s; o has 333 bits, q 331 bits (total 3.8s, 7928 cands, 225 ecm-s)
+[15:00:03]   level 331 bits: rule table in 0.2s (7 sweeps, rewards 0..11415 core-s)
+[15:00:03]   level 331 bits: dscan[0,3e+06) maxfb=1e+06 on 13 threads: +593 D -> +426 orders (350 live), 2 core-s (strip 1) = 0.0044 per order; 0 winners
+[15:00:03]     WINNER D=-2137183 q 162 bits, o=m*q with m=23 (|D| h~1461)
+[15:00:03]     search: 426 orders, scan 2 + ecm 1 core-s (0 above the rule), 0.2s wall, 21 units, 13 splits, rule R = 2 core-s; the model expected 0.98 wins from this work; measured/modelled ECM cost by B1: 2000:1.07 11000:0.93; wins expected by B1: 2000:0.325 11000:0.655 50000:0.000; won at B1=11000
+[15:00:03]     cm_method D=-2137183: H_D^inv(deg 700 = 25 x 28, inv 1): 0.034s   roots: 0.015s + 0.018s   1 j-candidate(s)
+[15:00:03]   level 331 bits: built D=-2137183 h~1461 in 0.1s; o has 167 bits, q 162 bits (total 0.4s, 8354 cands, 227 ecm-s)
+[15:00:03]   level 162 bits: dscan[0,100000) maxfb=1e+06 +321 D -> +344 orders (261 live) in 0.0s (strip 0.0s), 0 winners
+[15:00:03]     WINNER D=-1727 q 53 bits, o=m*q with m=503691434 (|D| h~41)
+[15:00:03]     WINNER D=-57903 q 64 bits, o=m*q with m=146484 (|D| h~240)
+[15:00:03]     WINNER D=-88823 q 61 bits, o=m*q with m=1825029 (|D| h~298)
+[15:00:03]     WINNER D=-15079 q 69 bits, o=m*q with m=7105 (|D| h~122)
+[15:00:03]     WINNER D=-14943 q 67 bits, o=m*q with m=31079 (|D| h~122)
+[15:00:03]     WINNER D=-51 q 75 bits, o=m*q with m=84 (|D| h~7)
+[15:00:03]     WINNER D=-17351 q 46 bits, o=m*q with m=60404211360 (|D| h~131)
+[15:00:03]     WINNER D=-3099 q 40 bits, o=m*q with m=2654297016208 (|D| h~55)
+[15:00:03]     WINNER D=-3099 q 58 bits, o=m*q with m=20787560 (|D| h~55)
+[15:00:03]     WINNER D=-97652 q 44 bits, o=m*q with m=242463250042 (|D| h~312)
+[15:00:03]     WINNER D=-583 q 41 bits, o=m*q with m=1801747195974 (|D| h~24)
+[15:00:03]     WINNER D=-15079 q 61 bits, o=m*q with m=1441066 (|D| h~122)
+[15:00:03]     WINNER D=-28499 q 54 bits, o=m*q with m=227407580 (|D| h~168)
+[15:00:03]     ecm B1=2000 c=10 on 261 tails: 27 split, 13 winners, 0.2s (stopped at the first winner, 32 tails done)
+[15:00:03]     cm_method D=-51: H_D^inv(deg 1, inv 117): 0.009s   root: 0.000s   1 j-candidate(s)
+[15:00:03]   level 162 bits: built D=-51 h~7 in 0.0s; o has 84 bits, q 75 bits (total 0.2s, 8698 cands, 227 ecm-s)
+[15:00:03] finishing below 88 bits with short2.gp (p has 75 bits)
+[15:00:03]   gp tail: 1 levels in 0.1s
+[15:00:03] chain complete: 4 levels, 4.6s; verifying...
+[15:00:03] vshort2.verify = True   PARI cross-check = True
+[15:00:03] certificate written to /home/ubuntu/rule/out4/c200.cert.txt (verified twice)
+RUN c200 wall=4.75 user=348.95 sys=33.11
+EXIT 0

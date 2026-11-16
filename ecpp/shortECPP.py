@@ -1580,9 +1580,8 @@ def run_rule_level(p, nb, L, n2, small_primes, threads, stats, B0, Bmax_given, f
         lad = ss.Ladder(tiers, em, y0bits=Y0.bit_length() - 1, cost=mcost)
         # rewards of interest shrink fast with the size (a win costs 1.5 core-h
         # at 768 bits, a minute at 520 and a second at 300)
-        scale = min(1.0, (nb / 500.0) ** 8)
-        rlo = min(30.0, 3.0 * scale)
-        tab = ss.IndexTable(lad, lam, rlo=rlo, rhi=3.0e7 if scale >= 1.0 else rlo * 1e5, threads=min(8, threads))
+        rlo = min(30.0, 3.0 * (nb / 500.0) ** 8)
+        tab = ss.IndexTable(lad, lam, rlo=rlo, rhi=3.0e7 if nb >= 500 else rlo * 1e5, threads=min(16, threads))
         log("  level %d bits: rule table in %.1fs (%d sweeps, rewards %.0f..%.0f core-s)"
             % (nb, time.time() - t0, len(tiers), tab.rgrid[0], tab.rgrid[-1]))
         return sd.level_loop(drv, tab, tiers, cost, {"quantum": quantum})

@@ -1,0 +1,19 @@
+[14:52:27] revised format: B = 3778, log2 rad <= 23, recursion floor B^2 = 14273284
+[14:52:27] proving p0 (167 bits), n2 = 27889
+[14:52:27]   level 167 bits: dscan[0,100000) maxfb=1e+06 +190 D -> +154 orders (120 live) in 0.0s (strip 0.0s), 0 winners
+[14:52:27]     WINNER D=-4315 q 75 bits, o=m*q with m=604 (|D| h~65)
+[14:52:27]     WINNER D=-53855 q 74 bits, o=m*q with m=1032 (|D| h~232)
+[14:52:27]     WINNER D=-45187 q 68 bits, o=m*q with m=49274 (|D| h~212)
+[14:52:27]     WINNER D=-18391 q 70 bits, o=m*q with m=11275 (|D| h~135)
+[14:52:27]     WINNER D=-45187 q 64 bits, o=m*q with m=954308 (|D| h~212)
+[14:52:27]     WINNER D=-59107 q 83 bits, o=m*q with m=2 (|D| h~243)
+[14:52:27]     ecm B1=2000 c=10 on 120 tails: 27 split, 6 winners, 0.2s (stopped at the first winner, 32 tails done)
+[14:52:27]     cm_method D=-4315: H_D^inv(deg 14, inv 171): 0.019s   root: 0.001s   1 j-candidate(s)   ell=2 floor
+[14:52:27]   level 167 bits: built D=-4315 h~65 in 0.0s; o has 84 bits, q 75 bits (total 0.3s, 154 cands, 0 ecm-s)
+[14:52:27] finishing below 78 bits with short2.gp (p has 75 bits)
+[14:52:27]   gp tail: 1 levels in 0.3s
+[14:52:27] chain complete: 2 levels, 0.5s; verifying...
+[14:52:27] vshort2.verify = True   PARI cross-check = True
+[14:52:27] certificate written to /home/ubuntu/rule/out3/c50.cert.txt (verified twice)
+RUN c50 wall=0.56 user=0.54 sys=0.03
+EXIT 0

@@ -1,0 +1,47 @@
+[14:59:38] revised format: B = 34919, log2 rad <= 62, recursion floor B^2 = 1219336561
+[14:59:38] proving p0 (565 bits), n2 = 319225
+[14:59:39]   yafu here: 0.0297 s per curve at B1=50000 on 565 bits with 192 processes -> cost factor 1.12
+[14:59:39]   level 565 bits: rule table in 0.6s (28 sweeps, rewards 8..32393900 core-s)
+[14:59:39]   level 565 bits: dscan[0,3e+07) maxfb=1e+06 on 192 threads: +3261 D -> +2428 orders (2220 live), 28 core-s (strip 3) = 0.0116 per order; 0 winners
+[14:59:40]   level 565 bits: dscan[3e+07,6e+07) maxfb=1e+06 on 72 threads: +1143 D -> +910 orders (820 live), 9 core-s (strip 2) = 0.0100 per order; 0 winners
+[14:59:40]     WINNER D=-15435347 q 278 bits, o=m*q with m=36 (|D| h~3928)
+[14:59:40]     search: 3338 orders, scan 37 + ecm 74 core-s (71 above the rule), 0.8s wall, 256 units, 744 splits, rule R = 94 core-s; the model expected 0.51 wins from this work; measured/modelled ECM cost by B1: 2000:0.69 11000:0.75 50000:0.65; wins expected by B1: 2000:0.006 11000:0.314 50000:0.191 250000:0.000; won at B1=50000
+[14:59:41]     cm_method D=-15435347: H_D^inv(deg 650 = 26 x 25, inv 9): 0.225s   roots: 0.053s + 0.059s   1 j-candidate(s)   ell=2 floor, ell=3 floor
+[14:59:41]   level 565 bits: built D=-15435347 h~3928 in 0.5s; o has 283 bits, q 278 bits (total 2.6s, 3338 cands, 74 ecm-s)
+[14:59:41]   level 278 bits: dscan[0,1e+06) maxfb=1e+06 +784 D -> +960 orders (808 live) in 0.2s (strip 0.0s), 0 winners
+[14:59:41]     WINNER D=-206728 q 114 bits, o=m*q with m=47108177 (|D| h~454)
+[14:59:41]     ecm B1=2000 c=10 on 808 tails: 23 split, 1 winners, 0.5s (stopped at the first winner, 32 tails done)
+[14:59:41]     cm_method D=-206728: H_D^inv(deg 76 = 4 x 19, inv 171): 0.028s   roots: 0.000s + 0.006s   1 j-candidate(s)
+[14:59:41]   level 278 bits: built D=-206728 h~454 in 0.1s; o has 139 bits, q 114 bits (total 0.7s, 4298 cands, 76 ecm-s)
+[14:59:41]   level 114 bits: dscan[0,100000) maxfb=1e+06 +108 D -> +110 orders (80 live) in 0.0s (strip 0.0s), 0 winners
+[14:59:41]     WINNER D=-64084 q 57 bits, o=m*q with m=2 (|D| h~253)
+[14:59:41]     WINNER D=-63892 q 49 bits, o=m*q with m=766 (|D| h~252)
+[14:59:41]     WINNER D=-4747 q 41 bits, o=m*q with m=90253 (|D| h~68)
+[14:59:41]     WINNER D=-22051 q 52 bits, o=m*q with m=40 (|D| h~148)
+[14:59:41]     WINNER D=-63331 q 54 bits, o=m*q with m=10 (|D| h~251)
+[14:59:41]     WINNER D=-39979 q 37 bits, o=m*q with m=1206928 (|D| h~199)
+[14:59:41]     WINNER D=-71156 q 48 bits, o=m*q with m=3347 (|D| h~266)
+[14:59:41]     WINNER D=-71156 q 39 bits, o=m*q with m=24456529 (|D| h~266)
+[14:59:41]     WINNER D=-60551 q 50 bits, o=m*q with m=158 (|D| h~246)
+[14:59:41]     WINNER D=-32251 q 55 bits, o=m*q with m=19 (|D| h~179)
+[14:59:41]     WINNER D=-8863 q 37 bits, o=m*q with m=2944352 (|D| h~94)
+[14:59:41]     WINNER D=-8863 q 56 bits, o=m*q with m=2 (|D| h~94)
+[14:59:41]     WINNER D=-311 q 54 bits, o=m*q with m=10 (|D| h~17)
+[14:59:41]     WINNER D=-59 q 37 bits, o=m*q with m=1170192 (|D| h~7)
+[14:59:41]     WINNER D=-59 q 57 bits, o=m*q with m=2 (|D| h~7)
+[14:59:41]     WINNER D=-4804 q 44 bits, o=m*q with m=15391 (|D| h~69)
+[14:59:41]     WINNER D=-94219 q 49 bits, o=m*q with m=5399 (|D| h~306)
+[14:59:41]     WINNER D=-3524 q 44 bits, o=m*q with m=14219 (|D| h~59)
+[14:59:41]     WINNER D=-3524 q 52 bits, o=m*q with m=59 (|D| h~59)
+[14:59:41]     ecm B1=2000 c=10 on 80 tails: 30 split, 19 winners, 0.1s (stopped at the first winner, 32 tails done)
+[14:59:42]     cm_method D=-59: H_D^inv(deg 3, inv 9): 0.008s   root: 0.000s   1 j-candidate(s)
+[14:59:42]     D=-59: retrying via volcano floors ells=2
+[14:59:42]     cm_method D=-59: H_D^inv(deg 3, inv 9): 0.008s   root: 0.000s   1 j-candidate(s)   ell=2 floor
+[14:59:42]   level 114 bits: built D=-59 h~7 in 0.1s; o has 57 bits, q 37 bits (total 0.2s, 4408 cands, 76 ecm-s)
+[14:59:42] finishing below 86 bits with short2.gp (p has 37 bits)
+[14:59:42]   gp tail: 1 levels in 0.0s
+[14:59:42] chain complete: 4 levels, 3.6s; verifying...
+[14:59:42] vshort2.verify = True   PARI cross-check = True
+[14:59:42] certificate written to /home/ubuntu/rule/out4/c170.cert.txt (verified twice)
+RUN c170 wall=3.66 user=168.29 sys=22.32
+EXIT 0
