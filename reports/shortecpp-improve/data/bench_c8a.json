@@ -1143,6 +1143,214 @@
     "failed_builds": 0,
     "set": "yafu_c8a_2"
    }
+  },
+  {
+   "c": 330,
+   "recorded_cpu": 3888000.0,
+   "recorded_wall": 25200.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_5": {
+     "wall": 444.16,
+     "cpu": 77455.12,
+     "verified": true,
+     "levels": 5,
+     "bits": 1097,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 444.16,
+    "cpu": 77455.12,
+    "verified": true,
+    "levels": 5,
+    "bits": 1097,
+    "failed_builds": 0,
+    "set": "yafu_c8a_5"
+   }
+  },
+  {
+   "c": 340,
+   "recorded_cpu": 1512000.0,
+   "recorded_wall": 9720.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_5": {
+     "wall": 2650.97,
+     "cpu": 474926.01,
+     "verified": true,
+     "levels": 5,
+     "bits": 1130,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 2650.97,
+    "cpu": 474926.01,
+    "verified": true,
+    "levels": 5,
+    "bits": 1130,
+    "failed_builds": 0,
+    "set": "yafu_c8a_5"
+   }
+  },
+  {
+   "c": 350,
+   "recorded_cpu": 3240000.0,
+   "recorded_wall": 20160.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_5": {
+     "wall": 7230.64,
+     "cpu": 1280717.21,
+     "verified": true,
+     "levels": 5,
+     "bits": 1163,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 7230.64,
+    "cpu": 1280717.21,
+    "verified": true,
+    "levels": 5,
+    "bits": 1163,
+    "failed_builds": 0,
+    "set": "yafu_c8a_5"
+   }
+  },
+  {
+   "c": 360,
+   "recorded_cpu": 3564000.0,
+   "recorded_wall": 21600.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_5": {
+     "wall": 2563.36,
+     "cpu": 376055.18,
+     "verified": true,
+     "levels": 5,
+     "bits": 1196,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 2563.36,
+    "cpu": 376055.18,
+    "verified": true,
+    "levels": 5,
+    "bits": 1196,
+    "failed_builds": 0,
+    "set": "yafu_c8a_5"
+   }
+  },
+  {
+   "c": 370,
+   "recorded_cpu": 5940000.0,
+   "recorded_wall": 37800.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_5": {
+     "wall": 2478.75,
+     "cpu": 415357.45999999996,
+     "verified": true,
+     "levels": 5,
+     "bits": 1230,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 2478.75,
+    "cpu": 415357.45999999996,
+    "verified": true,
+    "levels": 5,
+    "bits": 1230,
+    "failed_builds": 0,
+    "set": "yafu_c8a_5"
+   }
+  },
+  {
+   "c": 380,
+   "recorded_cpu": 252000.0,
+   "recorded_wall": 3960.0000000000005,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_5": {
+     "wall": 532.62,
+     "cpu": 92380.59999999999,
+     "verified": true,
+     "levels": 4,
+     "bits": 1263,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 532.62,
+    "cpu": 92380.59999999999,
+    "verified": true,
+    "levels": 4,
+    "bits": 1263,
+    "failed_builds": 0,
+    "set": "yafu_c8a_5"
+   }
+  },
+  {
+   "c": 390,
+   "recorded_cpu": 3024000.0,
+   "recorded_wall": 19080.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_5": {
+     "wall": 309.44,
+     "cpu": 50809.49,
+     "verified": true,
+     "levels": 5,
+     "bits": 1296,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 309.44,
+    "cpu": 50809.49,
+    "verified": true,
+    "levels": 5,
+    "bits": 1296,
+    "failed_builds": 0,
+    "set": "yafu_c8a_5"
+   }
+  },
+  {
+   "c": 400,
+   "recorded_cpu": 8424000.0,
+   "recorded_wall": 46080.0,
+   "recorded_cores": 192,
+   "recorded_by": "shortECPP.py",
+   "passes": {
+    "yafu_c8a_5": {
+     "wall": 5234.05,
+     "cpu": 902442.68,
+     "verified": true,
+     "levels": 5,
+     "bits": 1329,
+     "failed_builds": 0
+    }
+   },
+   "best": {
+    "wall": 5234.05,
+    "cpu": 902442.68,
+    "verified": true,
+    "levels": 5,
+    "bits": 1329,
+    "failed_builds": 0,
+    "set": "yafu_c8a_5"
+   }
   }
  ],
  "sets": {
@@ -1184,6 +1392,14 @@
    "wall_median": 14.34,
    "wall_max": 105.43,
    "cpu_mean": 1879.4892307692307,
+   "failed_builds": 0
+  },
+  "yafu_c8a_4/y768": {
+   "n": 13,
+   "wall_mean": 15.973076923076924,
+   "wall_median": 14.55,
+   "wall_max": 43.47,
+   "cpu_mean": 1842.823076923077,
    "failed_builds": 0
   }
  }

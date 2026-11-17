@@ -1,0 +1,101 @@
+[06:21:20] revised format: B = 162442, log2 rad <= 126, recursion floor B^2 = 26387403364
+[06:21:20] proving p0 (1296 bits), n2 = 1679616
+[06:21:22]   yafu here: 0.0927 s per curve at B1=50000 on 1296 bits with 192 processes -> cost factor 0.99
+[06:21:23]   level 1296 bits: rule table in 1.1s (28 sweeps, rewards 30..32818515 core-s)
+[06:21:27]   level 1296 bits: dscan[0,1e+09) maxfb=1e+06 on 192 threads: +14032 D -> +10810 orders (10408 live), 484 core-s (strip 16) = 0.0448 per order; 0 winners
+[06:21:33]        10s: 10810 orders, rule R = 510532 core-s (141.81 core-h); the model expects 0.00 wins from the work done (0.01 once all orders are worked to R); 183 units running + scan, queued by B1 [6413, 2266, 448, 32, 0, 0, 0, 0], 0 abandoned; scan 484 + ecm 667 core-s (229 above the rule)
+[06:21:34]   level 1296 bits: dscan[1e+09,2e+09) maxfb=2e+06 on 69 threads: +6255 D -> +4888 orders (4704 live), 367 core-s (strip 16) = 0.0750 per order; 0 winners
+[06:21:43]        20s: 15698 orders, rule R = 491497 core-s (136.53 core-h); the model expects 0.00 wins from the work done (0.01 once all orders are worked to R); 122 units running + scan, queued by B1 [8934, 4467, 1013, 106, 15, 0, 0, 0], 0 abandoned; scan 851 + ecm 1873 core-s (877 above the rule)
+[06:21:47]   level 1296 bits: dscan[2e+09,4e+09) maxfb=4e+06 on 69 threads: +9053 D -> +6870 orders (6605 live), 760 core-s (strip 21) = 0.1106 per order; 0 winners
+[06:21:53]        30s: 22568 orders, rule R = 575241 core-s (159.79 core-h); the model expects 0.00 wins from the work done (0.02 once all orders are worked to R); 120 units running + scan, queued by B1 [12612, 6707, 1587, 157, 23, 1, 0, 0], 0 abandoned; scan 1611 + ecm 3283 core-s (1603 above the rule)
+[06:22:03]        40s: 22568 orders, rule R = 575241 core-s (159.79 core-h); the model expects 0.00 wins from the work done (0.02 once all orders are worked to R); 120 units running + scan, queued by B1 [11342, 7543, 1900, 211, 38, 2, 0, 0], 0 abandoned; scan 1611 + ecm 4384 core-s (2262 above the rule)
+[06:22:12]   level 1296 bits: dscan[4e+09,8e+09) maxfb=8e+06 on 71 threads: +12908 D -> +10118 orders (9730 live), 1533 core-s (strip 28) = 0.1515 per order; 0 winners
+[06:22:13]        50s: 32686 orders, rule R = 646558 core-s (179.60 core-h); the model expects 0.00 wins from the work done (0.03 once all orders are worked to R); 116 units running + scan, queued by B1 [19550, 8270, 2367, 260, 51, 4, 0, 0], 0 abandoned; scan 3144 + ecm 5617 core-s (3438 above the rule)
+[06:22:23]        60s: 32686 orders, rule R = 646558 core-s (179.60 core-h); the model expects 0.01 wins from the work done (0.03 once all orders are worked to R); 116 units running + scan, queued by B1 [16858, 10418, 2739, 300, 61, 4, 0, 0], 0 abandoned; scan 3144 + ecm 6913 core-s (3438 above the rule)
+[06:22:33]        70s: 32686 orders, rule R = 646558 core-s (179.60 core-h); the model expects 0.01 wins from the work done (0.03 once all orders are worked to R); 116 units running + scan, queued by B1 [15834, 11218, 3046, 341, 71, 4, 1, 0], 0 abandoned; scan 3144 + ecm 7882 core-s (3453 above the rule)
+[06:22:43]        80s: 32686 orders, rule R = 646558 core-s (179.60 core-h); the model expects 0.01 wins from the work done (0.03 once all orders are worked to R); 116 units running + scan, queued by B1 [15131, 11812, 3292, 367, 79, 4, 2, 0], 0 abandoned; scan 3144 + ecm 9154 core-s (4251 above the rule)
+[06:22:53]        90s: 32686 orders, rule R = 646558 core-s (179.60 core-h); the model expects 0.01 wins from the work done (0.03 once all orders are worked to R); 183 units running + scan, queued by B1 [14255, 12228, 3555, 391, 87, 5, 1, 0], 0 abandoned; scan 3144 + ecm 10013 core-s (5282 above the rule)
+[06:22:57]   level 1296 bits: dscan[8e+09,1.6e+10) maxfb=1.6e+07 on 75 threads: +18834 D -> +14628 orders (14116 live), 2964 core-s (strip 43) = 0.2026 per order; 0 winners
+[06:23:03]       100s: 47314 orders, rule R = 720620 core-s (200.17 core-h); the model expects 0.01 wins from the work done (0.05 once all orders are worked to R); 114 units running + scan, queued by B1 [26878, 13074, 3928, 433, 96, 5, 0, 0], 0 abandoned; scan 6107 + ecm 10985 core-s (5808 above the rule)
+[06:23:13]       110s: 47314 orders, rule R = 720620 core-s (200.17 core-h); the model expects 0.02 wins from the work done (0.05 once all orders are worked to R); 114 units running + scan, queued by B1 [25161, 14586, 4129, 465, 100, 7, 3, 0], 0 abandoned; scan 6107 + ecm 12392 core-s (5808 above the rule)
+[06:23:23]       120s: 47314 orders, rule R = 720620 core-s (200.17 core-h); the model expects 0.02 wins from the work done (0.05 once all orders are worked to R); 114 units running + scan, queued by B1 [24080, 15413, 4285, 496, 107, 10, 3, 0], 0 abandoned; scan 6107 + ecm 13216 core-s (5808 above the rule)
+[06:23:33]       130s: 47314 orders, rule R = 720620 core-s (200.17 core-h); the model expects 0.02 wins from the work done (0.05 once all orders are worked to R); 114 units running + scan, queued by B1 [22742, 16355, 4533, 520, 113, 15, 3, 0], 0 abandoned; scan 6107 + ecm 14582 core-s (5808 above the rule)
+[06:23:44]       140s: 47314 orders, rule R = 720620 core-s (200.17 core-h); the model expects 0.02 wins from the work done (0.05 once all orders are worked to R); 114 units running + scan, queued by B1 [22114, 16868, 4764, 555, 121, 15, 3, 0], 0 abandoned; scan 6107 + ecm 15219 core-s (5808 above the rule)
+[06:23:54]       150s: 47314 orders, rule R = 720620 core-s (200.17 core-h); the model expects 0.02 wins from the work done (0.05 once all orders are worked to R); 114 units running + scan, queued by B1 [21402, 17203, 5012, 585, 126, 17, 3, 0], 0 abandoned; scan 6107 + ecm 16031 core-s (5902 above the rule)
+[06:24:04]       160s: 47314 orders, rule R = 720620 core-s (200.17 core-h); the model expects 0.02 wins from the work done (0.05 once all orders are worked to R); 114 units running + scan, queued by B1 [20793, 17672, 5216, 609, 131, 17, 3, 0], 0 abandoned; scan 6107 + ecm 16878 core-s (6609 above the rule)
+[06:24:14]       170s: 47314 orders, rule R = 720620 core-s (200.17 core-h); the model expects 0.02 wins from the work done (0.05 once all orders are worked to R); 114 units running + scan, queued by B1 [20318, 17856, 5401, 644, 133, 18, 2, 0], 0 abandoned; scan 6107 + ecm 17969 core-s (7400 above the rule)
+[06:24:22]   level 1296 bits: dscan[1.6e+10,3.2e+10) maxfb=3.2e+07 on 77 threads: +26907 D -> +20624 orders (19864 live), 6117 core-s (strip 54) = 0.2966 per order; 0 winners
+[06:24:24]       180s: 67938 orders, rule R = 840923 core-s (233.59 core-h); the model expects 0.05 wins from the work done (0.08 once all orders are worked to R); 112 units running + scan, queued by B1 [39020, 18532, 5829, 710, 141, 19, 2, 0], 0 abandoned; scan 12224 + ecm 19920 core-s (8653 above the rule)
+[06:24:34]       191s: 67938 orders, rule R = 840923 core-s (233.59 core-h); the model expects 0.05 wins from the work done (0.08 once all orders are worked to R); 109 units running + scan, queued by B1 [36276, 20495, 6057, 740, 144, 21, 3, 4], 0 abandoned; scan 12224 + ecm 22437 core-s (8653 above the rule)
+[06:24:44]       201s: 67938 orders, rule R = 840923 core-s (233.59 core-h); the model expects 0.06 wins from the work done (0.08 once all orders are worked to R); 109 units running + scan, queued by B1 [34255, 22149, 6328, 768, 154, 23, 3, 3], 0 abandoned; scan 12224 + ecm 23361 core-s (8653 above the rule)
+[06:24:54]       211s: 67938 orders, rule R = 840923 core-s (233.59 core-h); the model expects 0.06 wins from the work done (0.08 once all orders are worked to R); 109 units running + scan, queued by B1 [33273, 23020, 6538, 810, 167, 24, 3, 3], 0 abandoned; scan 12224 + ecm 24277 core-s (8653 above the rule)
+[06:25:04]       221s: 67938 orders, rule R = 840923 core-s (233.59 core-h); the model expects 0.06 wins from the work done (0.08 once all orders are worked to R); 109 units running + scan, queued by B1 [32294, 23667, 6728, 844, 174, 25, 3, 3], 0 abandoned; scan 12224 + ecm 25240 core-s (8653 above the rule)
+[06:25:14]       231s: 67938 orders, rule R = 840923 core-s (233.59 core-h); the model expects 0.06 wins from the work done (0.08 once all orders are worked to R); 109 units running + scan, queued by B1 [31397, 24293, 6972, 864, 187, 25, 4, 3], 0 abandoned; scan 12224 + ecm 26206 core-s (8653 above the rule)
+[06:25:24]       241s: 67938 orders, rule R = 840923 core-s (233.59 core-h); the model expects 0.06 wins from the work done (0.08 once all orders are worked to R); 109 units running + scan, queued by B1 [30864, 24742, 7156, 893, 192, 26, 5, 3], 0 abandoned; scan 12224 + ecm 27273 core-s (8653 above the rule)
+[06:25:34]       251s: 67938 orders, rule R = 840923 core-s (233.59 core-h); the model expects 0.06 wins from the work done (0.08 once all orders are worked to R); 109 units running + scan, queued by B1 [30331, 25033, 7312, 907, 194, 28, 5, 3], 1 abandoned; scan 12224 + ecm 28350 core-s (8653 above the rule)
+[06:25:44]       261s: 67938 orders, rule R = 840923 core-s (233.59 core-h); the model expects 0.06 wins from the work done (0.08 once all orders are worked to R); 109 units running + scan, queued by B1 [29570, 25502, 7561, 934, 197, 31, 5, 3], 1 abandoned; scan 12224 + ecm 29340 core-s (8653 above the rule)
+[06:25:51]     WINNER D=-31035339407 q 647 bits, o=m*q with m=3 (|D| h~176168)
+[06:25:51]     search: 67938 orders, scan 12224 + ecm 31836 core-s (8653 above the rule), 267.4s wall, 8664 units, 20195 splits, rule R = 840923 core-s; the model expected 0.05 wins from this work; measured/modelled ECM cost by B1: 2000:1.14 11000:1.02 50000:0.85 250000:0.75 1e+06:0.87 3e+06:0.87 1e+07:0.77; wins expected by B1: 2000:0.000 11000:0.000 50000:0.000 250000:0.000 1e+06:0.001 3e+06:0.001 1e+07:0.047 3e+07:0.000; won at B1=1000000; splits found/expected by B1: 2000:17465/16552 11000:2088/1876 50000:498/419 250000:112/88 1e+06:23/14 3e+06:4/3 1e+07:5/1 3e+07:0/0
+[06:26:14]     cm_method D=-31035339407: H_D^inv(deg 110448 = 312 x 354, inv 1): 7.934s   roots: 6.719s + 8.163s   1 j-candidate(s)
+[06:26:14]   level 1296 bits: built D=-31035339407 h~176168 in 23.3s; o has 648 bits, q 647 bits (total 293.7s, 67938 cands, 31836 ecm-s)
+[06:26:15]   level 647 bits: rule table in 0.7s (28 sweeps, rewards 24..33537948 core-s)
+[06:26:15]   level 647 bits: dscan[0,3e+07) maxfb=1e+06 on 192 threads: +8870 D -> +11370 orders (10540 live), 76 core-s (strip 8) = 0.0067 per order; 0 winners
+[06:26:17]   level 647 bits: dscan[3e+07,6e+07) maxfb=1e+06 on 66 threads: +2920 D -> +3664 orders (3384 live), 23 core-s (strip 10) = 0.0063 per order; 0 winners
+[06:26:20]   level 647 bits: dscan[6e+07,1.2e+08) maxfb=1e+06 on 63 threads: +4074 D -> +5248 orders (4879 live), 34 core-s (strip 10) = 0.0065 per order; 0 winners
+[06:26:23]   level 647 bits: dscan[1.2e+08,2.4e+08) maxfb=1e+06 on 63 threads: +5324 D -> +6742 orders (6238 live), 59 core-s (strip 13) = 0.0088 per order; 0 winners
+[06:26:23]     WINNER D=-72866516 q 307 bits, o=m*q with m=100860 (|D| h~8536)
+[06:26:23]     search: 27024 orders, scan 193 + ecm 1307 core-s (827 above the rule), 8.6s wall, 1266 units, 4489 splits, rule R = 219 core-s; the model expected 5.52 wins from this work; measured/modelled ECM cost by B1: 2000:0.97 11000:0.83 50000:0.83 250000:0.75 1e+06:0.83; wins expected by B1: 2000:0.004 11000:0.164 50000:0.595 250000:2.723 1e+06:2.036; won at B1=250000; splits found/expected by B1: 2000:3912/4165 11000:465/399 50000:88/69 250000:20/13 1e+06:4/4
+[06:26:24]     cm_method D=-72866516: H_D^inv(deg 4864 = 64 x 76, inv 10): 0.093s   roots: 0.194s + 0.243s   1 j-candidate(s)
+[06:26:24]     D=-72866516: retrying via volcano floors ells=2,3,41
+[06:26:28]     cm_method D=-72866516: H_D^inv(deg 4864 = 64 x 76, inv 10): 0.066s   roots: 0.194s + 0.245s   1 j-candidate(s)   ell=2 floor, ell=3 floor, ell=41 floor
+[06:26:28]   level 647 bits: built D=-72866516 h~8536 in 4.9s; o has 324 bits, q 307 bits (total 14.3s, 94962 cands, 33143 ecm-s)
+[06:26:29]   level 307 bits: rule table in 0.2s (4 sweeps, rewards 0..6251 core-s)
+[06:26:29]   level 307 bits: dscan[0,1e+06) maxfb=1e+06 on 9 threads: +740 D -> +928 orders (810 live), 1 core-s (strip 0) = 0.0013 per order; 0 winners
+[06:26:29]     WINNER D=-5560 q 146 bits, o=m*q with m=923 (|D| h~74)
+[06:26:29]     search: 928 orders, scan 1 + ecm 1 core-s (0 above the rule), 0.2s wall, 35 units, 31 splits, rule R = 1 core-s; the model expected 4.52 wins from this work; measured/modelled ECM cost by B1: 2000:1.18 11000:0.84 50000:0.86; wins expected by B1: 2000:1.229 11000:1.949 50000:1.338; won at B1=11000; splits found/expected by B1: 2000:30/31 11000:1/1 50000:0/1
+[06:26:29]     cm_method D=-5560: H_D^inv(deg 10, inv 10): 0.010s   root: 0.002s   1 j-candidate(s)
+[06:26:29]   level 307 bits: built D=-5560 h~74 in 0.0s; o has 156 bits, q 146 bits (total 0.4s, 95890 cands, 33144 ecm-s)
+[06:26:29]   level 146 bits: dscan[0,100000) maxfb=1e+06 +348 D -> +418 orders (326 live) in 0.1s (strip 0.1s), 0 winners
+[06:26:29]     WINNER D=-8 q 60 bits, o=m*q with m=11539 (|D| h~2)
+[06:26:29]     WINNER D=-38699 q 62 bits, o=m*q with m=2939 (|D| h~196)
+[06:26:29]     WINNER D=-16936 q 68 bits, o=m*q with m=34 (|D| h~130)
+[06:26:29]     WINNER D=-3268 q 58 bits, o=m*q with m=28942 (|D| h~57)
+[06:26:29]     WINNER D=-13967 q 72 bits, o=m*q with m=3 (|D| h~118)
+[06:26:29]     WINNER D=-47272 q 36 bits, o=m*q with m=201133824460531 (|D| h~217)
+[06:26:29]     WINNER D=-58984 q 40 bits, o=m*q with m=8111755522 (|D| h~242)
+[06:26:29]     WINNER D=-58984 q 57 bits, o=m*q with m=86102 (|D| h~242)
+[06:26:29]     WINNER D=-74264 q 55 bits, o=m*q with m=341934 (|D| h~272)
+[06:26:29]     WINNER D=-74264 q 45 bits, o=m*q with m=320392158 (|D| h~272)
+[06:26:29]     WINNER D=-3016 q 38 bits, o=m*q with m=43917312902 (|D| h~54)
+[06:26:29]     WINNER D=-3016 q 63 bits, o=m*q with m=1285 (|D| h~54)
+[06:26:29]     WINNER D=-1492 q 70 bits, o=m*q with m=11 (|D| h~38)
+[06:26:29]     WINNER D=-31336 q 39 bits, o=m*q with m=16840530949 (|D| h~177)
+[06:26:29]     WINNER D=-31336 q 63 bits, o=m*q with m=1529 (|D| h~177)
+[06:26:29]     WINNER D=-99619 q 41 bits, o=m*q with m=3259807552 (|D| h~315)
+[06:26:29]     WINNER D=-15172 q 41 bits, o=m*q with m=5486777228 (|D| h~123)
+[06:26:29]     WINNER D=-15172 q 63 bits, o=m*q with m=2066 (|D| h~123)
+[06:26:29]     WINNER D=-73687 q 57 bits, o=m*q with m=88879 (|D| h~271)
+[06:26:29]     WINNER D=-559 q 72 bits, o=m*q with m=4 (|D| h~23)
+[06:26:29]     WINNER D=-38699 q 71 bits, o=m*q with m=4 (|D| h~196)
+[06:26:29]     WINNER D=-15764 q 42 bits, o=m*q with m=3331648252 (|D| h~125)
+[06:26:29]     WINNER D=-15764 q 64 bits, o=m*q with m=608 (|D| h~125)
+[06:26:29]     WINNER D=-2996 q 38 bits, o=m*q with m=48337232310 (|D| h~54)
+[06:26:29]     WINNER D=-2996 q 69 bits, o=m*q with m=18 (|D| h~54)
+[06:26:29]     WINNER D=-91048 q 38 bits, o=m*q with m=190213567657 (|D| h~301)
+[06:26:29]     WINNER D=-20468 q 44 bits, o=m*q with m=686164244 (|D| h~143)
+[06:26:29]     WINNER D=-20468 q 63 bits, o=m*q with m=903 (|D| h~143)
+[06:26:29]     WINNER D=-58856 q 53 bits, o=m*q with m=878790 (|D| h~242)
+[06:26:29]     WINNER D=-3688 q 56 bits, o=m*q with m=133762 (|D| h~60)
+[06:26:29]     WINNER D=-65599 q 39 bits, o=m*q with m=25772597380 (|D| h~256)
+[06:26:29]     WINNER D=-65599 q 70 bits, o=m*q with m=17 (|D| h~256)
+[06:26:29]     WINNER D=-18212 q 55 bits, o=m*q with m=375337 (|D| h~134)
+[06:26:29]     ecm B1=2000 c=10 on 326 tails: 31 split, 33 winners, 0.1s (stopped at the first winner, 32 tails done)
+[06:26:29]     cm_method D=-8: H_D^inv(deg 1, inv 5): 0.008s   root: 0.000s   1 j-candidate(s)
+[06:26:29]   level 146 bits: built D=-8 h~2 in 0.0s; o has 73 bits, q 60 bits (total 0.2s, 96308 cands, 33144 ecm-s)
+[06:26:29] finishing below 94 bits with short2.gp (p has 60 bits)
+[06:26:29]   gp tail: 1 levels in 0.2s
+[06:26:29] chain complete: 5 levels, 309.1s; verifying...
+[06:26:29] vshort2.verify = True   PARI cross-check = True
+[06:26:29] certificate written to /home/ubuntu/rule/out6/c390.cert.txt (verified twice)
+RUN c390 wall=309.44 user=49941.60 sys=867.89
+EXIT 0

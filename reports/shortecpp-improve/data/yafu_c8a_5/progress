@@ -1,0 +1,8 @@
+02:03:30 c330 done: RUN c330 wall=444.16 user=76036.78 sys=1418.34 verified=1
+02:47:43 c340 done: RUN c340 wall=2650.97 user=467904.21 sys=7021.80 verified=1
+04:48:16 c350 done: RUN c350 wall=7230.64 user=1264843.99 sys=15873.22 verified=1
+05:31:02 c360 done: RUN c360 wall=2563.36 user=370695.41 sys=5359.77 verified=1
+06:12:23 c370 done: RUN c370 wall=2478.75 user=409900.54 sys=5456.92 verified=1
+06:21:18 c380 done: RUN c380 wall=532.62 user=90983.92 sys=1396.68 verified=1
+06:26:30 c390 done: RUN c390 wall=309.44 user=49941.60 sys=867.89 verified=1
+07:53:46 c400 done: RUN c400 wall=5234.05 user=891930.63 sys=10512.05 verified=1

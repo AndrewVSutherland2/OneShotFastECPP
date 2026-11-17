@@ -9,6 +9,9 @@ Three passes were run on 2026-11-16 (aws-spot-7):
                the full set of modular polynomials was on the box from c = 250 on; also c = 10..150
   yafu_c8a_3/  rule table computed in worker processes, full phi set throughout: c = 10..220 and the
                768-bit primes
+and on 2026-11-17 (the same box), with a costly winner kept in reserve (22eae52):
+  yafu_c8a_4/  the 768-bit primes
+  yafu_c8a_5/  c = 330..400, the entries of the frontier campaign, then c = 410, which is not in the table
 bench_c8a.json holds, per entry, the recorded time and each pass; "best" is the latest pass that ran it."""
 import json, os, re
 
@@ -25,12 +28,18 @@ RECORDED = {10: (1, None, None, "short.gp"), 20: (1, None, None, "short.gp"), 30
             220: (21 * H, 1.3 * H, 16, "shortECPP.py"), 230: (59 * H, 3.7 * H, 16, "shortECPP.py"), 240: (310 * H, 1.6 * H, 192, "shortECPP.py"),
             250: (290 * H, 1.5 * H, 192, "shortECPP.py"), 260: (170 * H, 0.9 * H, 192, "shortECPP.py"), 270: (520 * H, 2.7 * H, 192, "shortECPP.py"),
             280: (500 * H, 2.6 * H, 192, "shortECPP.py"), 290: (380 * H, 2.0 * H, 192, "shortECPP.py"), 300: (380 * H, 2.0 * H, 192, "shortECPP.py"),
-            310: (960 * H, 5.0 * H, 192, "shortECPP.py"), 320: (390 * H, 2.4 * H, 192, "shortECPP.py")}
-PASSES = ["yafu_c8a_1", "yafu_c8a_2", "yafu_c8a_3"]
+            310: (960 * H, 5.0 * H, 192, "shortECPP.py"), 320: (390 * H, 2.4 * H, 192, "shortECPP.py"),
+            330: (1080 * H, 7.0 * H, 192, "shortECPP.py"), 340: (420 * H, 2.7 * H, 192, "shortECPP.py"),
+            350: (900 * H, 5.6 * H, 192, "shortECPP.py"), 360: (990 * H, 6.0 * H, 192, "shortECPP.py"),
+            370: (1650 * H, 10.5 * H, 192, "shortECPP.py"), 380: (70 * H, 1.1 * H, 192, "shortECPP.py"),
+            390: (840 * H, 5.3 * H, 192, "shortECPP.py"), 400: (2340 * H, 12.8 * H, 192, "shortECPP.py")}
+PASSES = ["yafu_c8a_1", "yafu_c8a_2", "yafu_c8a_3", "yafu_c8a_4", "yafu_c8a_5"]
 
 
 def runs(d):
     out = {}
+    if not os.path.exists(os.path.join(HERE, d, "progress")):
+        return out
     for ln in open(os.path.join(HERE, d, "progress")):
         m = re.search(r"(\S+) done: RUN \S+ wall=([\d.]+) user=([\d.]+) sys=([\d.]+) verified=(\d)", ln)
         if m:
@@ -49,6 +58,8 @@ def main():
     rows = []
     for c in sorted(RECORDED):
         tag = "c%d" % c
+        if not any(tag in p for p in P):
+            continue                              # not run (yet)
         rec = RECORDED[c]
         row = {"c": c, "recorded_cpu": rec[0], "recorded_wall": rec[1], "recorded_cores": rec[2], "recorded_by": rec[3], "passes": {}}
         for name, p in zip(PASSES, P):
