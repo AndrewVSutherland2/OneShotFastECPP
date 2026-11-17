@@ -76,7 +76,10 @@ Everything builds and runs *inside the project tree*; nothing is written to
   f-value from the starting j-invariant (see Enge-Sutherland, "Class invariants
   by the CRT method", Lemma on Psi_f roots), plus phi_j_2 for 2-volcano
   orientation.  l <= 71 covers every level and enumeration prime observed across
-  extensive traces (128-384-bit p, |D| up to 10^10).
+  extensive traces (128-384-bit p, |D| up to 10^10).  For the Weber functions f
+  and f^2, whose polynomials are a few kilobytes each, the bundle goes to
+  l = 109: the short-ECPP prover works with |D| up to 10^12, where a class
+  group now and then needs a generator of norm above 71.
 
   This is sufficient for oneshotECPP in that range: if a particular discriminant needs
   a modular polynomial that is not bundled, classpoly reports it and oneshotECPP simply
