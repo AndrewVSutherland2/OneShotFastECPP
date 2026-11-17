@@ -358,6 +358,47 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   threads it is a minute, so nothing is passed there.  Unit-tested and simulated, NOT yet
   exercised on a c8a.
 
+- **The frontier entries and 10^410 (2026-11-17, same branch)**: on one c8a with yafu,
+  nextprime(10^c) for c = 330..400 take 7 min, 44 min, 2.0 h, 43 min, 41 min, 9 min, 5 min and
+  87 min: 6.0 h and 1,020 core-h in all (recorded: 51 h, 8,290 core-h); every table entry from
+  10^10 to 10^400 is now faster than recorded (`data/yafu_c8a_5`, `bench_table.py`).
+  **nextprime(10^410) = 10^410 + 67 (1362 bits) is proved**: `certs/short2/nextprime1e410.csv`,
+  5 levels, 28,153 s on 192 cores, 953 core-h; search 4.8 h (362,752 orders), build 3.0 h, of
+  which 2.6 h for a root at prime degree 470,279 (h = 4 x 470,279; `build_estimate` said
+  3.65 h).  It is not in the upstream table (Drew decides about a PR there).  What that prime
+  forced:
+  (1) the supply has TWO arms.  A first run stalled: 10^410 + 67 has 5,692 solvable D below
+  1e9 (10^400 + 69: 20,888), and the factor-base cap stopped at 1e8, so past B = 1e11 the
+  only way to more orders was a wider B.  Now `RuleDriver.next_chunk` offers "widen" (B ->
+  2B at the present cap) and "raise" (cap -> 4 cap over the range already scanned: the
+  discriminants passed over for a prime above the cap, Drew's suggestion) and takes the
+  cheaper by predicted core-seconds per order; the prediction of a raise is corrected by the
+  last one's outcome (`raise_fit`).  The log prints "next orders: widen|raise (prices)".  Cap
+  ceiling = a quarter of RAM for the square roots (`fb_cap_max`: 2e10 on a c8a, 6e9 on the
+  16-core box, at 1362 bits); default scan bound 1e15.  dscan: `Bmin=B fbmin=<old cap>` is a
+  cap-only scan and skips old-prime nodes with no room for a new prime (exact: earlier scan
+  + raise = full scan at the new cap, test_dscan).  Neutral at 1000 bits (same price per
+  order as before), about a third cheaper at the margin for 10^410.
+  (2) levels of 1300 bits and more get 192 curves at B1 = 3e7 on offer instead of 64 (the
+  stalled run had 2,829 candidates through the whole ladder).  B1 = 1e8 was timed and
+  rejected: 4.4x the cost of 3e7 for ~2x the success on 120-160-bit factors.
+  (3) the model above 1100 bits: expected wins at the first win over the nine primes
+  10^330..10^410 are 0.61, 3.58, 4.41, 1.79, 0.92, 0.20, 0.05, 0.66, 0.73 (mean 1.44; exact
+  1 +- 0.33): two slow draws in a row looked like a break and were not.  Checked on the way:
+  yafu finds planted factors equally often in numbers of 780..1330 bits and labels prime
+  cofactors correctly; "splits found/expected by B1" (now in every search line) is 1.05 at
+  B1 = 2e3 rising to ~1.5 at 1e6+ (the expectation ignores that deep candidates are
+  selected).  A deeper calibration of yafu at B1 = 3e6, 1e7, 3e7 (598,344 curves,
+  `data/yafu_pi_calib_deep.json`) gives 0.87, 0.78, 0.95 of the hits the table in use
+  expects: NOT yet folded into `ecpp/ecm_pi_yafu.json` (do it, then rerun test_sched).
+  (4) `RuleDriver.should_build` has still never fired in a real run (25 runs of 768-bit
+  primes drew no costly winner); at 1362 bits it rightly accepted a 3-hour build because
+  another winner was 6 hours away.  `get_j`'s timeout follows the build estimate.
+  Spot notes: a build uses ~20 of 192 cores for hours: re-claim with `--idle-ok --force` or
+  the watchdog stops the box; `spot claim` again with new hours works on one's own box.
+  Cost of the two days: about $62 (c8a at ~$3.06/h in us-west-2, the only region with
+  capacity).
+
 ## Build & test
 ```sh
 make -j                      # ff_poly -> classpoly (incl. zp_poly) -> ecpp (all in-tree, ~15 s)
