@@ -22,10 +22,12 @@ ecpp/cmjtest
 ecpp/asmtest
 ecpp/zpbench
 
-# modular-polynomial data (phi_files/).  A 46 MB subset is bundled via git add -f
+# modular-polynomial data (phi_files/).  A 50 MB subset is bundled via git add -f
 # (see phi_files_manifest.txt): for EVERY class-invariant family, the modular
 # polynomials Phi_{l,f} for l <= 71 (enumeration) plus the invariant->j polynomial
-# Psi_f, and for the Weber functions f and f^2 the polynomials up to l = 109; the classical Phi_l (the phi_j_* files) are included on the same rule --
+# Psi_f, and for the Weber functions f and f^2 and eight double eta quotients with
+# small polynomials (w2w3e1, w2w3e2, w2w5e1, w2w5e2, w2w7e1, w2w7e2, w2w13e1,
+# w3w3e1) the polynomials up to l = 109; the classical Phi_l (the phi_j_* files) are included on the same rule --
 # they are needed at the primes dividing the LEVEL of the chosen invariant (e.g.
 # phi_j_59 for Atkin A_59) to derive the starting f-value from the starting
 # j-invariant, not for enumeration.  The full ~2.2 GB database (all levels) is NOT
