@@ -34,6 +34,8 @@ RECORDED = {10: (1, None, None, "short.gp"), 20: (1, None, None, "short.gp"), 30
             370: (1650 * H, 10.5 * H, 192, "shortECPP.py"), 380: (70 * H, 1.1 * H, 192, "shortECPP.py"),
             390: (840 * H, 5.3 * H, 192, "shortECPP.py"), 400: (2340 * H, 12.8 * H, 192, "shortECPP.py")}
 PASSES = ["yafu_c8a_1", "yafu_c8a_2", "yafu_c8a_3", "yafu_c8a_4", "yafu_c8a_5"]
+# later sets, not used for the table: yafu_c8a_6 (the supply with two arms: 768-bit set, c = 300..320 again),
+# yafu_c8a_7 (one 768-bit prime twelve times beside a build), yafu_c8a_8 (c = 410, a new entry: 28,153 s)
 
 
 def runs(d):
@@ -77,16 +79,18 @@ def main():
                                                            "cpu_mean": sum(x["cpu"] for x in v) / len(v), "failed_builds": sum(x["failed_builds"] for x in v)}
     json.dump({"entries": rows, "sets": sets}, open(os.path.join(HERE, "bench_c8a.json"), "w"), indent=1)
     print("  c  bits lev |   recorded CPU      wall on cores |  now: wall      CPU  | CPU ratio  wall ratio")
-    tw = tc = rc = 0.0
     for r in rows:
         b = r["best"]
         rw = ("%8.0f s on %3d" % (r["recorded_wall"], r["recorded_cores"])) if r["recorded_wall"] else "               -"
         print("%3d %5d %3d | %10.0f s  %s | %8.1f s %8.0f s | %8.0fx %s  %s%s"
               % (r["c"], b["bits"], b["levels"], r["recorded_cpu"], rw, b["wall"], b["cpu"], r["recorded_cpu"] / max(b["cpu"], 0.01),
                  ("%8.0fx" % (r["recorded_wall"] / b["wall"])) if r["recorded_wall"] else "        -", b["set"][-1], "" if b["verified"] else " NOT VERIFIED"))
-        if r["c"] >= 160:
-            tw += b["wall"]; tc += b["cpu"]; rc += r["recorded_cpu"]
-    print("c = 160..320: %.0f s wall (%.1f min) and %.1f core-h in all; recorded %.0f core-h" % (tw, tw / 60, tc / 3600, rc / 3600))
+    for lo, hi in ((160, 320), (330, 400)):
+        sel = [r for r in rows if lo <= r["c"] <= hi]
+        if sel:
+            tw = sum(r["best"]["wall"] for r in sel)
+            print("c = %d..%d: %.0f s wall (%.1f min, %.2f h) and %.1f core-h in all; recorded %.0f core-h"
+                  % (lo, hi, tw, tw / 60, tw / 3600, sum(r["best"]["cpu"] for r in sel) / 3600, sum(r["recorded_cpu"] for r in sel) / 3600))
     small = [r for r in rows if r["c"] <= 150]
     print("c = 10..150: %.1f s wall, %.0f CPU-s in all; recorded %.0f CPU-s" % (sum(r["best"]["wall"] for r in small), sum(r["best"]["cpu"] for r in small), sum(r["recorded_cpu"] for r in small)))
     for k, v in sets.items():
