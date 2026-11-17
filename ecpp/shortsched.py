@@ -115,6 +115,7 @@ class Sched:
         self.nabandoned = 0
         self.expwin = 0.0                   # wins the model expects from the units handed out
         self.expwin_b1 = {}                 # ... by B1
+        self.expsplit_b1 = {}               # candidates the model expects to lose a factor to them, by B1
 
     def set_reward(self, R):
         """Units are kept short against the time the machine needs for one win, so
@@ -201,6 +202,10 @@ class Sched:
             pw = n / float(self.tiers[bj][2]) * sum(self.tab.pwin(x.cls, bj, x.tb) for x in cands)
             self.expwin += pw
             self.expwin_b1[b1] = self.expwin_b1.get(b1, 0.0) + pw
+            lad = getattr(self.tab, "lad", None)
+            if lad is not None:             # a second check of the model, on far more events than the wins
+                self.expsplit_b1[b1] = (self.expsplit_b1.get(b1, 0.0)
+                                        + len(cands) * -math.expm1(-lad.Lphi[bj] * n / float(self.tiers[bj][2])))
             for x in cands:
                 x.sent += n
                 x.infl += 1
@@ -402,7 +407,8 @@ def level_loop(drv, tab, tiers, cost, par=None):
             res = drv.build({"orders": K, "scan_s": spent_scan, "ecm_s": spent_ecm,
                              "wall": drv.now() - t0, "units": nunits, "R": R,
                              "expwin": first[0] if hold is not None else sch.expwin, "first_win_wall": first[1],
-                             "over_s": over, "expwin_b1": dict(sch.expwin_b1), "win_b1": win_b1})
+                             "over_s": over, "expwin_b1": dict(sch.expwin_b1), "win_b1": win_b1,
+                             "expsplit_b1": dict(sch.expsplit_b1)})
             if res is not None:
                 return res
             win_b1 = None

@@ -1433,6 +1433,7 @@ class RuleDriver:
         self.last = None
         self.act, self.est = {}, {}           # core-seconds by B1: measured, modelled
         self.nsplit = 0
+        self.split_b1 = {}                    # candidates that lost a factor to a unit, by B1
         self.prefetched = True                # the first chunk starts now, while the table is built
         self.build_ref = 0.0                  # estimated build of a typical candidate, seconds (see should_build)
         self.build_refs = []
@@ -1574,6 +1575,7 @@ class RuleDriver:
                 continue
             found, cof, cprp = res[t]
             self.nsplit += 1
+            self.split_b1[u.b1] = self.split_b1.get(u.b1, 0) + 1
             self.process_result(c, found, cof)
             if c.tail == cof:                         # the ECM program already tested this cofactor
                 self.settle_tail(c, cprp)
@@ -1624,12 +1626,15 @@ class RuleDriver:
         self.ecm_seen = st["ecm_s"]
         ratios = " ".join("%g:%.2f" % (b1, self.act[b1] / self.est[b1]) for b1 in sorted(self.act) if self.est[b1] > 0)
         eb = st.get("expwin_b1") or {}
+        es = st.get("expsplit_b1") or {}
         log("    search: %d orders, scan %.0f + ecm %.0f core-s (%.0f above the rule), %.1fs wall, %d units, "
             "%d splits, rule R = %.0f core-s; the model expected %.2f wins from this work; "
-            "measured/modelled ECM cost by B1: %s; wins expected by B1: %s; won at B1=%s"
+            "measured/modelled ECM cost by B1: %s; wins expected by B1: %s; won at B1=%s; "
+            "splits found/expected by B1: %s"
             % (st["orders"], st["scan_s"], st["ecm_s"], st.get("over_s", 0.0), st["wall"], st["units"],
                self.nsplit, st["R"], st["expwin"], ratios,
-               " ".join("%g:%.3f" % (b1, eb[b1]) for b1 in sorted(eb)), st.get("win_b1")))
+               " ".join("%g:%.3f" % (b1, eb[b1]) for b1 in sorted(eb)), st.get("win_b1"),
+               " ".join("%g:%d/%.0f" % (b1, self.split_b1.get(b1, 0), es[b1]) for b1 in sorted(es))))
         self.pass_t0, self.pass_n = None, 0
         return self.try_build()
 
