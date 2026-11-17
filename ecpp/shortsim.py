@@ -305,6 +305,9 @@ SEC1030_CAMPAIGN = {2000: 0.048, 11000: 0.101, 50000: 0.336, 250000: 1.36,
 # c8a's within 3% and the deeper ones 14-19% higher, and are scaled accordingly.
 SEC1030_YAFU = {2000: 0.0036, 11000: 0.0148, 50000: 0.0599, 250000: 0.302,
                 1000000: 0.950, 3000000: 2.69, 10000000: 9.9, 30000000: 36.0}
+# (B1 = 1e8 was timed on the c8a: 4.38 times the cost of 3e7, for about twice the
+# success on factors of 120 to 160 bits by the two-stage estimate, so further
+# curves at 3e7 are the better buy as long as primes above 160 bits are left alone.)
 
 # What the scheduler needs to know about an ECM program: cost per curve at 1030
 # bits and its growth with the size of the number, the measured success table,

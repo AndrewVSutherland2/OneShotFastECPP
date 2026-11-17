@@ -616,17 +616,21 @@ def default_tiers(engine="gmp", nbits=None):
     of nbits bits the ladder stops at the B1 whose curves still find next to
     nothing at shortsim.medium_bits(nbits) bits (the model takes larger primes
     as out of reach): 11000 below 230 bits, 50000 below 320, 250000 below 410,
-    10^6 below 500, everything from there."""
+    10^6 below 500, 3*10^7 from there.  From 1300 bits a win is worth a thousand
+    core-hours and more, and the best candidates run through 64 curves at 3*10^7
+    with the rule still willing: yafu's ladder then offers 192."""
     if engine == "yafu":
         spec = [(2000, 16, 1), (11000, 24, 1), (50000, 16, 2), (250000, 16, 3),
-                (1000000, 16, 5), (3000000, 16, 6), (10000000, 16, 6), (30000000, 16, 4)]
+                (1000000, 16, 5), (3000000, 16, 6), (10000000, 16, 6),
+                (30000000, 16, 12 if (nbits or 0) >= 1300 else 4)]
     else:
         spec = [(2000, 12, 1), (11000, 20, 1), (50000, 16, 2), (250000, 12, 4),
                 (1000000, 12, 6), (3000000, 12, 8), (10000000, 12, 8), (30000000, 12, 4)]
+    top = 30000000
     if nbits is not None:
         top = 11000 if nbits < 230 else 50000 if nbits < 320 else 250000 if nbits < 410 else \
             1000000 if nbits < 500 else 30000000
-        spec = [x for x in spec if x[0] <= top]
+    spec = [x for x in spec if x[0] <= top]
     tiers = []
     for (b1, c, k) in spec:
         tiers += [("ecm", b1, c)] * k

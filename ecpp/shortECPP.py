@@ -33,7 +33,10 @@ usage: shortECPP.py (p=<decimal> | c=<digits: p=nextprime(10^c)>)
                       [engine=auto|gmp|yafu] [yafu=<binary>]
 
 The scan's factor base is always capped: at maxfb if given (top level only),
-otherwise at fb_cap(B), which grows with the scan bound.  Its square roots are
+otherwise at fb_cap(B) for the first scan.  From there the stopping-rule levels
+get their orders the cheaper of two ways, measured as they go: a wider
+discriminant bound, or a higher cap over the range already scanned (the
+discriminants passed over for a prime above the cap).  The square roots are
 cached per modulus under work/rootcache/ for the life of the level.
 
 sched: levels of POLICY_MIN_BITS (280) bits and more are run by the stopping-rule
@@ -315,13 +318,35 @@ class Cand:
 
 
 # ------------------------------------------------------------ pool components
-def fb_cap(B):
-    """Factor-base cap for a scan to B.  A square root mod p costs about 60
-    Cornacchia tests and a prime q is in about B/(30 q) of the discriminants
-    scanned, so roots of primes far above B/1000 never pay for themselves; the
-    count of solvable D is flat in the cap (measured at 1030 bits, B = 2e10:
-    a cap of B/4000 keeps 81% of what B/400 finds, with a ninth of the roots)."""
-    return max(10 ** 6, min(10 ** 8, B // 1000))
+def fb_cap_max(nb):
+    """Largest factor-base cap whose square roots mod a prime of nb bits fit in a
+    quarter of the machine's memory (dscan keeps them all: nb/8 bytes each and
+    about 64 of housekeeping, for half the primes below the cap)."""
+    try:
+        ram = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    except (ValueError, OSError, AttributeError):
+        ram = 16 << 30
+    roots = 0.25 * ram / (nb // 8 + 64)
+    y = 40.0 * roots
+    for _ in range(6):                       # pi(y) / 2 = roots
+        y = 2.0 * roots * (math.log(y) - 1.0)
+    return int(min(y, 10 ** 11))
+
+
+def fb_cap(B, nb=0):
+    """Factor-base cap for a first scan to B, and for the scans of the tiered
+    rounds.  A square root mod p costs about 60 Cornacchia tests and a prime q
+    is in about B/(30 q) of the discriminants scanned, so roots of primes far
+    above B/1000 never pay for themselves; the count of solvable D is flat in
+    the cap (measured at 1030 bits, B = 2e10: a cap of B/4000 keeps 81% of what
+    B/400 finds, with a ninth of the roots).  The stopping-rule levels start
+    here and then raise the cap when that is the cheaper way to more orders
+    (RuleDriver.next_chunk)."""
+    return max(10 ** 6, min(fb_cap_max(nb) if nb else 10 ** 8, B // 1000))
+
+
+_DSCAN_SUMMARY = re.compile(r"dscan B=\d+ Bmin=\d+: fb ([\d.]+)s \(sieve ([\d.]+), legendre ([\d.]+), tonelli ([\d.]+); "
+                            r"(\d+) roots, (\d+) cached\), scan ([\d.]+)s, (\d+)/(\d+) solvable, (\d+) threads(?:, (\d+) tested)?")
 
 
 def roots_path(p):
@@ -346,11 +371,14 @@ def run_cap(cmd, inp=None, reg=None):
     return pr.returncode, out, err
 
 
-def run_dscan(p, B, Bmin, threads, maxfb=0, fbmin=0, roots=None, reg=None):
+def run_dscan(p, B, Bmin, threads, maxfb=0, fbmin=0, roots=None, reg=None, info=None):
     """Solvable (d, t, v) with Bmin <= d < B over the factor base capped at maxfb.
     With fbmin set (the cap of the scans already done below Bmin) the d < Bmin
     that need a prime in (fbmin, maxfb] are included too, so successive calls
-    with a growing cap tile [0, B) at the latest cap without repeats."""
+    with a growing cap tile [0, B) at the latest cap without repeats; with
+    Bmin = B the call only raises the cap.  info (a dict) receives dscan's own
+    account: seconds for the square roots and for the scan, roots computed,
+    discriminants tested."""
     cmd = [os.path.join(ECPP_DIR, "dscan"), "p=%d" % p, "B=%d" % B, "threads=%d" % threads, "dump"]
     if Bmin:
         cmd.append("Bmin=%d" % Bmin)
@@ -363,6 +391,11 @@ def run_dscan(p, B, Bmin, threads, maxfb=0, fbmin=0, roots=None, reg=None):
     rc, sout, serr = run_cap(cmd, None, reg)
     if rc != 0:
         raise RuntimeError("dscan failed: %s" % serr[:500])
+    m = _DSCAN_SUMMARY.search(serr)
+    if info is not None and m:
+        info.update(fb_s=float(m.group(1)), root_s=float(m.group(4)), roots_new=int(m.group(5)) - int(m.group(6)),
+                    scan_s=float(m.group(7)), solvable=int(m.group(8)), threads=int(m.group(10)),
+                    tested=int(m.group(11) or m.group(9)))
     out = []
     for line in sout.splitlines():
         w = line.split()
@@ -1428,9 +1461,17 @@ class RuleDriver:
         self.runner = EcmRunner(engine)
         self.procs = set()
         self.epoch = 0
-        self.B, self.Bnext = 0, min(B0, Bmax)
-        self.cap_prev = 0
-        self.last = None
+        # supply: the scan has two bounds, B on the discriminant and the cap on its
+        # prime factors, and more orders come from moving either (next_chunk)
+        self.B, self.cap = 0, 0
+        self.B0 = min(B0, Bmax)
+        self.capmax = fixed_cap if fixed_cap else fb_cap_max(nb)
+        self.arm = ("widen", self.B0, fixed_cap if fixed_cap else fb_cap(self.B0, nb))
+        self.last = None                      # the last widening: (orders, scan core-s, strip core-s, lo, hi, density then)
+        self.raise_fit = (0.7, 1.0)           # found/predicted of the last raise: orders, core-seconds
+        self.tot_orders, self.tot_test_s = 0, 0.0
+        self.c_root = 1.0e-9 * nb * nb        # core-seconds per square root until one is timed
+        self._nxt = None
         self.act, self.est = {}, {}           # core-seconds by B1: measured, modelled
         self.nsplit = 0
         self.split_b1 = {}                    # candidates that lost a factor to a unit, by B1
@@ -1447,27 +1488,66 @@ class RuleDriver:
         log(msg)
 
     # ---- supply
-    def next_chunk(self):
-        if self.B >= self.Bmax:
-            return None
-        if self.last is None:
-            return (1.0, 1.0)
-        n, cs, cstrip, lo, hi = self.last
+    def _density(self, B, cap):
+        """Share of the discriminants below B whose primes are all below cap."""
+        import shortsim as ss
+        return float(ss.rho(max(1.0, math.log(B) / math.log(max(cap, 3)))))
 
-        def work(a, b):                       # dscan walks the range below again (about 8% of its cost)
-            return (b - a) + 0.08 * a
-        nn = max(1.0, n * (math.sqrt(self.Bnext) - math.sqrt(self.B)) / (math.sqrt(hi) - math.sqrt(lo)))
-        return nn, cs * work(self.B, self.Bnext) / work(lo, hi) + cstrip * nn / max(n, 1)
+    def next_chunk(self):
+        """(orders expected, core-seconds expected) of the cheaper of the two ways
+        to more orders, or None when neither is left:
+          widen  the discriminant bound B -> grow * B at the present cap.  Counts
+                 go like sqrt(B) (the chance that a discriminant is solvable
+                 falls like one over its class number) and work like B.
+          raise  the cap on the primes of a discriminant, cap -> 4 * cap, over the
+                 range already scanned: the discriminants passed over so far for
+                 a prime above the cap.  They cost what discriminants of their
+                 size cost, plus a square root mod p for every prime added to
+                 the factor base, where a wider B pays ever more per order.
+        Both are predicted from what the scans so far have measured, and the
+        prediction of a raise is corrected by the outcome of the last one."""
+        if self.last is None:
+            return (1.0, 1.0)                 # the first chunk is on its way
+        if self._nxt is not None:
+            return self._nxt[0]
+        n, cs, cstrip, lo, hi, dens = self.last
+        strip1 = cstrip / max(n, 1)
+        opts = []
+        if self.B < self.Bmax:
+            Bn = min(self.Bmax, int(self.B * self.grow))
+            f = self._density(Bn, self.cap) / dens
+            nn = max(1.0, n * (math.sqrt(Bn) - math.sqrt(self.B)) / (math.sqrt(hi) - math.sqrt(lo)) * f)
+            cc = cs * (Bn - self.B) / (hi - lo) * f + strip1 * nn
+            opts.append((cc / nn, nn, cc, ("widen", Bn, self.cap)))
+        ncap = min(self.capmax, 4 * self.cap, self.B // 30)
+        if not self.fixed_cap and ncap >= 2 * self.cap and self.tot_orders:
+            gain = self._density(self.B, ncap) / self._density(self.B, self.cap) - 1.0
+            roots = 0.5 * (ncap / (math.log(ncap) - 1.0) - self.cap / (math.log(self.cap) - 1.0))
+            nn = max(1.0, self.tot_orders * gain * self.raise_fit[0])
+            cc = self.tot_test_s * gain * self.raise_fit[1] + roots * self.c_root + strip1 * nn
+            opts.append((cc / nn, nn, cc, ("raise", self.B, ncap)))
+        if not opts:
+            return None
+        _, nn, cc, arm = min(opts)
+        self._nxt = ((nn, cc), arm, [(o[3][0], round(o[0], 4)) for o in opts])
+        self.arm = arm
+        return self._nxt[0]
 
     def _launch_scan(self, ns):
-        ep, lo, hi = self.epoch, self.B, self.Bnext
+        ep = self.epoch
+        kind, hi, cap = self.arm
+        lo, cap0 = self.B, self.cap
+        pred = self._nxt
 
         def scan():
             try:
                 t0 = time.time()
-                fbc = self.fixed_cap if self.fixed_cap else fb_cap(hi)
-                recs = run_dscan(self.p, hi, lo, ns, fbc, self.cap_prev if fbc > self.cap_prev else 0,
-                                 self.roots, reg=self.procs)
+                info = {}
+                if kind == "raise":           # Bmin = B: only what the larger cap adds
+                    recs = run_dscan(self.p, hi, hi, ns, cap, cap0, self.roots, reg=self.procs, info=info)
+                else:
+                    recs = run_dscan(self.p, hi, lo, ns, cap, cap0 if (cap > cap0 and lo) else 0, self.roots,
+                                     reg=self.procs, info=info)
                 t1 = time.time()
                 Ns = sorted({N for (_, t, _) in recs for N in (self.p + 1 - t, self.p + 1 + t) if N % 4 == 0})
                 k = min(ns, STRIP_THREADS)
@@ -1475,7 +1555,8 @@ class RuleDriver:
                     self.q.put((ep, ("scanthreads", k)))
                 strip = smooth_strip(Ns, k, self.nsm, reg=self.procs)
                 t2 = time.time()
-                self.q.put((ep, ("orders", (lo, hi, fbc, recs, strip, (t1 - t0) * ns, (t2 - t1) * k, ns))))
+                self.q.put((ep, ("orders", (lo, hi, cap, recs, strip, (t1 - t0) * ns, (t2 - t1) * k, ns,
+                                            kind, cap0, info, pred))))
             except Exception as e:            # killed by abort(), or a real failure
                 self.q.put((ep, ("scanfail", repr(e))))
         threading.Thread(target=scan, daemon=True).start()
@@ -1488,7 +1569,7 @@ class RuleDriver:
 
     def take_orders(self, payload):
         from shortsched import sched_init
-        lo, hi, fbc, recs, strip, cs, cstrip, ns = payload
+        lo, hi, fbc, recs, strip, cs, cstrip, ns, kind, cap0, info, pred = payload
         p, L = self.p, self.L
         fresh = []
         for (d, t, v) in recs:
@@ -1521,15 +1602,37 @@ class RuleDriver:
             self.build_refs += list(build_estimate(sample, self.nb).values())
             if self.build_refs:
                 self.build_ref = sorted(self.build_refs)[len(self.build_refs) // 2]
-        self.B, self.Bnext = hi, min(self.Bmax, int(hi * self.grow))
-        self.cap_prev = max(self.cap_prev, fbc)
-        self.last = (max(len(fresh), 1), cs, cstrip, lo, hi)
+        nf = max(len(fresh), 1)
+        test_s = info.get("scan_s", 0.0) * info.get("threads", ns) if info else cs
+        if info and info.get("roots_new", 0) > 1000 and info.get("root_s", 0.0) > 0.5:
+            self.c_root = info["root_s"] * info["threads"] / info["roots_new"]
+        if kind == "raise":
+            if pred is not None:              # how the prediction of this raise did
+                (pn, pc), _, _ = pred
+                self.raise_fit = (min(1.5, max(0.2, self.raise_fit[0] * len(fresh) / max(pn, 1.0))),
+                                  min(3.0, max(0.3, self.raise_fit[1] * cs / max(pc - cstrip, 1.0))))
+        else:
+            self.last = (nf, cs, cstrip, lo, hi, self._density(hi, fbc))
+        self.B, self.cap = hi, fbc
+        self.tot_orders += len(fresh)
+        self.tot_test_s += test_s
+        self._nxt = None
         self.stats["cands"] = self.stats.get("cands", 0) + len(fresh)
         self.stats["scan_s"] = self.stats.get("scan_s", 0.0) + cs + cstrip
-        log("  level %d bits: dscan[%g,%g) maxfb=%g on %d threads: +%d D -> +%d orders (%d live), "
-            "%.0f core-s (strip %.0f) = %.4f per order; %d winners"
-            % (self.nb, lo, hi, fbc, ns, len(recs), len(fresh), len(live), cs + cstrip, cstrip,
-               (cs + cstrip) / max(len(fresh), 1), len(self.winners)))
+        if kind == "raise":
+            log("  level %d bits: dscan[0,%g) cap %g -> %g on %d threads: +%d D -> +%d orders (%d live), "
+                "%.0f core-s (strip %.0f) = %.4f per order; %d winners"
+                % (self.nb, hi, cap0, fbc, ns, len(recs), len(fresh), len(live), cs + cstrip, cstrip,
+                   (cs + cstrip) / nf, len(self.winners)))
+        else:
+            log("  level %d bits: dscan[%g,%g) maxfb=%g on %d threads: +%d D -> +%d orders (%d live), "
+                "%.0f core-s (strip %.0f) = %.4f per order; %d winners"
+                % (self.nb, lo, hi, fbc, ns, len(recs), len(fresh), len(live), cs + cstrip, cstrip,
+                   (cs + cstrip) / nf, len(self.winners)))
+        nx = self.next_chunk()
+        if nx is not None and self._nxt is not None and len(self._nxt[2]) > 1:
+            log("    next orders: %s (core-s per order: %s)"
+                % (self._nxt[1][0], ", ".join("%s %.3f" % o for o in self._nxt[2])))
         return live, len(fresh), cs + cstrip
 
     # ---- work
@@ -1650,9 +1753,10 @@ def run_rule_level(p, nb, L, n2, small_primes, threads, stats, B0, Bmax_given, f
     lam = math.log2(L)
     engine = ecm_engine()
     f = ecm_machine_factor(nb, threads, engine)
-    # the scan is bounded by the rule (its price), not by a budget: 1e13 is the
-    # range dscan's 64-bit products and a factor base of 1e8 primes are good for
-    Bmax = Bmax_given if Bmax_given else 10 ** 13
+    # the scan is bounded by the rule (its price), not by a budget: dscan's
+    # products stay within 64 bits up to 2^60, and long before that a wider scan
+    # costs more per order than raising the cap on the primes (RuleDriver.next_chunk)
+    Bmax = Bmax_given if Bmax_given else 10 ** 15
     nsm = V2_BCAP if V2_BCAP else n2          # fillers use primes up to B only in the revised format
     drv = RuleDriver(p, nb, L, threads, stats, B0, Bmax, fixed_cap, roots, nsm, small_primes,
                      winners, process_result, settle_tail, try_build, engine=engine)

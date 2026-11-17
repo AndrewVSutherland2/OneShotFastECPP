@@ -88,6 +88,15 @@ static unsigned long Fbprev;        // 0 = off; else the cap of the previous (na
                                     // d < Bminb is emitted iff its largest prime exceeds Fbprev,
                                     // so [0,Bmin) at cap Fbprev plus this run is exactly [0,B) at
                                     // cap Fbmax -- the cap can grow with B across widenings
+// A call with Bmin = B and fbmin set only raises the cap: every D it emits holds a
+// prime above Fbprev.  The DFS adds primes in ascending order, so a node made of old
+// primes is of use only as a prefix, i.e. while a new prime still fits behind it:
+// absprod <= lim_old = (B-1) / (smallest new prime).  Old-prime children beyond that
+// are skipped, which leaves a prefix tree of a few thousand nodes where the walk of
+// the whole range below B would cost a twelfth of a full scan.
+static int pure_raise;
+static size_t idx_new;              // first factor-base index above Fbprev
+static unsigned long lim_old;
 static int do_dump, do_verify, no_corn, do_dumpscan;
 
 // Per-thread scan state.  The DFS partitions cleanly by the smallest prime factor
@@ -97,7 +106,7 @@ static int do_dump, do_verify, no_corn, do_dumpscan;
 typedef struct {
     cornacchia_ctx cc;
     mpz_t xstk[MAXDEPTH], x0, t, v, chk, dv2;   // xstk[k] = sqrt(odd-part mod p) at depth k
-    unsigned long n_scan, n_solv;
+    unsigned long n_scan, n_solv, n_test;       // nodes visited, solvable, handed to Cornacchia
     char *obuf; size_t olen, ocap;              // dump/dumpscan output, merged at the end
 } scanstate;
 
@@ -125,6 +134,7 @@ static void try_D (scanstate *S, unsigned long absprod, int sign, const mpz_t xp
         if ( dabs < Bminb && ! ( Fbprev && maxq > Fbprev ) ) continue;   // already covered by the earlier scan
         if ( do_dumpscan ) { char b[24]; int n = snprintf (b, sizeof b, "%lu\n", dabs); obuf_add (S, b, n); }
         if ( no_corn ) continue;
+        S->n_test++;
         mpz_mul (S->x0, xprod, tp_sq[j]);  mpz_mod (S->x0, S->x0, S->cc.p);   // sqrt(D mod p)
         if ( cornacchia_solve_x0 (&S->cc, dabs, S->x0, S->t, S->v) ) {
             // self-check 4p = t^2 + dabs*v^2
@@ -149,6 +159,7 @@ static void dfs_serial (scanstate *S, int depth, size_t start, unsigned long abs
     try_D (S, absprod, sign, xprod, maxq);
     for ( size_t i = start ; i < oddfb.n ; i++ ) {
         if ( absprod > (Bbound - 1) / oddfb.aval[i] ) break;
+        if ( pure_raise && i < idx_new && absprod > lim_old / oddfb.aval[i] ) { i = idx_new - 1; continue; }   // no room for a new prime behind this one
         mpz_mul (S->xstk[depth + 1], xprod, oddfb.sq[i]);  mpz_mod (S->xstk[depth + 1], S->xstk[depth + 1], S->cc.p);
         dfs_serial (S, depth + 1, i + 1, absprod * oddfb.aval[i], sign * oddfb.sgn[i], S->xstk[depth + 1], oddfb.aval[i]);
     }
@@ -178,6 +189,7 @@ static void gen_seeds (scanstate *S0, int depth, size_t start, unsigned long abs
     size_t i = start;
     while ( i < oddfb.n ) {                                   // big children: recurse to break them up
         if ( absprod > (Bbound - 1) / oddfb.aval[i] ) return;
+        if ( pure_raise && i < idx_new && absprod > lim_old / oddfb.aval[i] ) { i = idx_new; continue; }
         unsigned long ca = absprod * oddfb.aval[i];
         if ( Bbound / ca < SEED_D ) break;                   // this and all later children are small
         mpz_mul (S0->xstk[depth + 1], xprod, oddfb.sq[i]);  mpz_mod (S0->xstk[depth + 1], S0->xstk[depth + 1], S0->cc.p);
@@ -185,8 +197,10 @@ static void gen_seeds (scanstate *S0, int depth, size_t start, unsigned long abs
         i++;
     }
     while ( i < oddfb.n && absprod <= (Bbound - 1) / oddfb.aval[i] ) {   // small children: batch into seeds
+        if ( pure_raise && i < idx_new && absprod > lim_old / oddfb.aval[i] ) { i = idx_new; continue; }
         size_t j = i; unsigned long batch = 0;
-        while ( j < oddfb.n && absprod <= (Bbound - 1) / oddfb.aval[j] && batch < SEED_D )
+        while ( j < oddfb.n && absprod <= (Bbound - 1) / oddfb.aval[j] && batch < SEED_D
+                && ! ( pure_raise && j < idx_new && absprod > lim_old / oddfb.aval[j] ) )
             { batch += Bbound / (absprod * oddfb.aval[j]); j++; }
         emit_seed (absprod, sign, xprod, i, j);
         i = j;
@@ -375,6 +389,15 @@ int main (int argc, char *argv[])
     free (tctx); free (primes); free (qr);
     double tfb = t_sieve + t_det + t_sqrt;
 
+    // a call that only raises the cap: see pure_raise above
+    if ( Fbprev && Bminb >= Bbound ) {
+        size_t lo = 0, hi = oddfb.n;
+        while ( lo < hi ) { size_t mid = lo + (hi - lo) / 2; if ( oddfb.aval[mid] > Fbprev ) hi = mid; else lo = mid + 1; }
+        idx_new = lo;
+        pure_raise = 1;
+        lim_old = idx_new < oddfb.n ? (Bbound - 1) / oddfb.aval[idx_new] : 0;
+    }
+
     // ---- DFS scan (parallel over the starting prime, i.e. smallest factor of D) ----
     double tsc = wall ();
     scanstate *states = malloc (nth * sizeof(*states));
@@ -405,8 +428,8 @@ int main (int argc, char *argv[])
     t_par = wall () - t_par;
     for ( size_t s = 0 ; s < nseeds ; s++ ) mpz_clear (seeds[s].xprod);
     free (seeds);
-    unsigned long n_scan = 0, n_solv = 0, n_desc = 0;
-    for ( int k = 0 ; k < nth ; k++ ) { n_scan += states[k].n_scan; n_solv += states[k].n_solv; n_desc += states[k].cc.n_descent; }
+    unsigned long n_scan = 0, n_solv = 0, n_desc = 0, n_test = 0;
+    for ( int k = 0 ; k < nth ; k++ ) { n_scan += states[k].n_scan; n_solv += states[k].n_solv; n_test += states[k].n_test; n_desc += states[k].cc.n_descent; }
     tsc = wall () - tsc;
 
     for ( int k = 0 ; k < nth ; k++ ) if ( states[k].olen ) fwrite (states[k].obuf, 1, states[k].olen, stdout);
@@ -420,8 +443,8 @@ int main (int argc, char *argv[])
     free (states);
 
     if ( do_dump || do_dumpscan )                            // one-line summary for pipeline callers
-        fprintf (stderr, "dscan B=%lu Bmin=%lu: fb %.1fs (sieve %.1f, legendre %.1f, tonelli %.1f; %zu roots, %zu cached), scan %.1fs, %lu/%lu solvable, %d threads\n",
-                 Bbound, Bminb, tfb, t_sieve, t_det, t_sqrt, oddfb.n, n_cached, tsc, n_solv, n_scan, nth);
+        fprintf (stderr, "dscan B=%lu Bmin=%lu: fb %.1fs (sieve %.1f, legendre %.1f, tonelli %.1f; %zu roots, %zu cached), scan %.1fs, %lu/%lu solvable, %d threads, %lu tested\n",
+                 Bbound, Bminb, tfb, t_sieve, t_det, t_sqrt, oddfb.n, n_cached, tsc, n_solv, n_scan, nth, n_test);
     if ( ! do_dump && ! do_dumpscan ) {
         gmp_fprintf (stderr, "p (%lu bits, %lu mod 4) = %Zd\n", (unsigned long) mpz_sizeinbase (p, 2), mpz_fdiv_ui (p, 4), p);
         fprintf (stderr, "B = %lu   factor base: %zu odd prime discriminants + %d two-part%s\n", Bbound, oddfb.n, n_tp - 1, Fbmax ? " (maxfb-capped)" : "");

@@ -152,6 +152,12 @@ def check_one(p, B):
     print(f"  capped (maxfb={c2}): dscan {len(capped)} vs brute {len(want)}; tiling {len(first)}+{len(second)} "
           f"vs {len(full)}; root cache cold/extended/warm/damaged {'identical' if okC else 'MISMATCH'}")
     ok = ok and okC
+    # raising the cap alone (Bmin = B): what a scan to B at cap c1 passed over for a prime in (c1, c2]
+    low = run(f"B={B}", f"maxfb={c1}", "dump").splitlines()
+    up = run(f"B={B}", f"Bmin={B}", f"maxfb={c2}", f"fbmin={c1}", "dump").splitlines()
+    okR = sorted(low + up) == full and len(set(low) & set(up)) == 0 and len(up) > 0
+    print(f"  cap raised alone ({c1} -> {c2}): {len(low)}+{len(up)} vs {len(full)} {'identical' if okR else 'MISMATCH'}")
+    ok = ok and okR
     print("  " + ("OK" if ok else "FAIL"))
     return ok
 

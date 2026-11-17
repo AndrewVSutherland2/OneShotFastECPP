@@ -363,10 +363,10 @@ def test_yafu(tiers_gmp, lam):
         check("yafu and gmp-ecm split planted factors alike", same and len(ry) == 3,
               "%d and %d of 4 split" % (len(ry), len(rg)))
         # yafu alone stops at the first batch with a factor; the runner must spend the rest of the
-        # sweep on the cofactor: six numbers with a 22- and a 44-bit prime, 48 curves at B1 = 2000
-        # (complete sweeps find all twelve primes 99.8% of the time, first batches only 15%)
+        # sweep on the cofactor: six numbers with a 22- and a 44-bit prime, 64 curves at B1 = 2000
+        # (complete sweeps find all twelve primes 99.9% of the time, first batches only 15%)
         two = [prime(22) * prime(44) * big for _ in range(6)]
-        r2 = sp.EcmRunner("yafu").run(two, 2000, 48, 300)
+        r2 = sp.EcmRunner("yafu").run(two, 2000, 64, 300)
         check("a yafu sweep goes on with the cofactor after a factor", all(t in r2 and r2[t][1] == big for t in two),
               "%d of 6 fully stripped" % sum(1 for t in two if t in r2 and r2[t][1] == big))
     else:
@@ -416,8 +416,11 @@ def test_small():
     print("G: small levels")
     check("medium-prime bound by size", [ss.medium_bits(b) for b in (140, 300, 432, 485, 769, 1330)] == [48, 99, 143, 160, 160, 160])
     tops = [max(b1 for (_, b1, _) in sd.default_tiers("yafu", b)) for b in (200, 300, 400, 499, 500)]
-    check("the ladder stops earlier at small sizes", tops == [11000, 50000, 250000, 1000000, 30000000]
-          and sd.default_tiers("gmp", 769) == sd.default_tiers("gmp"), str(tops))
+    deep = [sum(c for (_, b1, c) in sd.default_tiers("yafu", b) if b1 == 30000000) for b in (769, 1299, 1362)]
+    check("the ladder stops earlier at small sizes, and is longer at 3e7 from 1300 bits",
+          tops == [11000, 50000, 250000, 1000000, 30000000] and deep == [64, 64, 192]
+          and sd.default_tiers("gmp", 769) == sd.default_tiers("gmp") and sd.default_tiers("yafu", 769) == sd.default_tiers("yafu"),
+          "%s, %s curves at 3e7" % (tops, deep))
     import shortECPP as sp
     check("level parameters by size", sp.level_params(167, 192, 3778) == (16, 10 ** 5, 1)
           and sp.level_params(300, 192, 10938) == (20, 10 ** 6, 8) and sp.level_params(769, 192, 61752)[1:] == (None, 192)
@@ -494,6 +497,26 @@ def test_small():
     sp.BUILD_EST.clear()
     check("a costly winner waits for a cheap one, but not on few cores or for long", (hold1, hold2, hold3, hold4) == (False, True, True, True),
           str((hold1, hold2, hold3, hold4)))
+    # supply: the wider bound or the higher cap, whichever is cheaper per order
+    def supply(B, cap, n, cs, lo, hi, tot_n, tot_s, fixed=0, capmax=2 * 10 ** 10, Bmax=10 ** 15):
+        d = D()
+        d.nb, d.Bmax, d.grow, d.fixed_cap, d.capmax = 1362, Bmax, 2.0, fixed, capmax
+        d.c_root, d.raise_fit, d._nxt, d.arm = 1.0e-9 * 1362 * 1362, (0.7, 1.0), None, None
+        d._density = lambda b, c: sp.RuleDriver._density(d, b, c)
+        d.B, d.cap, d.tot_orders, d.tot_test_s = B, cap, tot_n, tot_s
+        d.last = (n, cs, 0.02 * cs, lo, hi, d._density(hi, cap))
+        nx = sp.RuleDriver.next_chunk(d)
+        return nx, d.arm
+    # the scan of nextprime(10^410) as it stood at 10^9 and at 4 * 10^12 (cap 10^8 since 10^11)
+    early = supply(10 ** 9, 10 ** 6, 4510, 311, 0, 10 ** 9, 4510, 311)
+    late = supply(4096 * 10 ** 9, 10 ** 8, 68188, 286821, 2048 * 10 ** 9, 4096 * 10 ** 9, 263290, 629000)
+    capped = supply(4096 * 10 ** 9, 10 ** 8, 68188, 286821, 2048 * 10 ** 9, 4096 * 10 ** 9, 263290, 629000, fixed=10 ** 8)
+    atend = supply(10 ** 13, 10 ** 8, 68188, 286821, 5 * 10 ** 12, 10 ** 13, 263290, 629000, Bmax=10 ** 13)
+    done = supply(10 ** 13, 10 ** 8, 68188, 286821, 5 * 10 ** 12, 10 ** 13, 263290, 629000, Bmax=10 ** 13, capmax=10 ** 8)
+    check("more orders: a wider bound early, a higher cap once the bound is dear",
+          early[1][0] == "widen" and late[1] == ("raise", 4096 * 10 ** 9, 4 * 10 ** 8) and capped[1][0] == "widen"
+          and atend[1][0] == "raise" and done[0] is None,
+          "at 4e12: %.0f orders for %.0f core-s by raising the cap" % late[0])
 
 
 def main():

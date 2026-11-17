@@ -1,0 +1,37 @@
+[11:03:31] revised format: B = 13234, log2 rad <= 40, recursion floor B^2 = 175138756
+[11:03:31] proving p0 (333 bits), n2 = 110889
+[11:03:32]   level 333 bits: rule table in 0.5s (7 sweeps, rewards 0..11979 core-s)
+[11:03:32]   level 333 bits: dscan[0,3e+06) maxfb=1e+06 on 14 threads: +1396 D -> +1116 orders (960 live), 3 core-s (strip 2) = 0.0025 per order; 0 winners
+[11:03:32]     WINNER D=-817903 q 160 bits, o=m*q with m=134 (|D| h~904)
+[11:03:32]     search: 1116 orders, scan 3 + ecm 1 core-s (0 above the rule), 0.1s wall, 22 units, 12 splits, rule R = 2 core-s; the model expected 0.58 wins from this work; measured/modelled ECM cost by B1: 2000:0.96; wins expected by B1: 2000:0.577 11000:0.000; won at B1=2000; splits found/expected by B1: 2000:12/42 11000:0/1
+[11:03:32]     cm_method D=-817903: H_D^inv(deg 320 = 16 x 20, inv 1): 0.031s   roots: 0.008s + 0.010s   1 j-candidate(s)
+[11:03:32]   level 333 bits: built D=-817903 h~904 in 0.2s; o has 169 bits, q 160 bits (total 0.8s, 1116 cands, 1 ecm-s)
+[11:03:32]   level 160 bits: dscan[0,100000) maxfb=1e+06 +361 D -> +466 orders (374 live) in 0.0s (strip 0.0s), 0 winners
+[11:03:32]     WINNER D=-740 q 33 bits, o=m*q with m=171435963166344 (|D| h~27)
+[11:03:32]     WINNER D=-740 q 41 bits, o=m*q with m=612997443216 (|D| h~27)
+[11:03:32]     WINNER D=-99107 q 36 bits, o=m*q with m=36966686750100 (|D| h~314)
+[11:03:32]     WINNER D=-99107 q 64 bits, o=m*q with m=75276 (|D| h~314)
+[11:03:32]     WINNER D=-77831 q 65 bits, o=m*q with m=36992 (|D| h~278)
+[11:03:32]     WINNER D=-86020 q 62 bits, o=m*q with m=712529 (|D| h~293)
+[11:03:32]     WINNER D=-1720 q 67 bits, o=m*q with m=12482 (|D| h~41)
+[11:03:32]     WINNER D=-10415 q 70 bits, o=m*q with m=1600 (|D| h~102)
+[11:03:32]     WINNER D=-46468 q 41 bits, o=m*q with m=1183270588256 (|D| h~215)
+[11:03:32]     WINNER D=-26644 q 80 bits, o=m*q with m=2 (|D| h~163)
+[11:03:32]     WINNER D=-41416 q 63 bits, o=m*q with m=315818 (|D| h~203)
+[11:03:32]     WINNER D=-78419 q 45 bits, o=m*q with m=65944418592 (|D| h~280)
+[11:03:32]     WINNER D=-78419 q 76 bits, o=m*q with m=24 (|D| h~280)
+[11:03:32]     WINNER D=-24743 q 69 bits, o=m*q with m=2372 (|D| h~157)
+[11:03:32]     WINNER D=-68296 q 46 bits, o=m*q with m=50306192497 (|D| h~261)
+[11:03:32]     WINNER D=-68296 q 78 bits, o=m*q with m=11 (|D| h~261)
+[11:03:32]     ecm B1=2000 c=10 on 374 tails: 25 split, 16 winners, 0.2s (stopped at the first winner, 32 tails done)
+[11:03:32]     cm_method D=-740: H_D^inv(deg 8, inv 24): 0.012s   root: 0.001s   1 j-candidate(s)
+[11:03:33]     D=-740: retrying via volcano floors ells=2
+[11:03:33]     cm_method D=-740: H_D^inv(deg 8, inv 24): 0.008s   root: 0.001s   1 j-candidate(s)   ell=2 floor
+[11:03:33]   level 160 bits: built D=-740 h~27 in 0.1s; o has 81 bits, q 33 bits (total 0.4s, 1582 cands, 1 ecm-s)
+[11:03:33] finishing below 80 bits with short2.gp (p has 33 bits)
+[11:03:33]   gp tail: 1 levels in 0.0s
+[11:03:33] chain complete: 3 levels, 1.2s; verifying...
+[11:03:33] vshort2.verify = True   PARI cross-check = True
+[11:03:33] certificate written to /home/ubuntu/rule/out7/c100.cert.txt (verified twice)
+RUN c100 wall=1.29 user=11.97 sys=0.34
+EXIT 0
