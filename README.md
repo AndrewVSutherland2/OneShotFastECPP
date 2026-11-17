@@ -116,8 +116,9 @@ python3 ecpp/shortECPP.py p=<decimal> tag=myprime   # any (probable) prime
 
 Needs a `gmp-ecm` binary (`CHAIN_ECM` env or `ecm` on PATH) and, for the stopping rule,
 numpy.  `CLASSPOLY_PHI_DIR` should hold the full set of modular polynomials: the repository
-carries them up to degree 71, and about one winner in ten at 768 to 1000 bits needs more (the
-prover then says which file is missing and goes on with the search).
+carries them up to degree 71, and up to 109 for the Weber functions and eight double eta
+quotients whose polynomials are small; about one discriminant in a hundred still needs a
+file that is not bundled (the prover then says which and goes on with the search).
 
 On one 192-core machine with yafu (November 2026) every entry of the ShortPrimalityProofs
 table from 10¹⁰ to 10³²⁰ is proved faster than the table records, by a factor 5 to 750 in CPU

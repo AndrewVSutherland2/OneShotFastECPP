@@ -325,9 +325,13 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   14.1/38.5/31.2/15.0.  The "expected wins at the first win" check is NOT valid at small
   sizes: the first handful of units carry about three expected wins, so the count at the win
   averages 3 whatever the model.
-  (3) classpoly aborted silently when a modular polynomial was missing: the repo carries
+  (3) classpoly aborted silently when a modular polynomial was missing: the repo carried
   Phi_l for l <= 71 only, and about one winner in ten at 768-1000 bits needs more (Phi_101
-  for Weber f was the case seen).  `git archive` to a spot box ships only that subset: COPY
+  and Phi_79 for Weber f, Phi_73 and Phi_83 for w2w5e1 were the cases seen).  Since
+  2026-11-16 the bundle goes to l = 109 for f, f2 (Drew's call) and for eight double eta
+  families with small files (w2w3e1, w2w3e2, w2w5e1, w2w5e2, w2w7e1, w2w7e2, w2w13e1,
+  w3w3e1: my addition, a separate commit): of 3,000 random fundamental D in [1e7, 1e10], 99
+  asked for a missing file before and 31 do now (20 of them Atkin functions).  `git archive` to a spot box ships only that subset: COPY
   THE FULL `phi_files/` (2.2 GB, 3 min) to any box that runs the prover.  The message now goes
   to stderr whatever the verbosity and `get_j` gives up on such a D at once
   (`_CM_UNBUILDABLE`).

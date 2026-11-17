@@ -779,8 +779,16 @@ def get_j(p, d, ells=None, jobs=0, attempts=3, plain=False):
     for att in range(attempts):
         # distinct seed per attempt: cm_method's root-find is deterministically
         # seeded, so an identical rerun would repeat a rootless result exactly
-        r = subprocess.run(cmd + ["seed=%d" % (att + 1)],
-                           capture_output=True, text=True, env=ECM_ENV, timeout=3600)
+        # an hour, or several times the estimate where there is one (root-finding
+        # at a prime degree of 10^5 takes an hour at 1300 bits)
+        tmo = max(3600, int(6 * BUILD_EST.get(d, 0.0)) + 1800)
+        try:
+            r = subprocess.run(cmd + ["seed=%d" % (att + 1)],
+                               capture_output=True, text=True, env=ECM_ENV, timeout=tmo)
+        except subprocess.TimeoutExpired:
+            log("    cm_method D=-%d: no answer after %d s, giving this discriminant up" % (d, tmo))
+            _CM_UNBUILDABLE.add(d)
+            return None
         if r.returncode == 0:
             for line in r.stdout.splitlines():
                 w = line.split()
@@ -800,8 +808,8 @@ def get_j(p, d, ells=None, jobs=0, attempts=3, plain=False):
             # nothing random about this one: the class group of D needs an isogeny
             # degree whose modular polynomial is not installed
             _CM_UNBUILDABLE.add(d)
-            log("    D=-%d cannot be built here: %s is missing (the repository carries the modular "
-                "polynomials up to 71 only; CLASSPOLY_PHI_DIR should hold the full set)"
+            log("    D=-%d cannot be built here: %s is missing (the repository carries a subset of the "
+                "modular polynomials, see INSTALL; CLASSPOLY_PHI_DIR should hold the full set)"
                 % (d, os.path.basename(m.group(1))))
             return None
     if ells is None and d <= 3 * 10 ** 6:
