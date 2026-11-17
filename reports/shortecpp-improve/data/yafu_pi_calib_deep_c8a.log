@@ -1,0 +1,57 @@
+B1=3000000: B2=4542893354, 2.103s per batch of 8, 96 primes x up to 39 batches per cell
+B1=10000000: B2=25952321849, 6.886s per batch of 8, 96 primes x up to 12 batches per cell
+B1=30000000: B2=127773807524, 19.766s per batch of 8, 96 primes x up to 4 batches per cell
+4224 tasks on 192 threads
+[   454s] 500/4224
+[   807s] 1000/4224
+[  1212s] 1500/4224
+[  1583s] 2000/4224
+[  1947s] 2500/4224
+[  2320s] 3000/4224
+[  2646s] 3500/4224
+[  2977s] 4000/4224
+B1=3000000   102 bits:   93 hits /    9752 curves = 0.00954  (91 of 96 primes, 4311 s)
+B1=3000000   106 bits:   88 hits /   11008 curves = 0.00799  (88 of 96 primes, 4904 s)
+B1=3000000   110 bits:   80 hits /   14968 curves = 0.00534  (78 of 96 primes, 6560 s)
+B1=3000000   114 bits:   63 hits /   19096 curves = 0.00330  (63 of 96 primes, 8510 s)
+B1=3000000   118 bits:   48 hits /   21224 curves = 0.00226  (48 of 96 primes, 10897 s)
+B1=3000000   122 bits:   20 hits /   27536 curves = 0.00073  (20 of 96 primes, 14308 s)
+B1=3000000   126 bits:   21 hits /   26520 curves = 0.00079  (21 of 96 primes, 13676 s)
+B1=3000000   130 bits:   10 hits /   28592 curves = 0.00035  (10 of 96 primes, 14903 s)
+B1=3000000   134 bits:    8 hits /   28488 curves = 0.00028  (8 of 96 primes, 14658 s)
+B1=3000000   138 bits:   10 hits /   28784 curves = 0.00035  (10 of 96 primes, 14905 s)
+B1=3000000   142 bits:    2 hits /   29432 curves = 0.00007  (2 of 96 primes, 15304 s)
+B1=3000000   146 bits:    1 hits /   29816 curves = 0.00003  (1 of 96 primes, 15668 s)
+B1=3000000   150 bits:    1 hits /   29696 curves = 0.00003  (1 of 96 primes, 15461 s)
+B1=10000000  102 bits:   90 hits /    3952 curves = 0.02277  (84 of 96 primes, 5847 s)
+B1=10000000  106 bits:   76 hits /    5304 curves = 0.01433  (73 of 96 primes, 7827 s)
+B1=10000000  110 bits:   56 hits /    6280 curves = 0.00892  (53 of 96 primes, 9275 s)
+B1=10000000  114 bits:   44 hits /    6960 curves = 0.00632  (44 of 96 primes, 10276 s)
+B1=10000000  118 bits:   35 hits /    7728 curves = 0.00453  (35 of 96 primes, 13409 s)
+B1=10000000  122 bits:   27 hits /    7944 curves = 0.00340  (25 of 96 primes, 14106 s)
+B1=10000000  126 bits:   17 hits /    8536 curves = 0.00199  (17 of 96 primes, 15120 s)
+B1=10000000  130 bits:   18 hits /    8392 curves = 0.00214  (18 of 96 primes, 14785 s)
+B1=10000000  134 bits:    8 hits /    8896 curves = 0.00090  (8 of 96 primes, 15690 s)
+B1=10000000  138 bits:    0 hits /    9216 curves = 0.00000  (0 of 96 primes, 16253 s)
+B1=10000000  142 bits:    6 hits /    8960 curves = 0.00067  (6 of 96 primes, 15814 s)
+B1=10000000  146 bits:    2 hits /    9112 curves = 0.00022  (2 of 96 primes, 16091 s)
+B1=10000000  150 bits:    1 hits /    9200 curves = 0.00011  (1 of 96 primes, 16258 s)
+B1=10000000  154 bits:    0 hits /    9216 curves = 0.00000  (0 of 96 primes, 16250 s)
+B1=10000000  158 bits:    0 hits /    9216 curves = 0.00000  (0 of 96 primes, 16239 s)
+B1=30000000  106 bits:   69 hits /    2200 curves = 0.03136  (62 of 96 primes, 8888 s)
+B1=30000000  110 bits:   49 hits /    2456 curves = 0.01995  (48 of 96 primes, 9858 s)
+B1=30000000  114 bits:   49 hits /    2488 curves = 0.01969  (45 of 96 primes, 9991 s)
+B1=30000000  118 bits:   33 hits /    2712 curves = 0.01217  (33 of 96 primes, 13171 s)
+B1=30000000  122 bits:   21 hits /    2800 curves = 0.00750  (21 of 96 primes, 13877 s)
+B1=30000000  126 bits:   14 hits /    2896 curves = 0.00483  (14 of 96 primes, 14349 s)
+B1=30000000  130 bits:   10 hits /    2928 curves = 0.00342  (10 of 96 primes, 14520 s)
+B1=30000000  134 bits:    6 hits /    3008 curves = 0.00199  (6 of 96 primes, 14926 s)
+B1=30000000  138 bits:    7 hits /    2984 curves = 0.00235  (7 of 96 primes, 14695 s)
+B1=30000000  142 bits:    3 hits /    3048 curves = 0.00098  (3 of 96 primes, 15104 s)
+B1=30000000  146 bits:    3 hits /    3032 curves = 0.00099  (3 of 96 primes, 14955 s)
+B1=30000000  150 bits:    2 hits /    3064 curves = 0.00065  (2 of 96 primes, 15152 s)
+B1=30000000  154 bits:    0 hits /    3072 curves = 0.00000  (0 of 96 primes, 15195 s)
+B1=30000000  158 bits:    0 hits /    3072 curves = 0.00000  (0 of 96 primes, 15160 s)
+B1=30000000  162 bits:    0 hits /    3072 curves = 0.00000  (0 of 96 primes, 15180 s)
+B1=30000000  166 bits:    0 hits /    3072 curves = 0.00000  (0 of 96 primes, 15192 s)
+CALIB_DONE 3058s

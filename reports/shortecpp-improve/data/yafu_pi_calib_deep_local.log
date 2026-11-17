@@ -1,0 +1,9 @@
+B1=3000000: B2=4542893354, 2.019s per batch of 8, 96 primes x up to 41 batches per cell
+B1=10000000: B2=25952321849, 6.317s per batch of 8, 96 primes x up to 13 batches per cell
+B1=30000000: B2=127773807524, 18.533s per batch of 8, 96 primes x up to 4 batches per cell
+4224 tasks on 16 threads
+[  3143s] 500/4224
+[  7108s] 1000/4224
+[  9929s] 1500/4224
+[ 12514s] 2000/4224
+[ 15209s] 2500/4224

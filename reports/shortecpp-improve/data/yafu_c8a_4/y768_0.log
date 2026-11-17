@@ -1,0 +1,54 @@
+[01:52:07] revised format: B = 61685, log2 rad <= 81, recursion floor B^2 = 3805039225
+[01:52:07] proving p0 (769 bits), n2 = 591361
+[01:52:08]   yafu here: 0.0375 s per curve at B1=50000 on 769 bits with 192 processes -> cost factor 0.93
+[01:52:09]   level 769 bits: rule table in 0.7s (28 sweeps, rewards 30..32818515 core-s)
+[01:52:09]   level 769 bits: dscan[0,6e+07) maxfb=1e+06 on 192 threads: +6303 D -> +4932 orders (4628 live), 72 core-s (strip 5) = 0.0145 per order; 0 winners
+[01:52:10]   level 769 bits: dscan[6e+07,1.2e+08) maxfb=1e+06 on 65 threads: +2089 D -> +1680 orders (1570 live), 19 core-s (strip 3) = 0.0112 per order; 0 winners
+[01:52:11]   level 769 bits: dscan[1.2e+08,2.4e+08) maxfb=1e+06 on 56 threads: +2919 D -> +2318 orders (2171 live), 35 core-s (strip 4) = 0.0151 per order; 0 winners
+[01:52:13]   level 769 bits: dscan[2.4e+08,4.8e+08) maxfb=1e+06 on 60 threads: +3822 D -> +3018 orders (2826 live), 64 core-s (strip 10) = 0.0212 per order; 0 winners
+[01:52:16]   level 769 bits: dscan[4.8e+08,9.6e+08) maxfb=1e+06 on 62 threads: +5157 D -> +3998 orders (3744 live), 113 core-s (strip 8) = 0.0282 per order; 0 winners
+[01:52:19]        10s: 15946 orders, rule R = 1470 core-s (0.41 core-h); the model expects 1.24 wins from the work done (1.26 once all orders are worked to R); 125 units running + scan, queued by B1 [7591, 5047, 1019, 186, 31, 6, 0, 0], 2 abandoned; scan 302 + ecm 1203 core-s (711 above the rule)
+[01:52:22]   level 769 bits: dscan[9.6e+08,1.92e+09) maxfb=1.92e+06 on 66 threads: +9067 D -> +7114 orders (6662 live), 254 core-s (strip 13) = 0.0357 per order; 0 winners
+[01:52:29]        20s: 23060 orders, rule R = 1600 core-s (0.44 core-h); the model expects 2.27 wins from the work done (2.06 once all orders are worked to R); 183 units running + scan, queued by B1 [10689, 7388, 1624, 321, 72, 6, 5, 0], 3 abandoned; scan 556 + ecm 2511 core-s (1298 above the rule)
+[01:52:31]   level 769 bits: dscan[1.92e+09,3.84e+09) maxfb=3.84e+06 on 68 threads: +13069 D -> +10094 orders (9450 live), 507 core-s (strip 17) = 0.0502 per order; 0 winners
+[01:52:39]        30s: 33154 orders, rule R = 1823 core-s (0.51 core-h); the model expects 3.39 wins from the work done (3.53 once all orders are worked to R); 120 units running + scan, queued by B1 [15738, 10319, 2379, 493, 96, 10, 9, 0], 6 abandoned; scan 1063 + ecm 3964 core-s (1580 above the rule)
+[01:52:44]     WINNER D=-72934123 q 370 bits, o=m*q with m=318413 (|D| h~8540)
+[01:52:44]     search: 33154 orders, scan 1063 + ecm 4701 core-s (1989 above the rule), 35.2s wall, 3478 units, 8836 splits, rule R = 1823 core-s; the model expected 3.37 wins from this work; measured/modelled ECM cost by B1: 2000:1.07 11000:0.90 50000:0.80 250000:0.76 1e+06:0.82 3e+06:0.79; wins expected by B1: 2000:0.000 11000:0.010 50000:0.133 250000:0.585 1e+06:1.573 3e+06:1.071; won at B1=3000000
+[01:52:49]     cm_method D=-72934123: H_D^inv(deg 1198 = 2 x 599, inv 159): 0.146s   roots: 0.002s + 4.653s   1 j-candidate(s)   ell=2 floor
+[01:52:49]   level 769 bits: built D=-72934123 h~8540 in 4.9s; o has 388 bits, q 370 bits (total 41.7s, 33154 cands, 4701 ecm-s)
+[01:52:50]   level 370 bits: rule table in 0.4s (7 sweeps, rewards 0..27828 core-s)
+[01:52:50]   level 370 bits: dscan[0,3e+06) maxfb=1e+06 on 26 threads: +2636 D -> +3196 orders (2795 live), 5 core-s (strip 3) = 0.0015 per order; 0 winners
+[01:52:50]     WINNER D=-1733556 q 155 bits, o=m*q with m=1509175904 (|D| h~1316)
+[01:52:50]     search: 3196 orders, scan 5 + ecm 3 core-s (0 above the rule), 0.2s wall, 39 units, 44 splits, rule R = 2 core-s; the model expected 2.27 wins from this work; measured/modelled ECM cost by B1: 2000:0.95 11000:0.82 50000:0.50; wins expected by B1: 2000:0.844 11000:1.291 50000:0.133; won at B1=50000
+[01:52:50]     cm_method D=-1733556: H_D^inv(deg 280 = 20 x 14, inv 123): 0.038s   roots: 0.014s + 0.007s   1 j-candidate(s)
+[01:52:50]   level 370 bits: built D=-1733556 h~1316 in 0.5s; o has 185 bits, q 155 bits (total 1.1s, 36350 cands, 4703 ecm-s)
+[01:52:50]   level 155 bits: dscan[0,100000) maxfb=1e+06 +196 D -> +170 orders (134 live) in 0.0s (strip 0.0s), 0 winners
+[01:52:51]     WINNER D=-35223 q 41 bits, o=m*q with m=100358765632 (|D| h~187)
+[01:52:51]     WINNER D=-35223 q 68 bits, o=m*q with m=736 (|D| h~187)
+[01:52:51]     WINNER D=-40003 q 64 bits, o=m*q with m=24562 (|D| h~200)
+[01:52:51]     WINNER D=-12207 q 35 bits, o=m*q with m=9576726419112 (|D| h~110)
+[01:52:51]     WINNER D=-12207 q 77 bits, o=m*q with m=2 (|D| h~110)
+[01:52:51]     WINNER D=-91219 q 50 bits, o=m*q with m=830134153 (|D| h~302)
+[01:52:51]     WINNER D=-27959 q 56 bits, o=m*q with m=3255768 (|D| h~167)
+[01:52:51]     WINNER D=-83383 q 51 bits, o=m*q with m=245935621 (|D| h~288)
+[01:52:51]     WINNER D=-83383 q 69 bits, o=m*q with m=7039 (|D| h~288)
+[01:52:51]     WINNER D=-52387 q 63 bits, o=m*q with m=38966 (|D| h~228)
+[01:52:51]     WINNER D=-25467 q 48 bits, o=m*q with m=694800634 (|D| h~159)
+[01:52:51]     WINNER D=-38427 q 62 bits, o=m*q with m=74654 (|D| h~196)
+[01:52:51]     WINNER D=-71031 q 70 bits, o=m*q with m=240 (|D| h~266)
+[01:52:51]     WINNER D=-3291 q 51 bits, o=m*q with m=163742870 (|D| h~57)
+[01:52:51]     WINNER D=-62827 q 52 bits, o=m*q with m=42947082 (|D| h~250)
+[01:52:51]     WINNER D=-62827 q 49 bits, o=m*q with m=472417902 (|D| h~250)
+[01:52:51]     WINNER D=-2103 q 67 bits, o=m*q with m=1442 (|D| h~45)
+[01:52:51]     WINNER D=-11419 q 68 bits, o=m*q with m=589 (|D| h~106)
+[01:52:51]     WINNER D=-1959 q 76 bits, o=m*q with m=4 (|D| h~44)
+[01:52:51]     ecm B1=2000 c=10 on 134 tails: 29 split, 19 winners, 0.2s (stopped at the first winner, 32 tails done)
+[01:52:51]     cm_method D=-1959: H_D^inv(deg 42 = 6 x 7, inv 14): 0.013s   roots: 0.000s + 0.000s   1 j-candidate(s)
+[01:52:51]   level 155 bits: built D=-1959 h~44 in 0.1s; o has 79 bits, q 76 bits (total 0.3s, 36520 cands, 4704 ecm-s)
+[01:52:51] finishing below 88 bits with short2.gp (p has 76 bits)
+[01:52:51]   gp tail: 1 levels in 0.2s
+[01:52:51] chain complete: 4 levels, 43.3s; verifying...
+[01:52:51] vshort2.verify = True   PARI cross-check = True
+[01:52:51] certificate written to /home/ubuntu/rule/out5/y768_0.cert.txt (verified twice)
+RUN y768_0 wall=43.47 user=6129.92 sys=269.84
+EXIT 0
