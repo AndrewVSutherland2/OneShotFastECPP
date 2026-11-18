@@ -1,0 +1,12 @@
+2026-11-18_00:23:08 start c440 on aws-spot-16 (AMD EPYC 9R45)
+2026-11-18_01:28:27 moved to aws-spot-13 after an interruption
+2026-11-18_01:28:30 start c440 on aws-spot-13 (AMD EPYC 9R14)
+2026-11-18_06:20:04 restart helper: watching c440 (pid 24886, top level 0
+1462 bits, mode after-chunk)
+2026-11-18_06:43:49 restart helper: restarting c440 after: [06:43:47]     checkpoint: 984541 live candidates, B = 4.096e+12, cap = 1.024e+09, 132 MB in 4.0s
+2026-11-18_06:43:50 c440 done: RUN c440 wall=18919.57 user=3387487.73 sys=51565.96 verified=0
+2026-11-18_06:43:50 ALL_DONE
+2026-11-18_06:43:53 restart helper: relaunched c440
+2026-11-18_06:43:53 start c440 on aws-spot-13 (AMD EPYC 9R14)
+2026-11-18_09:15:40 c440 done: RUN c440 wall=9107.26 user=1573714.93 sys=20950.92 verified=1
+2026-11-18_09:15:40 ALL_DONE
