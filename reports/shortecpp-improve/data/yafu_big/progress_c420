@@ -1,0 +1,3 @@
+2026-11-18_00:23:19 start c420 on aws-spot-12 (AMD EPYC 9R14)
+2026-11-18_02:22:32 c420 done: RUN c420 wall=7152.72 user=1267620.47 sys=25445.07 verified=1
+2026-11-18_02:22:32 ALL_DONE
