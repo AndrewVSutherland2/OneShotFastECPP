@@ -1,6 +1,20 @@
-Since 18 November, 00:23 UTC, the least primes above 10<sup>420</sup>, 10<sup>430</sup>, 10<sup>440</sup> and
-10<sup>450</sup> are running, one per 192-core box: 10<sup>450</sup>&nbsp;+&nbsp;2269 (1495 bits) and
-10<sup>440</sup>&nbsp;+&nbsp;709 (1462 bits) on <code>c8a.48xlarge</code>, 10<sup>430</sup>&nbsp;+&nbsp;1587 (1429
-bits) and 10<sup>420</sup>&nbsp;+&nbsp;1261 (1396 bits) on <code>c7a.48xlarge</code> (Zen 4), which is what had
-capacity.  Their logs and checkpoints are copied off the boxes as they run.  None has finished as this is
-written; this paragraph will have the outcome.
+18 November: the least primes above 10<sup>420</sup>, 10<sup>430</sup>, 10<sup>440</sup> and
+10<sup>450</sup> are proved, one 192-core box each, launched together at 00:23 UTC
+(<code>certs/short2/nextprime1e420.csv</code> &hellip; <code>nextprime1e450.csv</code>, logs in
+<code>data/yafu_big/</code>, rows of the table in 12.6):</p>
+<table>
+<tr><th>prime</th><th>bits</th><th>machine</th><th>done after</th><th>credited: wall, core-h</th><th>legs</th><th>winner's class number</th><th>build</th></tr>
+<tr><td>10<sup>420</sup> + 1261</td><td>1396</td><td>c7a (Zen 4)</td><td>2.0 h</td><td>2.0 h, 359</td><td>1</td><td>4,304 = 2<sup>4</sup>&middot;269</td><td>12 s</td></tr>
+<tr><td>10<sup>430</sup> + 1587</td><td>1429</td><td>c7a, two boxes</td><td>17.2 h</td><td>16.4 h, 2,797</td><td>4</td><td>2,293,212 = 2<sup>2</sup>&middot;3&middot;41&middot;59&middot;79</td><td>37 min</td></tr>
+<tr><td>10<sup>440</sup> + 709</td><td>1462</td><td>c8a, then c7a</td><td>8.9 h</td><td>8.5 h, 1,537</td><td>3</td><td>215,100 = 2<sup>2</sup>&middot;3<sup>2</sup>&middot;5<sup>2</sup>&middot;239</td><td>7 min</td></tr>
+<tr><td>10<sup>450</sup> + 2269</td><td>1495</td><td>c8a (Zen 5)</td><td>11.9 h</td><td>11.9 h, 2,151</td><td>2</td><td>440,844 = 2<sup>2</sup>&middot;3&middot;17&middot;2161</td><td>5 min</td></tr>
+</table>
+<p>"Credited" is about what a run that was never cut off would have taken: the legs that ended normally as
+measured, a leg that was cut off up to the checkpoint the next leg started from.  38.9 hours and 6,845
+core-hours credited in all; 41 box-hours were paid for, about $90.  Only the two c8a boxes had capacity that
+night, so two and a half of the four runs were on <code>c7a.48xlarge</code>, whose Zen 4 cores run yafu's
+AVX-512 curves 1.45 to 1.6 times slower (0.15 to 0.18 s a curve at B1&nbsp;=&nbsp;5&middot;10<sup>4</sup> against
+0.10 to 0.12): the rule's machine benchmark takes that in.  All four winners came from deep sweeps
+(B1&nbsp;=&nbsp;10<sup>7</sup> once, 3&middot;10<sup>7</sup> three times), with 0.64, 1.10, 0.43 and 0.71 expected
+wins at the win.  The four class numbers are smooth, so the builds were short; the reserve step of 12.4 had
+nothing to hold back.

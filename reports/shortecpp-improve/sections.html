@@ -47,7 +47,10 @@ records @@BENCH_REC_H@@ core-hours, and the eight from 10<sup>330</sup> to 10<su
 @@FRONT_REC_H@@.  The runs exposed three defects, now repaired: yafu abandons a number
 at its first factor, levels below 500 bits ran with the parameters of large ones, and a missing modular
 polynomial cost a minute of retries.  The stopping rule now runs from 280 bits.</li>
-<li><b>A new entry: nextprime(10<sup>410</sup>) = 10<sup>410</sup>&nbsp;+&nbsp;67 (section 12.7).</b> 1362 bits,
+<li><b>Five new entries, 10<sup>410</sup> to 10<sup>450</sup> (sections 12.7 and 12.9).</b> The least primes
+above 10<sup>420</sup>, 10<sup>430</sup>, 10<sup>440</sup> and 10<sup>450</sup> (1396 to 1495 bits) were proved on
+18 November, one 192-core box each, in 2.0, 16.4, 8.5 and 11.9 hours: @@BIG_CPU_H@@ core-hours in all.
+Before them, nextprime(10<sup>410</sup>) = 10<sup>410</sup>&nbsp;+&nbsp;67: 1362 bits,
 five levels, @@C410_WALL_H@@ hours on 192 cores and @@C410_CPU_H@@ core-hours: @@C410_SEARCH_H@@ hours of
 search and @@C410_BUILD_H@@ of construction, nearly all of that for one root of a polynomial of prime degree
 470,279.  A first run stalled, because this prime has a quarter of the usual number of small
@@ -56,8 +59,8 @@ discriminant, whichever is cheaper.</li>
 <li><b>Not done.</b> A build still spends most of its time in root-finding at the prime part of the class
 number: with yafu it is a third of a 768-bit level on 192 cores, and it was three of the eight hours of
 10<sup>410</sup>.  Its cost is predictable from the class number; the scheduler uses that when a winner is
-in hand, not yet when a candidate comes in.  The least primes above 10<sup>420</sup>, 10<sup>430</sup>,
-10<sup>440</sup> and 10<sup>450</sup> are running as this is written (section 12.9).</li>
+in hand, not yet when a candidate comes in.  A scan chunk at 1400 bits and more is three to five hours of a
+hundred threads and is lost whole when a spot box is taken away (section 12.10).</li>
 
 #### EXPERIMENT
 <p>The model's stopping rule was computed for the real orders of p = nextprime(2<sup>768</sup>)
@@ -700,12 +703,13 @@ reward rises with every chunk.  The change is not in.</p>
 <h3>12.6 The entries from 10<sup>330</sup> to 10<sup>400</sup></h3>
 <p>17 November, one <code>c8a.48xlarge</code>.  The eight entries that the August campaign added take
 @@FRONT_WALL_H@@ hours one after the other and @@FRONT_CPU_H@@ core-hours (recorded: @@FRONT_REC_WALL_H@@
-hours and @@FRONT_REC_H@@ core-hours).  The top level of each, and of the least prime above
-10<sup>410</sup> (12.7):</p>
+hours and @@FRONT_REC_H@@ core-hours).  The top level of each, and of the five primes beyond the table
+(12.7, 12.9; a run that was resumed counts with the time credited to it, see 12.9):</p>
 @@FRONTIER_TABLE@@
 <p>At these sizes the cost of a level is the draw: 10<sup>390</sup> takes five minutes and 10<sup>350</sup>
-two hours.  The wins the model expected at the first win average @@FRONT_EW_MEAN@@ over the nine primes,
-where an exact model gives 1&nbsp;&plusmn;&nbsp;0.33.  10<sup>340</sup> and 10<sup>350</sup>, run one after the
+two hours.  The wins the model expected at the first win average @@FRONT_EW_MEAN@@ over the thirteen
+primes, where an exact model gives 1&nbsp;&plusmn;&nbsp;0.28 (1.44 over the first nine; 0.72 over the last
+five, which ran after the supply and the calibration changed).  10<sup>340</sup> and 10<sup>350</sup>, run one after the
 other, came in at 3.6 and 4.4, which looked like a break of the model above 1100 bits, and before the rest
 of the set said otherwise I checked the engine: yafu finds planted factors of 50, 62 and 78 bits as often
 in numbers of 1130 and 1330 bits as in numbers of 780 and 1030, labels prime cofactors correctly, and uses
@@ -786,6 +790,39 @@ next scan computes again.  Tested by killing a 768-bit level after its third che
 is not checkpointed: a winner survives, its class polynomial and root start again.</p>
 <p>@@BIG_STATUS@@</p>
 
+<h3>12.10 What the four runs turned up</h3>
+<ul>
+<li><b>Three interruptions, three resumes.</b> The box of 10<sup>440</sup> was taken away after 50 minutes,
+and the box of 10<sup>430</sup> twice within 40 minutes nine hours in.  Each time the search went on from a
+checkpoint 7 to 15 minutes after the interruption, on another box twice (from the copy kept off the
+boxes) and on the same box once, when AWS brought it back with its disk.  Lost each time: the units in
+flight, up to a quarter of an hour of ECM since the last checkpoint, and the scan chunk in flight.  The
+last is the costly part.  At B&nbsp;=&nbsp;8&middot;10<sup>12</sup> a chunk takes four to five hours of a hundred
+threads, and 10<sup>430</sup> lost two of them part-way, about two hours of scan in all, then waited five
+hours for the third while the rest of the machine had little work below the rule.  That prime is the
+slowest of the four for this reason as much as for its draw.</li>
+<li><b>dscan's serial pass.</b> Before it scans, <code>dscan</code> cuts its tree into units of about 2,000
+discriminants in one thread and keeps them all in memory with a residue modulo p each.  Their number goes
+like B, and the pass walked the children of every upper node one prime at a time.  For 10<sup>450</sup> at
+B&nbsp;=&nbsp;8.2&middot;10<sup>12</sup> that was 18 minutes, with the scan's hundred other threads waiting, and
+235&nbsp;GB of the machine's 384; the next doubling would not have fitted.  Two changes, made while the runs were going: the prover asks for units that
+grow with B (<code>sd</code>&nbsp;=&nbsp;B/2&middot;10<sup>8</sup> from B&nbsp;=&nbsp;4&middot;10<sup>11</sup>: about
+5&middot;10<sup>7</sup> units whatever B), and the pass finds the end of a unit by binary search in a prefix sum
+of 1/q over the factor base.  The same scans then had all their threads busy within four minutes of starting,
+most of that spent reading the cached square roots, and held 46 to 48&nbsp;GB, of which 24 are the roots.
+The discriminants found are the same (<code>test_dscan.py</code>, and the old and the new binary compared on
+a widening, a cap-only scan and a full scan of a 1495-bit prime).</li>
+<li><b>Changing the code of a running search.</b> The three provers still running were restarted from a
+checkpoint to pick up the first change, by a script on each box that waits for the scan chunk in flight
+to arrive and for the checkpoint after it, so that no scan work was thrown away
+(<code>data/yafu_big/restart_after_ckpt.sh</code>).  The second change is in <code>dscan</code> alone, and a
+new binary put in place by a rename is picked up by the next chunk without a restart.</li>
+<li><b>The supply at these sizes.</b> The scans went to B&nbsp;=&nbsp;10<sup>12</sup> (10<sup>420</sup>),
+4&middot;10<sup>12</sup> (10<sup>440</sup>) and 8&middot;10<sup>12</sup> (10<sup>430</sup>, 10<sup>450</sup>), with the cap
+raised four to six times, up to 4&middot;10<sup>9</sup>.  The last chunk cost 1.4 to 5.2 core-seconds an order,
+and the scan was 38 to 47% of the search work.</li>
+</ul>
+
 #### NEXT
 <li><b>Count the build in a candidate's value (section 12.4).</b> The build time of a winner is known from
 its class number within a factor 1.25, and it is a third of a 768-bit level on 192 cores, with a tail of
@@ -793,9 +830,15 @@ one to five minutes.  Keeping a costly winner in reserve is in but unmeasured; t
 box would measure it in five minutes.  The fuller form: charge each candidate its build at intake (class numbers of a whole chunk take
 seconds), so that the rule works a candidate while its break-even reward plus the machine time of its build
 is below R; the value of a fresh order then has to count the builds of the orders too.</li>
-<li><b>Beyond 10<sup>410</sup> (section 12.9).</b> Four primes of 1396 to 1495 bits are running.  From
-10<sup>330</sup> to 10<sup>410</sup> the search work per expected win grows about 1.4-fold for every ten
-digits, and the supply of a prime moves it by a factor of two either way.</li>
+<li><b>The scan at 1400 bits and more (section 12.10).</b> A chunk is hours long and all or nothing: split
+it by ranges of the smallest prime, deliver the orders as the parts finish, and a box that is taken away
+costs one part.  While a chunk runs the other half of the machine has little work below the rule; whether
+the scan should have more of the cores at these sizes is open again (section 12.5 answered it at 768
+bits).</li>
+<li><b>Beyond 10<sup>450</sup>.</b> From 10<sup>410</sup> to 10<sup>450</sup> the rule's reward at the win went
+from 4.3 to 18 million core-seconds on a c8a: a factor of about 1.4 for every ten digits, and the supply of
+a prime moves it by a factor of two either way.  10<sup>500</sup> would be about 10,000 core-hours per
+expected win.</li>
 <li><b>Root-finding at prime degree (sections 9.5, 10.2 and 12.4).</b> A powering mod a polynomial of degree
 1,000 to 20,000 over a 768- or 1030-bit field is that many squarings as the field has bits, each done as
 three GMP multiplications of integers of 1 to 40 megabits; at degree 19,583 and 1030 bits it takes 290&nbsp;s

@@ -738,6 +738,7 @@ if os.path.exists(fj):
                      r["scan_s"] / 3600.0, r["ecm_s"] / 3600.0, r["expwin"], sci(r["win_b1"]), sci(-r["D"]), hrs(r["build_s"]))
                   for r in fr) + "</table>")
     R["FRONT_EW_MEAN"] = "%.2f" % (sum(r["expwin"] for r in fr) / len(fr))
+    R["BIG_CPU_H"] = fmt(sum(r["cpu"] for r in fr if r["c"] >= 420) / 3600.0)
     c410 = [r for r in fr if r["c"] == 410][0]
     R["C410_WALL"] = fmt(c410["wall"])
     R["C410_WALL_H"] = "%.1f" % (c410["wall"] / 3600.0)

@@ -130,8 +130,9 @@ time: a second up to 10¹²⁰, 4 to 15 s from 10¹⁵⁰ to 10²²⁰, half a m
 minutes from 10²³⁰ to 10³²⁰ (10³¹⁰ + 733: 268 s), 17 minutes and 42 core-hours for the
 seventeen entries from 10¹⁶⁰ to 10³²⁰, and five minutes to two hours each from 10³³⁰ to 10⁴⁰⁰
 (6.0 hours and 1,020 core-hours for the eight, where the table records 51 hours and 8,290).
-The least prime above 10⁴¹⁰, 10⁴¹⁰ + 67 (1362 bits), took 7.8 hours and 953 core-hours
-(`certs/short2/nextprime1e410.csv`).  With gmp-ecm a 768-bit prime takes about 35 seconds there
+Beyond the table, the least primes above 10⁴¹⁰, 10⁴²⁰, 10⁴³⁰, 10⁴⁴⁰ and 10⁴⁵⁰ (1362 to 1495
+bits; `certs/short2/nextprime1e410.csv` … `nextprime1e450.csv`) took 7.8, 2.0, 16.4, 8.5 and
+11.9 hours of one such machine each: 953, 359, 2,797, 1,537 and 2,151 core-hours.  With gmp-ecm a 768-bit prime takes about 35 seconds there
 and a 1030-bit prime 3 to 20 minutes.  With its first scheduler, in August 2026, this prover produced
 the ShortPrimalityProofs table entries for nextprime(10^c), c = 210, …, 310 — the largest a
 1030-bit prime exceeding Bernstein's 1025-bit AKS example — in one day on spot instances

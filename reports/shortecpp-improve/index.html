@@ -88,7 +88,10 @@ records 4,180 core-hours, and the eight from 10<sup>330</sup> to 10<sup>400</sup
 8,290.  The runs exposed three defects, now repaired: yafu abandons a number
 at its first factor, levels below 500 bits ran with the parameters of large ones, and a missing modular
 polynomial cost a minute of retries.  The stopping rule now runs from 280 bits.</li>
-<li><b>A new entry: nextprime(10<sup>410</sup>) = 10<sup>410</sup>&nbsp;+&nbsp;67 (section 12.7).</b> 1362 bits,
+<li><b>Five new entries, 10<sup>410</sup> to 10<sup>450</sup> (sections 12.7 and 12.9).</b> The least primes
+above 10<sup>420</sup>, 10<sup>430</sup>, 10<sup>440</sup> and 10<sup>450</sup> (1396 to 1495 bits) were proved on
+18 November, one 192-core box each, in 2.0, 16.4, 8.5 and 11.9 hours: 6,845 core-hours in all.
+Before them, nextprime(10<sup>410</sup>) = 10<sup>410</sup>&nbsp;+&nbsp;67: 1362 bits,
 five levels, 7.8 hours on 192 cores and 953 core-hours: 4.8 hours of
 search and 3.0 of construction, nearly all of that for one root of a polynomial of prime degree
 470,279.  A first run stalled, because this prime has a quarter of the usual number of small
@@ -97,8 +100,8 @@ discriminant, whichever is cheaper.</li>
 <li><b>Not done.</b> A build still spends most of its time in root-finding at the prime part of the class
 number: with yafu it is a third of a 768-bit level on 192 cores, and it was three of the eight hours of
 10<sup>410</sup>.  Its cost is predictable from the class number; the scheduler uses that when a winner is
-in hand, not yet when a candidate comes in.  The least primes above 10<sup>420</sup>, 10<sup>430</sup>,
-10<sup>440</sup> and 10<sup>450</sup> are running as this is written (section 12.9).</li>
+in hand, not yet when a candidate comes in.  A scan chunk at 1400 bits and more is three to five hours of a
+hundred threads and is lost whole when a spot box is taken away (section 12.10).</li>
 
 </ul></div>
 
@@ -975,12 +978,13 @@ reward rises with every chunk.  The change is not in.</p>
 <h3>12.6 The entries from 10<sup>330</sup> to 10<sup>400</sup></h3>
 <p>17 November, one <code>c8a.48xlarge</code>.  The eight entries that the August campaign added take
 6.0 hours one after the other and 1,019 core-hours (recorded: 51
-hours and 8,290 core-hours).  The top level of each, and of the least prime above
-10<sup>410</sup> (12.7):</p>
-<table><tr><th>prime after</th><th>bits</th><th>chain</th><th>CPU, core-h</th><th>orders</th><th>scan to, cap</th><th>scan, core-h</th><th>ECM, core-h</th><th>expected wins at the win</th><th>won at B1</th><th>|D| of the winner</th><th>its build</th></tr><tr><td>10<sup>330</sup></td><td>1097</td><td>444 s</td><td>22</td><td>78,760</td><td>10<sup>11</sup>, 10<sup>8</sup></td><td>7</td><td>14</td><td>0.61</td><td>10<sup>6</sup></td><td>6.2&middot;10<sup>10</sup></td><td>13 s</td></tr><tr><td>10<sup>340</sup></td><td>1130</td><td>44 min</td><td>132</td><td>503,102</td><td>4.1&middot;10<sup>11</sup>, 10<sup>8</sup></td><td>35</td><td>85</td><td>3.58</td><td>10<sup>7</sup></td><td>3.8&middot;10<sup>11</sup></td><td>77 s</td></tr><tr><td>10<sup>350</sup></td><td>1163</td><td>2.0 h</td><td>356</td><td>561,004</td><td>2&middot;10<sup>12</sup>, 10<sup>8</sup></td><td>120</td><td>200</td><td>4.41</td><td>3&middot;10<sup>7</sup></td><td>1.2&middot;10<sup>12</sup></td><td>231 s</td></tr><tr><td>10<sup>360</sup></td><td>1196</td><td>43 min</td><td>104</td><td>541,276</td><td>2.6&middot;10<sup>11</sup>, 10<sup>8</sup></td><td>29</td><td>64</td><td>1.79</td><td>10<sup>7</sup></td><td>1.4&middot;10<sup>11</sup></td><td>11 min</td></tr><tr><td>10<sup>370</sup></td><td>1230</td><td>41 min</td><td>115</td><td>424,446</td><td>5.1&middot;10<sup>11</sup>, 10<sup>8</sup></td><td>45</td><td>71</td><td>0.92</td><td>10<sup>7</sup></td><td>3.4&middot;10<sup>11</sup></td><td>198 s</td></tr><tr><td>10<sup>380</sup></td><td>1263</td><td>533 s</td><td>26</td><td>132,292</td><td>6.4&middot;10<sup>10</sup>, 6.4&middot;10<sup>7</sup></td><td>7</td><td>17</td><td>0.20</td><td>3&middot;10<sup>6</sup></td><td>9.3&middot;10<sup>9</sup></td><td>15 s</td></tr><tr><td>10<sup>390</sup></td><td>1296</td><td>309 s</td><td>14</td><td>67,938</td><td>3.2&middot;10<sup>10</sup>, 3.2&middot;10<sup>7</sup></td><td>3</td><td>9</td><td>0.05</td><td>10<sup>6</sup></td><td>3.1&middot;10<sup>10</sup></td><td>23 s</td></tr><tr><td>10<sup>400</sup></td><td>1329</td><td>87 min</td><td>251</td><td>677,496</td><td>10<sup>12</sup>, 10<sup>8</sup></td><td>100</td><td>146</td><td>0.66</td><td>3&middot;10<sup>6</sup></td><td>8.2&middot;10<sup>11</sup></td><td>275 s</td></tr><tr><td>10<sup>410</sup></td><td>1362</td><td>7.8 h</td><td>953</td><td>362,752</td><td>4.1&middot;10<sup>12</sup>, 4.1&middot;10<sup>9</sup></td><td>286</td><td>430</td><td>0.73</td><td>3&middot;10<sup>7</sup></td><td>1.4&middot;10<sup>12</sup></td><td>3.0 h</td></tr></table>
+hours and 8,290 core-hours).  The top level of each, and of the five primes beyond the table
+(12.7, 12.9; a run that was resumed counts with the time credited to it, see 12.9):</p>
+<table><tr><th>prime after</th><th>bits</th><th>chain</th><th>CPU, core-h</th><th>orders</th><th>scan to, cap</th><th>scan, core-h</th><th>ECM, core-h</th><th>expected wins at the win</th><th>won at B1</th><th>|D| of the winner</th><th>its build</th></tr><tr><td>10<sup>330</sup></td><td>1097</td><td>444 s</td><td>22</td><td>78,760</td><td>10<sup>11</sup>, 10<sup>8</sup></td><td>7</td><td>14</td><td>0.61</td><td>10<sup>6</sup></td><td>6.2&middot;10<sup>10</sup></td><td>13 s</td></tr><tr><td>10<sup>340</sup></td><td>1130</td><td>44 min</td><td>132</td><td>503,102</td><td>4.1&middot;10<sup>11</sup>, 10<sup>8</sup></td><td>35</td><td>85</td><td>3.58</td><td>10<sup>7</sup></td><td>3.8&middot;10<sup>11</sup></td><td>77 s</td></tr><tr><td>10<sup>350</sup></td><td>1163</td><td>2.0 h</td><td>356</td><td>561,004</td><td>2&middot;10<sup>12</sup>, 10<sup>8</sup></td><td>120</td><td>200</td><td>4.41</td><td>3&middot;10<sup>7</sup></td><td>1.2&middot;10<sup>12</sup></td><td>231 s</td></tr><tr><td>10<sup>360</sup></td><td>1196</td><td>43 min</td><td>104</td><td>541,276</td><td>2.6&middot;10<sup>11</sup>, 10<sup>8</sup></td><td>29</td><td>64</td><td>1.79</td><td>10<sup>7</sup></td><td>1.4&middot;10<sup>11</sup></td><td>11 min</td></tr><tr><td>10<sup>370</sup></td><td>1230</td><td>41 min</td><td>115</td><td>424,446</td><td>5.1&middot;10<sup>11</sup>, 10<sup>8</sup></td><td>45</td><td>71</td><td>0.92</td><td>10<sup>7</sup></td><td>3.4&middot;10<sup>11</sup></td><td>198 s</td></tr><tr><td>10<sup>380</sup></td><td>1263</td><td>533 s</td><td>26</td><td>132,292</td><td>6.4&middot;10<sup>10</sup>, 6.4&middot;10<sup>7</sup></td><td>7</td><td>17</td><td>0.20</td><td>3&middot;10<sup>6</sup></td><td>9.3&middot;10<sup>9</sup></td><td>15 s</td></tr><tr><td>10<sup>390</sup></td><td>1296</td><td>309 s</td><td>14</td><td>67,938</td><td>3.2&middot;10<sup>10</sup>, 3.2&middot;10<sup>7</sup></td><td>3</td><td>9</td><td>0.05</td><td>10<sup>6</sup></td><td>3.1&middot;10<sup>10</sup></td><td>23 s</td></tr><tr><td>10<sup>400</sup></td><td>1329</td><td>87 min</td><td>251</td><td>677,496</td><td>10<sup>12</sup>, 10<sup>8</sup></td><td>100</td><td>146</td><td>0.66</td><td>3&middot;10<sup>6</sup></td><td>8.2&middot;10<sup>11</sup></td><td>275 s</td></tr><tr><td>10<sup>410</sup></td><td>1362</td><td>7.8 h</td><td>953</td><td>362,752</td><td>4.1&middot;10<sup>12</sup>, 4.1&middot;10<sup>9</sup></td><td>286</td><td>430</td><td>0.73</td><td>3&middot;10<sup>7</sup></td><td>1.4&middot;10<sup>12</sup></td><td>3.0 h</td></tr><tr><td>10<sup>420</sup></td><td>1396</td><td>119 min</td><td>359</td><td>569,354</td><td>10<sup>12</sup>, 2.6&middot;10<sup>8</sup></td><td>135</td><td>220</td><td>0.64</td><td>3&middot;10<sup>7</sup></td><td>1.7&middot;10<sup>9</sup></td><td>12 s</td></tr><tr><td>10<sup>430</sup></td><td>1429</td><td>16.4 h</td><td>2,797</td><td>1,391,964</td><td>8.2&middot;10<sup>12</sup>, 4.1&middot;10<sup>9</sup></td><td>1222</td><td>1509</td><td>1.10</td><td>10<sup>7</sup></td><td>7.9&middot;10<sup>12</sup></td><td>37 min</td></tr><tr><td>10<sup>440</sup></td><td>1462</td><td>8.5 h</td><td>1,537</td><td>1,042,798</td><td>4.1&middot;10<sup>12</sup>, 10<sup>9</sup></td><td>536</td><td>828</td><td>0.43</td><td>3&middot;10<sup>7</sup></td><td>2.5&middot;10<sup>12</sup></td><td>422 s</td></tr><tr><td>10<sup>450</sup></td><td>1495</td><td>11.9 h</td><td>2,151</td><td>1,809,774</td><td>8.2&middot;10<sup>12</sup>, 4.1&middot;10<sup>9</sup></td><td>1002</td><td>1152</td><td>0.71</td><td>3&middot;10<sup>7</sup></td><td>3.6&middot;10<sup>11</sup></td><td>310 s</td></tr></table>
 <p>At these sizes the cost of a level is the draw: 10<sup>390</sup> takes five minutes and 10<sup>350</sup>
-two hours.  The wins the model expected at the first win average 1.44 over the nine primes,
-where an exact model gives 1&nbsp;&plusmn;&nbsp;0.33.  10<sup>340</sup> and 10<sup>350</sup>, run one after the
+two hours.  The wins the model expected at the first win average 1.22 over the thirteen
+primes, where an exact model gives 1&nbsp;&plusmn;&nbsp;0.28 (1.44 over the first nine; 0.72 over the last
+five, which ran after the supply and the calibration changed).  10<sup>340</sup> and 10<sup>350</sup>, run one after the
 other, came in at 3.6 and 4.4, which looked like a break of the model above 1100 bits, and before the rest
 of the set said otherwise I checked the engine: yafu finds planted factors of 50, 62 and 78 bits as often
 in numbers of 1130 and 1330 bits as in numbers of 780 and 1030, labels prime cofactors correctly, and uses
@@ -1059,12 +1063,59 @@ the search up from it; what is lost is the units in flight and the factor base's
 next scan computes again.  Tested by killing a 768-bit level after its third checkpoint and resuming it
 (the queue by B1 continued where it had stopped), and in simulation (<code>test_sched.py</code>).  A build
 is not checkpointed: a winner survives, its class polynomial and root start again.</p>
-<p>Since 18 November, 00:23 UTC, the least primes above 10<sup>420</sup>, 10<sup>430</sup>, 10<sup>440</sup> and
-10<sup>450</sup> are running, one per 192-core box: 10<sup>450</sup>&nbsp;+&nbsp;2269 (1495 bits) and
-10<sup>440</sup>&nbsp;+&nbsp;709 (1462 bits) on <code>c8a.48xlarge</code>, 10<sup>430</sup>&nbsp;+&nbsp;1587 (1429
-bits) and 10<sup>420</sup>&nbsp;+&nbsp;1261 (1396 bits) on <code>c7a.48xlarge</code> (Zen 4), which is what had
-capacity.  Their logs and checkpoints are copied off the boxes as they run.  None has finished as this is
-written; this paragraph will have the outcome.</p>
+<p>18 November: the least primes above 10<sup>420</sup>, 10<sup>430</sup>, 10<sup>440</sup> and
+10<sup>450</sup> are proved, one 192-core box each, launched together at 00:23 UTC
+(<code>certs/short2/nextprime1e420.csv</code> &hellip; <code>nextprime1e450.csv</code>, logs in
+<code>data/yafu_big/</code>, rows of the table in 12.6):</p>
+<table>
+<tr><th>prime</th><th>bits</th><th>machine</th><th>done after</th><th>credited: wall, core-h</th><th>legs</th><th>winner's class number</th><th>build</th></tr>
+<tr><td>10<sup>420</sup> + 1261</td><td>1396</td><td>c7a (Zen 4)</td><td>2.0 h</td><td>2.0 h, 359</td><td>1</td><td>4,304 = 2<sup>4</sup>&middot;269</td><td>12 s</td></tr>
+<tr><td>10<sup>430</sup> + 1587</td><td>1429</td><td>c7a, two boxes</td><td>17.2 h</td><td>16.4 h, 2,797</td><td>4</td><td>2,293,212 = 2<sup>2</sup>&middot;3&middot;41&middot;59&middot;79</td><td>37 min</td></tr>
+<tr><td>10<sup>440</sup> + 709</td><td>1462</td><td>c8a, then c7a</td><td>8.9 h</td><td>8.5 h, 1,537</td><td>3</td><td>215,100 = 2<sup>2</sup>&middot;3<sup>2</sup>&middot;5<sup>2</sup>&middot;239</td><td>7 min</td></tr>
+<tr><td>10<sup>450</sup> + 2269</td><td>1495</td><td>c8a (Zen 5)</td><td>11.9 h</td><td>11.9 h, 2,151</td><td>2</td><td>440,844 = 2<sup>2</sup>&middot;3&middot;17&middot;2161</td><td>5 min</td></tr>
+</table>
+<p>"Credited" is about what a run that was never cut off would have taken: the legs that ended normally as
+measured, a leg that was cut off up to the checkpoint the next leg started from.  38.9 hours and 6,845
+core-hours credited in all; 41 box-hours were paid for, about $90.  Only the two c8a boxes had capacity that
+night, so two and a half of the four runs were on <code>c7a.48xlarge</code>, whose Zen 4 cores run yafu's
+AVX-512 curves 1.45 to 1.6 times slower (0.15 to 0.18 s a curve at B1&nbsp;=&nbsp;5&middot;10<sup>4</sup> against
+0.10 to 0.12): the rule's machine benchmark takes that in.  All four winners came from deep sweeps
+(B1&nbsp;=&nbsp;10<sup>7</sup> once, 3&middot;10<sup>7</sup> three times), with 0.64, 1.10, 0.43 and 0.71 expected
+wins at the win.  The four class numbers are smooth, so the builds were short; the reserve step of 12.4 had
+nothing to hold back.</p>
+
+<h3>12.10 What the four runs turned up</h3>
+<ul>
+<li><b>Three interruptions, three resumes.</b> The box of 10<sup>440</sup> was taken away after 50 minutes,
+and the box of 10<sup>430</sup> twice within 40 minutes nine hours in.  Each time the search went on from a
+checkpoint 7 to 15 minutes after the interruption, on another box twice (from the copy kept off the
+boxes) and on the same box once, when AWS brought it back with its disk.  Lost each time: the units in
+flight, up to a quarter of an hour of ECM since the last checkpoint, and the scan chunk in flight.  The
+last is the costly part.  At B&nbsp;=&nbsp;8&middot;10<sup>12</sup> a chunk takes four to five hours of a hundred
+threads, and 10<sup>430</sup> lost two of them part-way, about two hours of scan in all, then waited five
+hours for the third while the rest of the machine had little work below the rule.  That prime is the
+slowest of the four for this reason as much as for its draw.</li>
+<li><b>dscan's serial pass.</b> Before it scans, <code>dscan</code> cuts its tree into units of about 2,000
+discriminants in one thread and keeps them all in memory with a residue modulo p each.  Their number goes
+like B, and the pass walked the children of every upper node one prime at a time.  For 10<sup>450</sup> at
+B&nbsp;=&nbsp;8.2&middot;10<sup>12</sup> that was 18 minutes, with the scan's hundred other threads waiting, and
+235&nbsp;GB of the machine's 384; the next doubling would not have fitted.  Two changes, made while the runs were going: the prover asks for units that
+grow with B (<code>sd</code>&nbsp;=&nbsp;B/2&middot;10<sup>8</sup> from B&nbsp;=&nbsp;4&middot;10<sup>11</sup>: about
+5&middot;10<sup>7</sup> units whatever B), and the pass finds the end of a unit by binary search in a prefix sum
+of 1/q over the factor base.  The same scans then had all their threads busy within four minutes of starting,
+most of that spent reading the cached square roots, and held 46 to 48&nbsp;GB, of which 24 are the roots.
+The discriminants found are the same (<code>test_dscan.py</code>, and the old and the new binary compared on
+a widening, a cap-only scan and a full scan of a 1495-bit prime).</li>
+<li><b>Changing the code of a running search.</b> The three provers still running were restarted from a
+checkpoint to pick up the first change, by a script on each box that waits for the scan chunk in flight
+to arrive and for the checkpoint after it, so that no scan work was thrown away
+(<code>data/yafu_big/restart_after_ckpt.sh</code>).  The second change is in <code>dscan</code> alone, and a
+new binary put in place by a rename is picked up by the next chunk without a restart.</li>
+<li><b>The supply at these sizes.</b> The scans went to B&nbsp;=&nbsp;10<sup>12</sup> (10<sup>420</sup>),
+4&middot;10<sup>12</sup> (10<sup>440</sup>) and 8&middot;10<sup>12</sup> (10<sup>430</sup>, 10<sup>450</sup>), with the cap
+raised four to six times, up to 4&middot;10<sup>9</sup>.  The last chunk cost 1.4 to 5.2 core-seconds an order,
+and the scan was 38 to 47% of the search work.</li>
+</ul>
 
 
 <h2>13. What I would do next</h2>
@@ -1075,9 +1126,15 @@ one to five minutes.  Keeping a costly winner in reserve is in but unmeasured; t
 box would measure it in five minutes.  The fuller form: charge each candidate its build at intake (class numbers of a whole chunk take
 seconds), so that the rule works a candidate while its break-even reward plus the machine time of its build
 is below R; the value of a fresh order then has to count the builds of the orders too.</li>
-<li><b>Beyond 10<sup>410</sup> (section 12.9).</b> Four primes of 1396 to 1495 bits are running.  From
-10<sup>330</sup> to 10<sup>410</sup> the search work per expected win grows about 1.4-fold for every ten
-digits, and the supply of a prime moves it by a factor of two either way.</li>
+<li><b>The scan at 1400 bits and more (section 12.10).</b> A chunk is hours long and all or nothing: split
+it by ranges of the smallest prime, deliver the orders as the parts finish, and a box that is taken away
+costs one part.  While a chunk runs the other half of the machine has little work below the rule; whether
+the scan should have more of the cores at these sizes is open again (section 12.5 answered it at 768
+bits).</li>
+<li><b>Beyond 10<sup>450</sup>.</b> From 10<sup>410</sup> to 10<sup>450</sup> the rule's reward at the win went
+from 4.3 to 18 million core-seconds on a c8a: a factor of about 1.4 for every ten digits, and the supply of
+a prime moves it by a factor of two either way.  10<sup>500</sup> would be about 10,000 core-hours per
+expected win.</li>
 <li><b>Root-finding at prime degree (sections 9.5, 10.2 and 12.4).</b> A powering mod a polynomial of degree
 1,000 to 20,000 over a 768- or 1030-bit field is that many squarings as the field has bits, each done as
 three GMP multiplications of integers of 1 to 40 megabits; at degree 19,583 and 1030 bits it takes 290&nbsp;s

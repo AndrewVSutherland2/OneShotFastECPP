@@ -409,6 +409,20 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   c7a = Zen 4, yafu's IFMA build runs there); run/pull scripts in the session scratchpad
   (`big/`), off-box copies in `ckpt_big/`.  A fresh box needs: `git archive` + full
   `phi_files` + `~/.local/ecmpkg` + `~/yb/yafu/yafu` + `apt install python3-numpy`.
+  (6) **10^420 .. 10^450 PROVED 2026-11-18** (`certs/short2/nextprime1e4{20,30,40,50}.csv`,
+  `data/yafu_big/`, report 12.9-12.10): offsets 1261, 1587, 709, 2269; credited time 2.0 /
+  16.4 / 8.5 / 11.9 h of one 192-core box, 359 / 2,797 / 1,537 / 2,151 core-h (41 box-hours
+  paid, ~$90); expected wins at the win 0.64, 1.10, 0.43, 0.71; builds 12 s .. 37 min (all
+  four class numbers smooth).  Three spot interruptions, each resumed from a checkpoint in
+  7-15 min.  Found on the way: dscan's serial seed pass kept ~B/8700 units in memory (235 GB
+  at B = 8.2e12) and walked every child prime (18 min of one thread): `dscan_seed(B)` now
+  passes `sd=B/2e8` from B = 4e11, and `gen_seeds` batches by binary search in `fb_inv`
+  (prefix sums of 1/q).  A running prover picks up Python changes only by a restart from a
+  checkpoint (`data/yafu_big/restart_after_ckpt.sh` waits for chunk + checkpoint), a new
+  dscan binary at its next chunk (`swap_dscan.sh`: build beside, compare, rename).  c7a
+  (Zen 4) runs yafu 1.45-1.6x slower than c8a.  STILL OPEN: a scan chunk at these sizes is
+  4-5 h of ~100 threads and is lost whole at an interruption (10^430 lost two); the scan's
+  share of the cores at 1400+ bits; a rebooted box needs `spot start N` to clear REBOOTED.
   Spot notes: a build uses ~20 of 192 cores for hours: re-claim with `--idle-ok --force` or
   the watchdog stops the box; `spot claim` again with new hours works on one's own box.
   Cost of the two days: about $62 (c8a at ~$3.06/h in us-west-2, the only region with
