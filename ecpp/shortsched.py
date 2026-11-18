@@ -67,13 +67,14 @@ INF = float("inf")
 
 class Unit:
     """One process worth of work: n curves of sweep j on each of cands."""
-    __slots__ = ("cands", "j", "method", "b1", "n", "est", "t0", "uid", "pw")
+    __slots__ = ("cands", "j", "method", "b1", "n", "est", "t0", "uid", "pw", "ps")
 
-    def __init__(self, cands, j, method, b1, n, est, pw=0.0):
+    def __init__(self, cands, j, method, b1, n, est, pw=0.0, ps=0.0):
         self.cands, self.j, self.method, self.b1, self.n, self.est = cands, j, method, b1, n, est
         self.t0 = 0.0
         self.uid = 0
         self.pw = pw          # wins the model expects from it
+        self.ps = ps          # candidates it is expected to split
 
 
 def sched_init(c, cls, tb):
@@ -203,14 +204,15 @@ class Sched:
             self.expwin += pw
             self.expwin_b1[b1] = self.expwin_b1.get(b1, 0.0) + pw
             lad = getattr(self.tab, "lad", None)
+            ps = 0.0
             if lad is not None:             # a second check of the model, on far more events than the wins
-                self.expsplit_b1[b1] = (self.expsplit_b1.get(b1, 0.0)
-                                        + len(cands) * -math.expm1(-lad.Lphi[bj] * n / float(self.tiers[bj][2])))
+                ps = len(cands) * -math.expm1(-lad.Lphi[bj] * n / float(self.tiers[bj][2]))
+                self.expsplit_b1[b1] = self.expsplit_b1.get(b1, 0.0) + ps
             for x in cands:
                 x.sent += n
                 x.infl += 1
                 self.push(x)
-            units.append(Unit(cands, bj, method, b1, n, est, pw))
+            units.append(Unit(cands, bj, method, b1, n, est, pw, ps))
             nfree -= 1
         return units
 
@@ -276,6 +278,10 @@ def level_loop(drv, tab, tiers, cost, par=None):
       has_winner(), abort() (kill everything in flight), build() -> result or None
       should_build(R) (optional): False keeps the search going with a winner in
                       hand, when its build would cost more than finding another
+      ckpt_every, checkpoint(counters), restore() -> (candidates, counters) or
+                      None (optional): the search state is handed to the driver
+                      every ckpt_every seconds, and a driver that was started
+                      from such a state hands it back here
     """
     import numpy as np
     import shortsim as ss
@@ -318,6 +324,25 @@ def level_loop(drv, tab, tiers, cost, par=None):
         e = max(tab.at(R, Ek), 1e-9)
         share = min(share_hi, max(share_lo, price / (price + e)))
         sch.set_reward(R)
+
+    ckpt_every = getattr(drv, "ckpt_every", 0.0)
+    tckpt = t0
+    rs = getattr(drv, "restore", None)
+    rs = rs() if rs is not None else None
+    if rs is not None and rs[1]["H"].shape == H.shape and rs[1]["K"] > 0:
+        # a search taken up again: the orders bought, what they cost and where
+        # every candidate stands; whatever was in flight is run again
+        cands, ls = rs
+        H, K = ls["H"], ls["K"]
+        spent_scan, spent_ecm, nunits, over = ls["spent_scan"], ls["spent_ecm"], ls["nunits"], ls["over"]
+        t0 = tlog = drv.now() - ls["elapsed"]
+        sch.expwin, sch.nabandoned = ls["expwin"], ls["nabandoned"]
+        sch.expwin_b1, sch.expsplit_b1 = dict(ls["expwin_b1"]), dict(ls["expsplit_b1"])
+        for c in cands:
+            sch.push(c)
+        F, E = tab.fresh(H)
+        Fk, Ek = F / K, E / K
+        reprice()
 
     while True:
         now = drv.now()
@@ -414,6 +439,18 @@ def level_loop(drv, tab, tiers, cost, par=None):
             win_b1 = None
             first = None
         now = drv.now()
+        if ckpt_every and K and now - tckpt >= ckpt_every:
+            tckpt = now
+            infl_b1, infl_sp = {}, {}
+            for u in running.values():      # what is in flight is run again after a restore
+                infl_b1[u.b1] = infl_b1.get(u.b1, 0.0) + u.pw
+                infl_sp[u.b1] = infl_sp.get(u.b1, 0.0) + u.ps
+            drv.checkpoint({"H": H.copy(), "K": K, "spent_scan": spent_scan,
+                            "spent_ecm": spent_ecm, "nunits": nunits - len(running),
+                            "over": over, "elapsed": now - t0,
+                            "expwin": sch.expwin - sum(infl_b1.values()), "nabandoned": sch.nabandoned,
+                            "expwin_b1": {b: w - infl_b1.get(b, 0.0) for b, w in sch.expwin_b1.items()},
+                            "expsplit_b1": {b: w - infl_sp.get(b, 0.0) for b, w in sch.expsplit_b1.items()}})
         if now - tlog >= tick and K:
             tlog = now
             exp = K * (tab.at(R, Fk) + tab.at(R, Ek)) / R if R < INF else float("nan")

@@ -56,6 +56,7 @@ import concurrent.futures
 import json
 import math
 import os
+import pickle
 import queue
 import random
 import hashlib
@@ -194,6 +195,10 @@ STRIP_THREADS = 8
 VERBOSE = 1
 CAMP_DIR = os.path.join(REPO_DIR, "work", "shortcamp")
 JOURNAL = None       # set per run: winners survive crashes / spot preemptions
+CKPT = None          # set per run: the search state of a rule level (RuleDriver.checkpoint)
+CKPT_RESUME = False  # resume=1: take up the search where the checkpoint left it
+CKPT_MIN_BITS = int(os.environ.get("SHORTECPP_CKPT_BITS", "900"))  # below this a level's search is minutes at most: nothing worth saving
+CKPT_EVERY = float(os.environ.get("SHORTECPP_CKPT", "600"))   # seconds between checkpoints
 
 
 def log(msg):
@@ -1189,10 +1194,12 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
                 log("  level %d bits: built D=-%d h~%d in %.1fs; o has %d bits, q %d bits (total %.1fs, %d cands, %.0f ecm-s)"
                     % (nb, c.d, isqrt(c.d), time.time() - t1, o.bit_length(), q.bit_length(),
                        time.time() - t0, stats.get("cands", 0), stats.get("ecm_s", 0.0)))
-                try:
-                    os.remove(roots)          # the level is done with its scan
-                except OSError:
-                    pass
+                for done_with in (roots, CKPT if (CKPT and nb >= CKPT_MIN_BITS) else None):
+                    try:                      # the level is done with its scan and its search
+                        if done_with:
+                            os.remove(done_with)
+                    except OSError:
+                        pass
                 return (A, x, o, q, {"D": -c.d, "t": c.t, "v": c.v, "N": str(c.N),
                                      "m": str(o // q), "bits": nb,
                                      "seconds": round(time.time() - t0, 1)})
@@ -1440,6 +1447,27 @@ def ecm_machine_factor(nb, threads, engine="gmp"):
     return f
 
 
+def ckpt_pack(c, p):
+    """A live candidate as the checkpoint keeps it: the order is p + 1 -+ t and
+    the tail is the order over cof, so one large integer is stored, not four."""
+    return (c.d, c.t, 1 if c.N == p + 1 - c.t else -1, c.N // c.tail, c.s, c.mid, c.splits,
+            c.cls, c.st, c.done, c.prp_checked)
+
+
+def ckpt_unpack(rec, p):
+    from shortsched import sched_init
+    d, t, sgn, cof, s, mid, splits, cls, st, done, prp = rec
+    N = p + 1 - sgn * t
+    v = isqrt((4 * p - t * t) // d)
+    if v * v * d + t * t != 4 * p or N % cof:
+        raise ValueError("checkpoint record does not belong to this prime")
+    c = Cand(d, t, v, N)
+    c.s, c.mid, c.tail, c.splits, c.prp_checked = s, mid, N // cof, splits, prp
+    sched_init(c, cls, int(round(math.log2(c.tail))))
+    c.st, c.sent, c.done = st, done, done
+    return c
+
+
 class RuleDriver:
     """shortsched's driver for the prover: dscan and smoothtest supply the orders,
     gmp-ecm runs the units.  Everything that touches candidate state happens in
@@ -1479,13 +1507,74 @@ class RuleDriver:
         self.build_ref = 0.0                  # estimated build of a typical candidate, seconds (see should_build)
         self.build_refs = []
         self.pass_t0, self.pass_n = None, 0
-        self._launch_scan(threads)
+        self.pool = []                        # live candidates, for the checkpoint
+        self.after_restore = False
+        self.ckpt_every = CKPT_EVERY if (CKPT and nb >= CKPT_MIN_BITS) else 0.0
+        self._restored = self._load_ckpt() if self.ckpt_every else None
+        if self._restored is None:
+            self._launch_scan(threads)
+        else:
+            self.prefetched = False           # the loop decides when the next chunk is due
 
     def now(self):
         return time.time()
 
     def log(self, msg):
         log(msg)
+
+    # ---- checkpoint: a search of hours or days on a machine that may be taken away
+    def checkpoint(self, loop):
+        """Write the search state: the scan's frontier and measurements, level_loop's
+        counters (loop) and every live candidate with its tail and its place on
+        the ladder.  Units in flight are not part of it: their curves are run
+        again after a restore.  The factor base's square roots are not saved
+        either (20 GB at a cap of 4e9); the first scan after a restore computes
+        them again."""
+        if not CKPT:
+            return
+        t = time.time()
+        self.pool = [c for c in self.pool if not c.dead]
+        st = {"v": 1, "p": str(self.p), "nb": self.nb, "time": t, "host": os.uname().nodename,
+              "drv": {k: getattr(self, k) for k in self._CKPT_FIELDS},
+              "stats": {k: self.stats.get(k, 0) for k in ("cands", "scan_s", "ecm_s")},
+              "loop": loop, "cands": [ckpt_pack(c, self.p) for c in self.pool]}
+        tmp = CKPT + ".tmp"
+        with open(tmp, "wb") as f:
+            pickle.dump(st, f, protocol=4)
+        os.replace(tmp, CKPT)
+        log("    checkpoint: %d live candidates, B = %g, cap = %g, %.0f MB in %.1fs"
+            % (len(self.pool), self.B, self.cap, os.path.getsize(CKPT) / 1e6, time.time() - t))
+
+    _CKPT_FIELDS = ("B", "cap", "last", "raise_fit", "tot_orders", "tot_test_s", "c_root", "act", "est",
+                    "nsplit", "split_b1", "build_ref", "build_refs", "ecm_seen")
+
+    def _load_ckpt(self):
+        if not (CKPT and CKPT_RESUME and os.path.exists(CKPT)):
+            return None
+        try:
+            with open(CKPT, "rb") as f:
+                st = pickle.load(f)
+        except Exception as e:
+            log("  level %d bits: checkpoint %s unreadable (%r), starting afresh" % (self.nb, CKPT, e))
+            return None
+        if st.get("v") != 1 or st.get("p") != str(self.p):
+            return None
+        for k in self._CKPT_FIELDS:
+            setattr(self, k, st["drv"][k])
+        self.stats.update(st["stats"])
+        self.pool = [ckpt_unpack(r, self.p) for r in st["cands"]]
+        self.after_restore = True
+        log("  level %d bits: search resumed from the checkpoint of %s on %s: %d orders bought, %d live "
+            "candidates, B = %g, cap = %g, scan %.0f + ecm %.0f core-s, %.0f s of search"
+            % (self.nb, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(st["time"])), st.get("host", "?"),
+               st["loop"]["K"], len(self.pool), self.B, self.cap, st["loop"]["spent_scan"],
+               st["loop"]["spent_ecm"], st["loop"]["elapsed"]))
+        return (list(self.pool), st["loop"])
+
+    def restore(self):
+        """(candidates, level_loop's counters) of the checkpoint this driver started from, once."""
+        r, self._restored = self._restored, None
+        return r
 
     # ---- supply
     def _density(self, B, cap):
@@ -1606,13 +1695,22 @@ class RuleDriver:
         test_s = info.get("scan_s", 0.0) * info.get("threads", ns) if info else cs
         if info and info.get("roots_new", 0) > 1000 and info.get("root_s", 0.0) > 0.5:
             self.c_root = info["root_s"] * info["threads"] / info["roots_new"]
+        csp = cs                              # what this chunk says about the price of the next
+        if self.after_restore:
+            # the first scan after a restore computed the factor base's square
+            # roots again: paid, but no part of what a chunk costs
+            self.after_restore = False
+            if info:
+                csp = max(test_s, cs - info.get("root_s", 0.0) * info.get("threads", ns))
         if kind == "raise":
             if pred is not None:              # how the prediction of this raise did
                 (pn, pc), _, _ = pred
                 self.raise_fit = (min(1.5, max(0.2, self.raise_fit[0] * len(fresh) / max(pn, 1.0))),
-                                  min(3.0, max(0.3, self.raise_fit[1] * cs / max(pc - cstrip, 1.0))))
+                                  min(3.0, max(0.3, self.raise_fit[1] * csp / max(pc - cstrip, 1.0))))
         else:
-            self.last = (nf, cs, cstrip, lo, hi, self._density(hi, fbc))
+            self.last = (nf, csp, cstrip, lo, hi, self._density(hi, fbc))
+        if self.ckpt_every:
+            self.pool += live
         self.B, self.cap = hi, fbc
         self.tot_orders += len(fresh)
         self.tot_test_s += test_s
@@ -1770,7 +1868,11 @@ def run_rule_level(p, nb, L, n2, small_primes, threads, stats, B0, Bmax_given, f
         # rewards of interest shrink fast with the size (a win costs 1.5 core-h
         # at 768 bits, a minute at 520 and a second at 300)
         rlo = min(30.0, 3.0 * (nb / 500.0) ** 8)
-        tab = ss.IndexTable(lad, lam, rlo=rlo, rhi=3.0e7 if nb >= 500 else rlo * 1e5, threads=min(16, threads))
+        # (R was 4.3e6 core-s at the win of nextprime(10^410); a candidate whose
+        # break-even reward is off the grid is abandoned for good, so the grid of
+        # the largest levels goes a decade further)
+        rhi = (3.0e8 if nb >= 1300 else 3.0e7) if nb >= 500 else rlo * 1e5
+        tab = ss.IndexTable(lad, lam, rlo=rlo, rhi=rhi, threads=min(16, threads))
         log("  level %d bits: rule table in %.1fs (%d sweeps, rewards %.0f..%.0f core-s)"
             % (nb, time.time() - t0, len(tiers), tab.rgrid[0], tab.rgrid[-1]))
         return sd.level_loop(drv, tab, tiers, cost, {"quantum": quantum})
@@ -1857,7 +1959,7 @@ def pari_check(seq, n2):
 
 def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, resume=False, maxfb=0,
                 v2=False):
-    global JOURNAL, V2_BCAP, V2_RADLIM, V2_QFLOOR
+    global JOURNAL, CKPT, CKPT_RESUME, V2_BCAP, V2_RADLIM, V2_QFLOOR
     if not is_prp(p0, 32):
         sys.exit("p0 is not prime")
     n = p0.bit_length()
@@ -1876,6 +1978,8 @@ def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, res
     name = tag or ("p%dbits" % n)
     os.makedirs(CAMP_DIR, exist_ok=True)
     JOURNAL = os.path.join(CAMP_DIR, name + ".winners.jsonl")
+    CKPT = os.path.join(CAMP_DIR, name + ".search.pkl")
+    CKPT_RESUME = bool(resume)
     partial = os.path.join(CAMP_DIR, name + ".partial.json")
     seq = [p0]
     levels_meta = []

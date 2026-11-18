@@ -285,6 +285,57 @@ def test_sim(tiers, lad, cost, tab, lam):
     check("an exhausted scan ends in a win or a clean failure", all(x in ("win", "exhausted") for x in ends)
           and "exhausted" in ends, " ".join(ends))
 
+    # a search that is cut off and taken up again from its checkpoint: the counters
+    # and every candidate's place on the ladder carry over, what was in flight is run again
+    class Stop(Exception):
+        pass
+
+    class Ck(sd.SimDriver):
+        ckpt_every = 4.0                    # virtual seconds
+
+        def __init__(self, *a, **k):
+            sd.SimDriver.__init__(self, *a, **k)
+            self.all, self.saved, self.given, self.nck, self.stop_at = [], None, None, 0, 0
+
+        def take_orders(self, payload):
+            out, n, cst = sd.SimDriver.take_orders(self, payload)
+            self.all += out
+            return out, n, cst
+
+        def checkpoint(self, loop):
+            self.nck += 1
+            if self.nck == self.stop_at:
+                self.saved = (loop, [c for c in self.all if not c.dead], self.B, self.Bnext, self.t)
+                raise Stop()
+
+        def restore(self):
+            g, self.given = self.given, None
+            return g
+    drv = None
+    for seed in range(41, 60):              # a level that lasts until its third checkpoint
+        drv = Ck(pool, lad, tab, 64, np.random.default_rng(seed), cost)
+        drv.stop_at = 3
+        try:
+            sd.level_loop(drv, tab, tiers, cost)
+        except Stop:
+            break
+    ok = drv.saved is not None
+    detail = "no level lasted three checkpoints"
+    if ok:
+        loop, cands, B, Bnext, t = drv.saved
+        infl = sum(1 for c in cands if c.infl)
+        for c in cands:
+            c.sent, c.infl = c.done, 0
+        d2 = Ck(pool, lad, tab, 64, np.random.default_rng(77), cost)
+        d2.B, d2.Bnext, d2.t, d2.all, d2.given = B, Bnext, t, list(cands), (cands, loop)
+        st = sd.level_loop(d2, tab, tiers, cost)
+        ok = (d2.wins >= 1 and st["orders"] >= loop["K"] > 0 and st["ecm_s"] > loop["spent_ecm"] > 0
+              and st["scan_s"] >= loop["spent_scan"] and st["wall"] > loop["elapsed"] and st["expwin"] > loop["expwin"] > 0
+              and st["units"] > loop["nunits"])
+        detail = ("cut at %.0f s with %d orders, %d live candidates (%d in flight), %.2f expected wins; won at %.0f s with %d orders, %.2f"
+                  % (loop["elapsed"], loop["K"], len(cands), infl, loop["expwin"], st["wall"], st["orders"], st["expwin"]))
+    check("a search cut off resumes from its checkpoint", ok, detail)
+
 
 YAFU_SAMPLE = """
 >> === Starting work on batchfile expression #1 ===
@@ -387,6 +438,23 @@ def test_yafu(tiers_gmp, lam):
     tab = ss.IndexTable(lad, lam, cmax=60, threads=4)
     py = em.pi("ecm", 50000, np.array([50.0, 70.0, 90.0]))
     check("yafu success table loads", bool(np.all(py > 0) and np.all(np.diff(py) < 0)), "pi(50, 70, 90 bits at B1=5e4) = %s" % np.round(py, 5))
+    # thin cells are pooled: no single cell of a dozen hits sets the rate beyond the measured sizes
+    deep = np.arange(100.0, 172.0, 4.0)
+    rat = [em.pi("ecm", b1, deep) / ss.ecm_pi_theory(deep, b1, ss.B2_YAFU.get(b1), em.lndelta) for b1 in (3000000, 10000000, 30000000)]
+    check("deep success rates stay near the two-stage Dickman curve", all(0.8 < r.min() and r.max() < 1.25 for r in rat),
+          "measured/theory at B1 = 3e6, 1e7, 3e7: %s" % ", ".join("%.2f..%.2f" % (r.min(), r.max()) for r in rat))
+    cells = [{"method": "ecm", "b1": 50000, "bits": 40 + 4 * i, "curves": 4000,
+              "hits": h} for i, h in enumerate((2000, 900, 400, 150, 60, 20, 9, 1, 0, 0))]
+    cells[6]["hits"] = 27                   # one thin cell three times too high
+    m2 = ss.EcmModel(b2=ss.B2_YAFU)
+    m2.cells[("ecm", 50000)] = cells
+    x = np.array([64.0, 76.0])
+    t2 = ss.ecm_pi_theory(np.array([c["bits"] for c in cells], dtype=float), 50000, ss.B2_YAFU.get(50000), m2.lndelta)
+    pooled = float(sum(c["hits"] for c in cells[4:]) / (4000 * t2[4:].sum()))
+    got = float(m2.pi("ecm", 50000, x)[1] / ss.ecm_pi_theory(x, 50000, ss.B2_YAFU.get(50000), m2.lndelta)[1])
+    alone = float(27 / (4000 * t2[6]))
+    check("a thin cell does not set the rate beyond the measured sizes", abs(got / pooled - 1.0) < 0.35 and got < 0.7 * alone,
+          "ratio to theory beyond the cells %.2f; pooled thin cells %.2f; the high cell alone %.2f" % (got, pooled, alone))
 
     class Pool:
         pass
@@ -497,6 +565,25 @@ def test_small():
     sp.BUILD_EST.clear()
     check("a costly winner waits for a cheap one, but not on few cores or for long", (hold1, hold2, hold3, hold4) == (False, True, True, True),
           str((hold1, hold2, hold3, hold4)))
+    # checkpoint record of a candidate: one large integer, everything else rebuilt
+    tt, vv, dd = 2 * 3 ** 80 + 1, 2 * 5 ** 50 + 1, 7
+    pp = (tt * tt + dd * vv * vv) // 4
+    c = sp.Cand(dd, tt, vv, pp + 1 + tt)
+    c.s = c.N & -c.N
+    c.mid, c.splits, c.prp_checked = 3 ** 0, 2, True
+    c.tail = c.N // c.s
+    sd.sched_init(c, 11, int(round(math.log2(c.tail))))
+    c.st, c.sent, c.done, c.infl = 2, 48, 16, 2
+    rec = sp.ckpt_pack(c, pp)
+    e = sp.ckpt_unpack(rec, pp)
+    same = all(getattr(c, k) == getattr(e, k) for k in ("d", "t", "v", "N", "s", "mid", "tail", "splits", "prp_checked", "cls", "tb", "st", "done"))
+    bad = False
+    try:
+        sp.ckpt_unpack(rec, pp + 2)
+    except ValueError:
+        bad = True
+    check("checkpoint record of a candidate: round trip, curves in flight are not counted, another prime is refused",
+          same and e.sent == 16 and e.infl == 0 and not e.dead and bad and len(rec) == 11)
     # supply: the wider bound or the higher cap, whichever is cheaper per order
     def supply(B, cap, n, cs, lo, hi, tot_n, tot_s, fixed=0, capmax=2 * 10 ** 10, Bmax=10 ** 15):
         d = D()

@@ -166,18 +166,32 @@ class EcmModel:
             th = ecm_pi_theory(bits, b1, B2_PM1.get(b1, 100.0 * b1), math.log(2.0))
         else:
             th = ecm_pi_theory(bits, b1, self.b2.get(b1), self.lndelta)
-        cells = sorted(self.cells.get((method, b1), []), key=lambda c: c["bits"])
-        good = [c for c in cells if c["hits"] >= 8 and c["curves"] > 0]
-        if len(good) < 3:
+        cells = sorted((c for c in self.cells.get((method, b1), []) if c["curves"] > 0), key=lambda c: c["bits"])
+        if sum(1 for c in cells if c["hits"] >= 8) < 3:
             return th
-        xb = np.array([c["bits"] for c in good], dtype=float)
-        pm = np.array([min(c["hits"] / c["curves"], 0.999) for c in good])
+        xb = np.array([c["bits"] for c in cells], dtype=float)
+        hits = np.array([min(c["hits"], 0.999 * c["curves"]) for c in cells], dtype=float)
         th_at = ecm_pi_theory(xb, b1, B2_PM1.get(b1) if method == "pm1" else self.b2.get(b1),
                               math.log(2.0) if method == "pm1" else self.lndelta)
-        # work with the log of the ratio to theory: smooth, and extrapolates sensibly
-        lr = np.log(pm / np.maximum(th_at, 1e-300))
+        exp = np.array([c["curves"] for c in cells], dtype=float) * np.maximum(th_at, 1e-300)
+        # The ratio to theory at a cell is hits over expected hits, pooled with
+        # its neighbours until HPOOL hits are in the pool.  A cell with that many
+        # hits stands alone; the thin cells at the deep end, down to those
+        # without a hit, share one ratio.  (Keeping only the cells with 8 hits or
+        # more, as this did at first, selects on the outcome: the last cell to
+        # qualify is one that came out high, and its ratio was carried to every
+        # larger size.)
+        n = len(cells)
+        lr = np.empty(n)
+        for i in range(n):
+            lo = hi = i
+            while hits[lo:hi + 1].sum() < self.HPOOL and (lo > 0 or hi < n - 1):
+                lo, hi = max(0, lo - 1), min(n - 1, hi + 1)
+            lr[i] = math.log(max(hits[lo:hi + 1].sum(), 0.5) / exp[lo:hi + 1].sum())
         ratio = np.exp(np.interp(bits, xb, lr))        # constant beyond the measured range
         return np.clip(th * ratio, 0.0, 1.0)
+
+    HPOOL = 100.0
 
 
 # --------------------------------------------------------------- compound Poisson tools
