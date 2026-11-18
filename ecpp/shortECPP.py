@@ -376,6 +376,18 @@ def run_cap(cmd, inp=None, reg=None):
     return pr.returncode, out, err
 
 
+def dscan_seed(B):
+    """dscan's unit of parallel work (sd=), in discriminants, or 0 for its default
+    of 2,000.  The scan first cuts its tree into such units, in one thread, and
+    keeps them all in memory with a residue modulo p each: their number goes like
+    B over the unit.  With the default that pass took 17 minutes and 226 GB at
+    B = 8e12 on a 1495-bit prime, while the scan's other threads waited, and the
+    next doubling would not have fitted in the machine's 384 GB.  Units that grow
+    with B from 4e11 keep the count near 5e7 (about 12 GB at that size); the
+    discriminants scanned are the same."""
+    return B // 200000000 if B >= 400000000000 else 0
+
+
 def run_dscan(p, B, Bmin, threads, maxfb=0, fbmin=0, roots=None, reg=None, info=None):
     """Solvable (d, t, v) with Bmin <= d < B over the factor base capped at maxfb.
     With fbmin set (the cap of the scans already done below Bmin) the d < Bmin
@@ -393,6 +405,9 @@ def run_dscan(p, B, Bmin, threads, maxfb=0, fbmin=0, roots=None, reg=None, info=
         cmd.append("fbmin=%d" % fbmin)
     if roots:
         cmd.append("roots=" + roots)
+    sd = dscan_seed(B)
+    if sd:
+        cmd.append("sd=%d" % sd)
     rc, sout, serr = run_cap(cmd, None, reg)
     if rc != 0:
         raise RuntimeError("dscan failed: %s" % serr[:500])
