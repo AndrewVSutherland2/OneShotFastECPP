@@ -1,0 +1,14 @@
+2026-11-18_00:23:13 start c430 on aws-spot-15 (AMD EPYC 9R14)
+2026-11-18_06:20:16 restart helper: watching c430 (pid 18829, top level 0
+1429 bits, mode after-chunk)
+2026-11-18_08:08:29 restart helper: restarting c430 after: [08:08:26]     checkpoint: 954794 live candidates, B = 4.096e+12, cap = 4.096e+09, 126 MB in 3.2s
+2026-11-18_08:08:29 c430 done: RUN c430 wall=27916.59 user=4978990.28 sys=81697.19 verified=0
+2026-11-18_08:08:29 ALL_DONE
+2026-11-18_08:08:33 restart helper: relaunched c430
+2026-11-18_08:08:33 start c430 on aws-spot-15 (AMD EPYC 9R14)
+2026-11-18_09:41:46 box rebooted at 09:39 after an interruption at about 09:35: relaunching from the on-disk checkpoint of 09:23:59
+2026-11-18_09:41:46 start c430 on aws-spot-15 (AMD EPYC 9R14)
+2026-11-18_10:22:59 aws-spot-15 interrupted again at about 10:14: moved to aws-spot-13, from the off-box checkpoint of 09:57
+2026-11-18_10:23:02 start c430 on aws-spot-13 (AMD EPYC 9R14)
+2026-11-18_17:33:55 c430 done: RUN c430 wall=25853.43 user=4488783.75 sys=54070.93 verified=1
+2026-11-18_17:33:55 ALL_DONE
