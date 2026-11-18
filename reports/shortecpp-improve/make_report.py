@@ -33,6 +33,18 @@ def fmt(x, d=0):
     return ("{:,.%df}" % d).format(x)
 
 
+def sci(x):
+    """1e11 -> 10^11, 4.1e12 -> 4.1 . 10^12 (HTML)."""
+    e = int(math.floor(math.log10(x) + 1e-9))
+    m = x / 10.0 ** e
+    if abs(m - 1.0) < 0.05:
+        return "10<sup>%d</sup>" % e
+    return "%s&middot;10<sup>%d</sup>" % (("%.1f" % m).rstrip("0").rstrip("."), e)
+
+
+ECPP = os.path.join(HERE, "..", "..", "ecpp")
+
+
 def sweeps(spec):
     out = []
     for (m, b1, c, k) in spec:
@@ -687,20 +699,62 @@ if os.path.exists(bj):
                       "%s&times;" % fmt(r["recorded_cpu"] / max(b_["cpu"], 0.01))))
     R["BENCH_TABLE"] = ("<table><tr><th>prime after</th><th>bits</th><th>levels</th><th>recorded CPU</th><th>recorded wall, cores</th>"
                         "<th>now: wall on 192</th><th>now: CPU</th><th>CPU, recorded / now</th></tr>" + "".join(trs) + "</table>")
-    big = [r for r in bd if r["c"] >= 160]
+    big = [r for r in bd if 160 <= r["c"] <= 320]
+    front = [r for r in bd if r["c"] >= 330]
     small = [r for r in bd if r["c"] <= 150]
+    R["FRONT_WALL_H"] = "%.1f" % (sum(r["best"]["wall"] for r in front) / 3600.0)
+    R["FRONT_CPU_H"] = fmt(sum(r["best"]["cpu"] for r in front) / 3600.0)
+    R["FRONT_REC_H"] = fmt(sum(r["recorded_cpu"] for r in front) / 3600.0)
+    R["FRONT_REC_WALL_H"] = "%.0f" % (sum(r["recorded_wall"] for r in front) / 3600.0)
     ratios = [r["recorded_cpu"] / max(r["best"]["cpu"], 0.01) for r in bd]
-    R["BENCH_MIN_RATIO"] = "%d" % min(ratios)
+    R["BENCH_MIN_RATIO"] = "%.1f" % min(ratios) if min(ratios) < 10 else "%d" % min(ratios)
     R["BENCH_MAX_RATIO"] = "%d" % max(ratios)
     R["BENCH_WALL_MIN"] = "%.0f" % (sum(r["best"]["wall"] for r in big) / 60.0)
     R["BENCH_CPU_H"] = "%.0f" % (sum(r["best"]["cpu"] for r in big) / 3600.0)
     R["BENCH_REC_H"] = fmt(sum(r["recorded_cpu"] for r in big) / 3600.0)
     R["BENCH_TOTALS"] = ("The fifteen entries up to 10<sup>150</sup> take %.0f s of wall time and %s CPU-seconds in all (recorded: %s "
                          "CPU-seconds); the seventeen from 10<sup>160</sup> to 10<sup>320</sup> take %.0f minutes and %.0f core-hours "
-                         "(recorded: %s core-hours)."
+                         "(recorded: %s core-hours); the eight from 10<sup>330</sup> to 10<sup>400</sup> take %.1f hours and %s "
+                         "core-hours (recorded: %s core-hours; section 12.6)."
                          % (sum(r["best"]["wall"] for r in small), fmt(sum(r["best"]["cpu"] for r in small)), fmt(sum(r["recorded_cpu"] for r in small)),
                             sum(r["best"]["wall"] for r in big) / 60.0, sum(r["best"]["cpu"] for r in big) / 3600.0,
-                            fmt(sum(r["recorded_cpu"] for r in big) / 3600.0)))
+                            fmt(sum(r["recorded_cpu"] for r in big) / 3600.0),
+                            sum(r["best"]["wall"] for r in front) / 3600.0, fmt(sum(r["best"]["cpu"] for r in front) / 3600.0),
+                            fmt(sum(r["recorded_cpu"] for r in front) / 3600.0)))
+
+fj = os.path.join(DATA, "frontier.json")
+if os.path.exists(fj):
+    fr = json.load(open(fj))
+
+    def hrs(x):
+        return "%.0f s" % x if x < 600 else "%.0f min" % (x / 60.0) if x < 7200 else "%.1f h" % (x / 3600.0)
+    R["FRONTIER_TABLE"] = (
+        "<table><tr><th>prime after</th><th>bits</th><th>chain</th><th>CPU, core-h</th><th>orders</th><th>scan to, cap</th>"
+        "<th>scan, core-h</th><th>ECM, core-h</th><th>expected wins at the win</th><th>won at B1</th><th>|D| of the winner</th>"
+        "<th>its build</th></tr>"
+        + "".join("<tr><td>10<sup>%d</sup></td><td>%d</td><td>%s</td><td>%s</td><td>%s</td><td>%s, %s</td><td>%.0f</td><td>%.0f</td>"
+                  "<td>%.2f</td><td>%s</td><td>%s</td><td>%s</td></tr>"
+                  % (r["c"], r["bits"], hrs(r["wall"]), fmt(r["cpu"] / 3600.0), fmt(r["orders"]), sci(r["B"]), sci(r["cap"]),
+                     r["scan_s"] / 3600.0, r["ecm_s"] / 3600.0, r["expwin"], sci(r["win_b1"]), sci(-r["D"]), hrs(r["build_s"]))
+                  for r in fr) + "</table>")
+    R["FRONT_EW_MEAN"] = "%.2f" % (sum(r["expwin"] for r in fr) / len(fr))
+    c410 = [r for r in fr if r["c"] == 410][0]
+    R["C410_WALL"] = fmt(c410["wall"])
+    R["C410_WALL_H"] = "%.1f" % (c410["wall"] / 3600.0)
+    R["C410_CPU_H"] = fmt(c410["cpu"] / 3600.0)
+    R["C410_SEARCH_H"] = "%.1f" % (c410["search_wall"] / 3600.0)
+    R["C410_BUILD_H"] = "%.1f" % (c410["build_s"] / 3600.0)
+    R["C410_ORDERS"] = fmt(c410["orders"])
+    R["C410_SCAN_H"] = "%.0f" % (c410["scan_s"] / 3600.0)
+    R["C410_ECM_H"] = "%.0f" % (c410["ecm_s"] / 3600.0)
+    R["C410_EW"] = "%.2f" % c410["expwin"]
+    emy = ss.EcmModel(os.path.join(ECPP, "ecm_pi_yafu.json"), b2=ss.B2_YAFU)
+    deep_bits = np.arange(100.0, 172.0, 4.0)
+    rr = np.concatenate([emy.pi("ecm", b1, deep_bits) / ss.ecm_pi_theory(deep_bits, b1, ss.B2_YAFU.get(b1), emy.lndelta)
+                         for b1 in (3000000, 10000000, 30000000)])
+    R["YPOOL_RANGE"] = "%.2f to %.2f" % (rr.min(), rr.max())
+    bs = os.path.join(DATA, "big_status.html")
+    R["BIG_STATUS"] = open(bs).read().strip() if os.path.exists(bs) else ""
 
 tpl = open(os.path.join(HERE, "index.template.html")).read()
 body = open(os.path.join(HERE, "sections.html")).read()

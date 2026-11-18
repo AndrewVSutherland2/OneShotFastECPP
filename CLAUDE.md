@@ -378,7 +378,8 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   16-core box, at 1362 bits); default scan bound 1e15.  dscan: `Bmin=B fbmin=<old cap>` is a
   cap-only scan and skips old-prime nodes with no room for a new prime (exact: earlier scan
   + raise = full scan at the new cap, test_dscan).  Neutral at 1000 bits (same price per
-  order as before), about a third cheaper at the margin for 10^410.
+  order as before), for 10^410 the cap went up six times (1e6 to 4.1e9) and the
+  362,752 orders cost 13% less each than the first run's 356,128 (next orders 5.9 against ~7.7 core-s).
   (2) levels of 1300 bits and more get 192 curves at B1 = 3e7 on offer instead of 64 (the
   stalled run had 2,829 candidates through the whole ladder).  B1 = 1e8 was timed and
   rejected: 4.4x the cost of 3e7 for ~2x the success on 120-160-bit factors.
@@ -394,6 +395,20 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   (4) `RuleDriver.should_build` has still never fired in a real run (25 runs of 768-bit
   primes drew no costly winner); at 1362 bits it rightly accepted a 3-hour build because
   another winner was 6 hours away.  `get_j`'s timeout follows the build estimate.
+  (5) since 2026-11-18: levels of >= 900 bits checkpoint their search every 10 min
+  (`work/shortcamp/<tag>.search.pkl`, `RuleDriver.checkpoint` / `_load_ckpt`, `level_loop`'s
+  `restore`; env `SHORTECPP_CKPT` seconds, `SHORTECPP_CKPT_BITS`), and `resume=1` takes the
+  search up from it (lost: units in flight and the roots cache); a build is NOT checkpointed.
+  `ecm_pi_yafu.json` = first + deep calibration pooled (`data/fold_yafu_calib.py`), and
+  `EcmModel.pi` pools a cell's ratio to theory with its neighbours up to 100 hits (the old
+  "cells with >= 8 hits" cut selected on the outcome: 1.44x / 1.49x theory beyond 110 bits at
+  B1 = 5e4 / 2.5e5); the gmp-ecm table is read the same way (model vs campaign log as good
+  or better: 0.67 winners per reference pass, 20.0 modelled against 17 found at 768 bits).
+  Reward grid to 3e8 core-s from 1300 bits.  nextprime(10^c), c = 420..450 (offsets 1261,
+  1587, 709, 2269) launched 2026-11-18 00:23 UTC on four spot boxes (7, 16: c8a; 15, 12:
+  c7a = Zen 4, yafu's IFMA build runs there); run/pull scripts in the session scratchpad
+  (`big/`), off-box copies in `ckpt_big/`.  A fresh box needs: `git archive` + full
+  `phi_files` + `~/.local/ecmpkg` + `~/yb/yafu/yafu` + `apt install python3-numpy`.
   Spot notes: a build uses ~20 of 192 cores for hours: re-claim with `--idle-ok --force` or
   the watchdog stops the box; `spot claim` again with new hours works on one's own box.
   Cost of the two days: about $62 (c8a at ~$3.06/h in us-west-2, the only region with

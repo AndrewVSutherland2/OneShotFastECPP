@@ -38,17 +38,26 @@ model's win rate holds up: the wins it expected from the work done, at the first
 cost and wall time agree with the simulation, and over the 26 primes the wins the model expected at the
 first win average @@EW_C8A_MEAN@@, where an exact model gives 1 &plusmn; @@EW_C8A_SE@@.</li>
 @@YAFU_ENGINE_SUMMARY@@
-<li><b>The table of ShortPrimalityProofs (section 12, 16 November).</b> On one 192-core box with yafu,
-<b>every entry from 10<sup>10</sup> to 10<sup>320</sup> is proved faster than recorded, by a factor
+<li><b>The table of ShortPrimalityProofs (section 12, 16 and 17 November).</b> On one 192-core box with yafu,
+<b>every entry from 10<sup>10</sup> to 10<sup>400</sup> is proved faster than recorded, by a factor
 @@BENCH_MIN_RATIO@@ to @@BENCH_MAX_RATIO@@ in CPU time</b>; the seventeen entries from 10<sup>160</sup> to
 10<sup>320</sup> take @@BENCH_WALL_MIN@@ minutes and @@BENCH_CPU_H@@ core-hours in all, where the table
-records @@BENCH_REC_H@@ core-hours.  The runs exposed three defects, now repaired: yafu abandons a number
+records @@BENCH_REC_H@@ core-hours, and the eight from 10<sup>330</sup> to 10<sup>400</sup> take
+@@FRONT_WALL_H@@ hours and @@FRONT_CPU_H@@ core-hours, where it records @@FRONT_REC_WALL_H@@ hours and
+@@FRONT_REC_H@@.  The runs exposed three defects, now repaired: yafu abandons a number
 at its first factor, levels below 500 bits ran with the parameters of large ones, and a missing modular
 polynomial cost a minute of retries.  The stopping rule now runs from 280 bits.</li>
-<li><b>Not done.</b> The entries 10<sup>330</sup> to 10<sup>400</sup> have not been rerun.  A build still
-spends most of its time in root-finding at the prime part of the class number: with yafu it is a third of
-a 768-bit level on 192 cores and has a tail of one to five minutes.  Its cost is predictable from the
-class number, and the scheduler does not use that yet.</li>
+<li><b>A new entry: nextprime(10<sup>410</sup>) = 10<sup>410</sup>&nbsp;+&nbsp;67 (section 12.7).</b> 1362 bits,
+five levels, @@C410_WALL_H@@ hours on 192 cores and @@C410_CPU_H@@ core-hours: @@C410_SEARCH_H@@ hours of
+search and @@C410_BUILD_H@@ of construction, nearly all of that for one root of a polynomial of prime degree
+470,279.  A first run stalled, because this prime has a quarter of the usual number of small
+discriminants; the scan now gets its orders from a wider bound or from a higher cap on the primes of a
+discriminant, whichever is cheaper.</li>
+<li><b>Not done.</b> A build still spends most of its time in root-finding at the prime part of the class
+number: with yafu it is a third of a 768-bit level on 192 cores, and it was three of the eight hours of
+10<sup>410</sup>.  Its cost is predictable from the class number; the scheduler uses that when a winner is
+in hand, not yet when a candidate comes in.  The least primes above 10<sup>420</sup>, 10<sup>430</sup>,
+10<sup>440</sup> and 10<sup>450</sup> are running as this is written (section 12.9).</li>
 
 #### EXPERIMENT
 <p>The model's stopping rule was computed for the real orders of p = nextprime(2<sup>768</sup>)
@@ -308,7 +317,7 @@ Section 10 has the rule on the c8a.</li>
 <li><b>Is the model's win rate right?</b> The log adds up the wins the model expects from the sweeps
 actually run.  At a level's first win that sum is exponentially distributed with mean 1 if the model is
 right.  Over the @@RULE_EW_N@@ runs that recorded it the mean is @@RULE_EW_MEAN@@, where an exact model
-gives 1 &plusmn; @@RULE_EW_SE@@: no sign of the optimism of section 5 (17 winners where 20.9 were expected),
+gives 1 &plusmn; @@RULE_EW_SE@@: no sign of the optimism of section 5 (17 winners where @@EXP_MODEL_WINS2@@ were expected),
 if anything the reverse.  Run 0 predates the bookkeeping.  Section 10.3 has 26 primes, and finds that
 this 0.65 belongs to these thirteen primes rather than to the model.</li>
 <li><b>Supply differs by prime.</b> The first chunk finds between @@RULE_D_MIN@@ and @@RULE_D_MAX@@ solvable
@@ -578,19 +587,22 @@ there; the thirteen primes took 0.42 on average.</p>
 format, every certificate checked by <code>vshort2.py</code> and by PARI.  Three passes: the code of
 section 11 as it stood; then with the three defects that pass showed repaired (12.2); then, for the
 entries up to 10<sup>220</sup> and the 768-bit primes, with a faster rule table (12.2).  The numbers below
-are from the latest pass that ran each prime.</p>
+are from the latest pass that ran each prime.  17 November, the same type of machine: the entries from
+10<sup>330</sup> to 10<sup>400</sup> (12.6) and the least prime above 10<sup>410</sup> (12.7).</p>
 
-<h3>12.1 Every entry from 10<sup>10</sup> to 10<sup>320</sup></h3>
+<h3>12.1 Every entry from 10<sup>10</sup> to 10<sup>400</sup></h3>
 <p>The recorded times are those of the repository's README: CPU seconds of <code>short.gp</code> up to
 10<sup>150</sup>, and of the August prover from 10<sup>160</sup>, with its wall time and core count.  "Now"
 is the wall time of <code>shortECPP.py c=&hellip; threads=192 v2=1 engine=yafu</code> and the CPU time of
 its whole process tree.</p>
 @@BENCH_TABLE@@
-<p>@@BENCH_TOTALS@@  The smallest gains are at the two ends: below 10<sup>70</sup> the recorded times are
+<p>@@BENCH_TOTALS@@  Up to 10<sup>320</sup> the smallest gains are at the two ends: below 10<sup>70</sup> the recorded times are
 already a second or three (the prover now hands the chain to the SEA search only below 64 to 94 bits, where
-it used to at 135), and at 10<sup>160</sup> the August run was a lucky one.  No prime of the range takes
-five minutes on this machine; 10<sup>310</sup>&nbsp;+&nbsp;733, the largest of the first campaign, takes
-four and a half.</p>
+it used to at 135), and at 10<sup>160</sup> the August run was a lucky one.  No prime up to
+10<sup>320</sup> takes five minutes on this machine; 10<sup>310</sup>&nbsp;+&nbsp;733, the largest of the
+first campaign, takes four and a half.  From 10<sup>330</sup> the gain is 2.5 to 60 times in CPU, smallest
+where the August run was a lucky one (10<sup>380</sup>, 70 core-hours) or this one was not (10<sup>340</sup> and
+10<sup>350</sup>, section 12.6).</p>
 
 <h3>12.2 What the first pass showed</h3>
 <ul>
@@ -611,7 +623,10 @@ and the spot box had only those.  A discriminant whose class group needs a large
 prover retried it six times, ten seconds each with 64 jobs, before going back to the search: four chains of
 32 lost one to three minutes that way.  The message is now printed whatever the verbosity, the prover
 gives up on such a discriminant at once and names the file, and the later passes ran with the full set
-(2.2&nbsp;GB).  A fresh clone still loses about one winner in ten at these sizes.</li>
+(2.2&nbsp;GB).  Since 17 November the repository carries the Weber polynomials (f, f<sup>2</sup>) and eight
+double eta families with small files up to &#8467;&nbsp;=&nbsp;109: of 3,000 random fundamental
+discriminants between 10<sup>7</sup> and 10<sup>10</sup>, 99 asked for a missing file before and 31 do now,
+20 of them for an Atkin function.</li>
 <li><b>The rule table.</b> Its dynamic programme ran in threads and gained nothing from them (thousands
 of short numpy calls: the threads hand the interpreter lock around).  It took 4&nbsp;s per level, half of
 a chain at 10<sup>160</sup> to 10<sup>200</sup>.  In worker processes it takes 0.6&nbsp;s, with identical
@@ -682,6 +697,95 @@ its chunk to arrive as the work below the rule runs out.  In simulation (768 bit
 twice as dear, sooner, while the work above the rule is mostly work brought forward, since the rule's
 reward rises with every chunk.  The change is not in.</p>
 
+<h3>12.6 The entries from 10<sup>330</sup> to 10<sup>400</sup></h3>
+<p>17 November, one <code>c8a.48xlarge</code>.  The eight entries that the August campaign added take
+@@FRONT_WALL_H@@ hours one after the other and @@FRONT_CPU_H@@ core-hours (recorded: @@FRONT_REC_WALL_H@@
+hours and @@FRONT_REC_H@@ core-hours).  The top level of each, and of the least prime above
+10<sup>410</sup> (12.7):</p>
+@@FRONTIER_TABLE@@
+<p>At these sizes the cost of a level is the draw: 10<sup>390</sup> takes five minutes and 10<sup>350</sup>
+two hours.  The wins the model expected at the first win average @@FRONT_EW_MEAN@@ over the nine primes,
+where an exact model gives 1&nbsp;&plusmn;&nbsp;0.33.  10<sup>340</sup> and 10<sup>350</sup>, run one after the
+other, came in at 3.6 and 4.4, which looked like a break of the model above 1100 bits, and before the rest
+of the set said otherwise I checked the engine: yafu finds planted factors of 50, 62 and 78 bits as often
+in numbers of 1130 and 1330 bits as in numbers of 780 and 1030, labels prime cofactors correctly, and uses
+the stage 2 bound the table assumes (<code>data/yafu_bigN.py</code>).  The candidates that lose a factor to
+a sweep are a second check, on far more events than the wins, and every search line of the log now prints
+it: found over expected is 1.05 at B1&nbsp;=&nbsp;2,000 and rises to about 1.5 from 10<sup>6</sup> (the
+expectation ignores that the candidates sent deep were selected for it).</p>
+
+<h3>12.7 nextprime(10<sup>410</sup>) = 10<sup>410</sup> + 67</h3>
+<p>The table ends at 10<sup>400</sup>.  The certificate is <code>certs/short2/nextprime1e410.csv</code>: 1362
+bits, five levels, @@C410_WALL@@&nbsp;s on 192 cores, @@C410_CPU_H@@ core-hours, checked by
+<code>vshort2.py</code> and PARI.</p>
+<p><b>A first run stalled.</b> After three hours it had 356,128 orders, 0.52 expected wins, 2,829 candidates
+through the whole ladder, and a scan at 8.2&middot;10<sup>12</sup>, close to its bound of 10<sup>13</sup>,
+whose last chunk had cost 5.7 core-seconds an order; I stopped it.  This prime has 5,692 solvable
+discriminants below 10<sup>9</sup> where 10<sup>400</sup>&nbsp;+&nbsp;69 has 20,888: the supply price differs
+between primes of one size by more than the model's win rate does.</p>
+<p><b>Two ways to more orders.</b> The scan has two bounds, B on |D| and the cap on the prime factors of D
+(the factor base).  Only B used to move, the cap following as B/1000 and stopping at 10<sup>8</sup>.  But a
+discriminant that was passed over for a prime above the cap is as good as any other of its size, and there
+are many: at B&nbsp;=&nbsp;4&middot;10<sup>12</sup> a cap of 10<sup>8</sup> admits a little over half of the
+discriminants.  <code>RuleDriver.next_chunk</code> now prices both moves from what the scans have measured and takes
+the cheaper per order.  Widening takes B to 2B at the present cap: orders grow like &radic;B, work like B.
+Raising takes the cap to four times its value over the range already scanned: the orders gained are the
+orders in hand times the gain in the density of cap-smooth discriminants, at the measured cost per
+discriminant tested plus one square root modulo p for every prime added, and the prediction is corrected
+by the outcome of the last raise.  This was Drew's suggestion.  <code>dscan</code> does a raise without
+repeating anything: with <code>Bmin</code>&nbsp;=&nbsp;B and <code>fbmin</code> at the old cap it lists only the
+products that contain a new prime, and skips the prefixes of old primes that leave no room for one
+(<code>test_dscan.py</code> checks that an earlier scan and a raise together are the full scan at the new
+cap).  The cap's ceiling is a quarter of the machine's memory for the square roots, 2&middot;10<sup>10</sup>
+on this box at 1362 bits.  At 1000 bits the price per order is what it was (<code>data/yafu_c8a_6</code>).
+For this prime the cap went up six times, from 10<sup>6</sup> to 4.1&middot;10<sup>9</sup>, each time the
+predicted price of a raise was below that of a wider bound (by 3 to 20%).  At
+B&nbsp;=&nbsp;4.1&middot;10<sup>12</sup> the scan had 327,326 orders with its cap at 10<sup>9</sup> where the first
+run, with its cap at 10<sup>8</sup>, had 263,290.  The whole supply of 362,752 orders cost 1.03 million
+core-seconds where the first run paid 1.16 million for 356,128, that is 13% less per order, and the next
+orders were priced at 5.9 core-seconds each where the first run's next doubling would have cost about
+7.7.</p>
+<p><b>The run.</b> Search @@C410_SEARCH_H@@ hours: @@C410_ORDERS@@ orders, @@C410_SCAN_H@@ core-hours of scan
+and @@C410_ECM_H@@ of ECM, @@C410_EW@@ expected wins at the win, which came from a sweep at
+B1&nbsp;=&nbsp;3&middot;10<sup>7</sup>.  Levels of 1300 bits and more now have 192 curves at that B1 on offer
+where they had 64.  B1&nbsp;=&nbsp;10<sup>8</sup> was timed and left out: 4.4 times the cost of
+3&middot;10<sup>7</sup> for about twice the success on factors of 120 to 160 bits.  Construction
+@@C410_BUILD_H@@ hours: the winner is D&nbsp;=&nbsp;&minus;1,400,983,335,911 with class number
+4&nbsp;&times;&nbsp;470,279; the decomposed class polynomial took 1,490&nbsp;s of CRT, and the root of its
+factor of prime degree 470,279 took 9,376&nbsp;s on about 20 of the 192 cores, where the law of 12.4 said
+13,137&nbsp;s.  The reserve step of 12.4 let that build go ahead, rightly: another winner was an expected
+six hours away.  The step has still not held a winner back in any real run (25 runs of 768-bit primes drew
+no costly one).</p>
+
+<h3>12.8 yafu's success at the deep sweeps</h3>
+<p>The first calibration (11.1) has 768 curves a cell at B1&nbsp;=&nbsp;10<sup>7</sup> and
+3&middot;10<sup>7</sup> and few hits beyond 110 bits.  A second one adds 598,344 curves on factors of 102 to
+174 bits at B1&nbsp;=&nbsp;3&middot;10<sup>6</sup>, 10<sup>7</sup> and 3&middot;10<sup>7</sup>
+(<code>data/yafu_pi_calib_deep.py</code>): 445, 694 and 526 hits where the table then in use expected 512,
+885 and 555, that is 0.87, 0.78 and 0.95 of them.  The reason is in how the table was read: cells with 8
+hits or more were kept, and the ratio to theory of the last one was carried to every larger size.  That
+selects on the outcome, since the last cell to qualify is one that came out high: beyond 110 bits the rate
+in use was 1.44 times theory at B1&nbsp;=&nbsp;5&middot;10<sup>4</sup> and 1.49 times at
+2.5&middot;10<sup>5</sup>.  The two calibrations are now pooled (<code>data/fold_yafu_calib.py</code>), and a
+cell's ratio to theory is pooled with its neighbours until the pool holds 100 hits, cells without a hit
+included.  Read this way, yafu's success from 100 bits up is @@YPOOL_RANGE@@ times the two-stage Dickman
+curve with gain 24 at the three deep values of B1, and 0.94 and 1.11 times at 5&middot;10<sup>4</sup> and
+2.5&middot;10<sup>5</sup>.  The gmp-ecm table is read the same way; its largest change is at
+B1&nbsp;=&nbsp;10<sup>6</sup> beyond 110 bits, where one cell of 14 hits between two of 8 and 7 had set the
+rate at twice what the pool gives.  Sections 3 to 11 of this page are computed with the tables as now
+read.</p>
+
+<h3>12.9 Checkpoints, and four larger primes</h3>
+<p>A level of 1400 bits is a search of many hours on a machine that can be taken away at two minutes'
+notice, and until now only the winners in hand survived that.  Levels of 900 bits and more write their
+search state every ten minutes: the scan's two bounds and its measurements, the loop's counters, and every
+live candidate with its tail and its place on the ladder, about 150 bytes each.  <code>resume=1</code> takes
+the search up from it; what is lost is the units in flight and the factor base's square roots, which the
+next scan computes again.  Tested by killing a 768-bit level after its third checkpoint and resuming it
+(the queue by B1 continued where it had stopped), and in simulation (<code>test_sched.py</code>).  A build
+is not checkpointed: a winner survives, its class polynomial and root start again.</p>
+<p>@@BIG_STATUS@@</p>
+
 #### NEXT
 <li><b>Count the build in a candidate's value (section 12.4).</b> The build time of a winner is known from
 its class number within a factor 1.25, and it is a third of a 768-bit level on 192 cores, with a tail of
@@ -689,25 +793,23 @@ one to five minutes.  Keeping a costly winner in reserve is in but unmeasured; t
 box would measure it in five minutes.  The fuller form: charge each candidate its build at intake (class numbers of a whole chunk take
 seconds), so that the rule works a candidate while its break-even reward plus the machine time of its build
 is below R; the value of a fresh order then has to count the builds of the orders too.</li>
-<li><b>The entries 10<sup>330</sup> to 10<sup>400</sup>.</b> Not run.  From the cost of 10<sup>300</sup> to
-10<sup>320</sup> (3 to 12 core-hours each) and a level cost that grows about 40-fold from 768 to 1030 bits,
-I expect 25 to 100 core-hours each up to 10<sup>360</sup> and several hundred each beyond: five to ten
-hours of one box for all eight, most of it for the last three.</li>
+<li><b>Beyond 10<sup>410</sup> (section 12.9).</b> Four primes of 1396 to 1495 bits are running.  From
+10<sup>330</sup> to 10<sup>410</sup> the search work per expected win grows about 1.4-fold for every ten
+digits, and the supply of a prime moves it by a factor of two either way.</li>
 <li><b>Root-finding at prime degree (sections 9.5, 10.2 and 12.4).</b> A powering mod a polynomial of degree
 1,000 to 20,000 over a 768- or 1030-bit field is that many squarings as the field has bits, each done as
 three GMP multiplications of integers of 1 to 40 megabits; at degree 19,583 and 1030 bits it takes 290&nbsp;s
-on 192 cores, of which about 50 are busy.  Multiplying residue by residue modulo twenty-odd word-size primes with a number-theoretic
+on 192 cores, of which about 50 are busy; at degree 470,279 and 1362 bits it took 2.6 hours on about 20
+cores (section 12.7), a third of that proof.  Multiplying residue by residue modulo twenty-odd word-size primes with a number-theoretic
 transform should be several times faster on one core and uses as many cores as there are primes.</li>
-<li><b>Modular polynomials in the repository (section 12.2).</b> With &#8467;&nbsp;&le;&nbsp;71 only, one
-winner in ten at 768 to 1000 bits cannot be built.  Either the committed set goes further (the Weber
-polynomials to 101 or so), or the install notes say where the full set is.</li>
 <li><b>Sharper height estimates for the decomposition (section 9.6).</b> The bound is a median 23% too
 large for invariants other than j.  Numerical values of the invariant at the forms would give the heights
 to a few bits; the plain bound in the ramified case is also about twice too large.</li>
 <li><b>Small things.</b> yafu takes 11 to 27&nbsp;ms to start, which is most of a unit at 300 bits; the
 measured ECM cost there is 1.3 to 2 times the model's.  For gmp-ecm, &pi; and the cost per curve at
 B1&nbsp;=&nbsp;10<sup>7</sup> and 3&middot;10<sup>7</sup> are still extrapolated; for yafu they are
-measured.  The README needs the new arguments and the size-dependent defaults.</li>
+measured.  The gmp-ecm table, now read with pooled cells (section 12.8), has not been checked against
+real runs since.  The README needs the new arguments and the size-dependent defaults.</li>
 <li><b>For the paper.</b> The search is a bandit problem with a closed-form index: the cost per level is
 the fixed point of a stopping problem, the rule is an index policy, and both have a direct experimental
 check.</li>

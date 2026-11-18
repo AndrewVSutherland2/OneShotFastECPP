@@ -101,6 +101,8 @@ Which tail gets which curves is decided, for levels of 280 bits and more, by a s
 (`ecpp/shortsched.py`, model in `ecpp/shortsim.py`): every candidate state has a break-even
 reward, candidates are worked in that order and only while it is below what a fresh order
 from the scan is worth at the scan's current price.  Smaller levels use tiered rounds.  The
+scan itself has two bounds, on the discriminant and on its prime factors, and more orders
+come from whichever is cheaper to move.  The
 ECM program is gmp-ecm, or yafu's AVX-512 ECM (`engine=yafu yafu=<binary>`, about four times
 cheaper per curve; it has its own cost and success tables).  See
 `reports/shortecpp-improve/` for the model, the measurements and the runs behind this.
@@ -111,7 +113,9 @@ python3 ecpp/shortECPP.py c=150 threads=32          # nextprime(10^150)
 python3 ecpp/shortECPP.py p=<decimal> tag=myprime   # any (probable) prime
 # knobs: v2=1 (the revised format), sched=auto|rule|old, engine=auto|gmp|yafu, yafu=<binary>,
 #        B0=/Bmax= (discriminant-scan range), maxfb= (factor-base cap),
-#        resume=1 (replay the winner journal after a crash/preemption), out=<file>
+#        resume=1 (after a crash or preemption: the levels done, the winners in hand and,
+#        for levels of 900 bits and more, the search itself from its last checkpoint),
+#        out=<file>
 ```
 
 Needs a `gmp-ecm` binary (`CHAIN_ECM` env or `ecm` on PATH) and, for the stopping rule,
@@ -121,10 +125,13 @@ quotients whose polynomials are small; about one discriminant in a hundred still
 file that is not bundled (the prover then says which and goes on with the search).
 
 On one 192-core machine with yafu (November 2026) every entry of the ShortPrimalityProofs
-table from 10¹⁰ to 10³²⁰ is proved faster than the table records, by a factor 5 to 750 in CPU
+table from 10¹⁰ to 10⁴⁰⁰ is proved faster than the table records, by a factor 2.5 to 750 in CPU
 time: a second up to 10¹²⁰, 4 to 15 s from 10¹⁵⁰ to 10²²⁰, half a minute to four and a half
 minutes from 10²³⁰ to 10³²⁰ (10³¹⁰ + 733: 268 s), 17 minutes and 42 core-hours for the
-seventeen entries from 10¹⁶⁰ on.  With gmp-ecm a 768-bit prime takes about 35 seconds there
+seventeen entries from 10¹⁶⁰ to 10³²⁰, and five minutes to two hours each from 10³³⁰ to 10⁴⁰⁰
+(6.0 hours and 1,020 core-hours for the eight, where the table records 51 hours and 8,290).
+The least prime above 10⁴¹⁰, 10⁴¹⁰ + 67 (1362 bits), took 7.8 hours and 953 core-hours
+(`certs/short2/nextprime1e410.csv`).  With gmp-ecm a 768-bit prime takes about 35 seconds there
 and a 1030-bit prime 3 to 20 minutes.  With its first scheduler, in August 2026, this prover produced
 the ShortPrimalityProofs table entries for nextprime(10^c), c = 210, …, 310 — the largest a
 1030-bit prime exceeding Bernstein's 1025-bit AKS example — in one day on spot instances
