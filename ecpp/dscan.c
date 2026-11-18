@@ -173,6 +173,18 @@ typedef struct { unsigned long absprod; int sign; size_t ilo, ihi; mpz_t xprod; 
 static seed_t *seeds; static size_t nseeds, seeds_cap;
 static unsigned long SEED_D = 2000;
 
+// The factor base is in increasing order of |q*|.  fb_inv[k] = sum of 1/|q*| over the
+// first k entries: the estimated size of a run of children [i,j) of a node absprod,
+// sum of B/(absprod |q*|), is (B/absprod)(fb_inv[j] - fb_inv[i]).
+static double *fb_inv;
+
+// first index in [lo,hi) whose |q*| exceeds v, or hi
+static inline size_t fb_first_gt (unsigned long v, size_t lo, size_t hi)
+{
+    while ( lo < hi ) { size_t mid = lo + (hi - lo) / 2;  if ( oddfb.aval[mid] > v ) hi = mid; else lo = mid + 1; }
+    return lo;
+}
+
 static void emit_seed (unsigned long absprod, int sign, const mpz_t xprod, size_t ilo, size_t ihi)
 {
     if ( nseeds == seeds_cap ) { seeds_cap = seeds_cap ? 2 * seeds_cap : 4096; seeds = realloc (seeds, seeds_cap * sizeof(*seeds)); }
@@ -196,14 +208,36 @@ static void gen_seeds (scanstate *S0, int depth, size_t start, unsigned long abs
         gen_seeds (S0, depth + 1, i + 1, ca, sign * oddfb.sgn[i], S0->xstk[depth + 1], oddfb.aval[i]);
         i++;
     }
-    while ( i < oddfb.n && absprod <= (Bbound - 1) / oddfb.aval[i] ) {   // small children: batch into seeds
-        if ( pure_raise && i < idx_new && absprod > lim_old / oddfb.aval[i] ) { i = idx_new; continue; }
-        size_t j = i; unsigned long batch = 0;
-        while ( j < oddfb.n && absprod <= (Bbound - 1) / oddfb.aval[j] && batch < SEED_D
-                && ! ( pure_raise && j < idx_new && absprod > lim_old / oddfb.aval[j] ) )
-            { batch += Bbound / (absprod * oddfb.aval[j]); j++; }
-        emit_seed (absprod, sign, xprod, i, j);
-        i = j;
+    // Small children: batch into seeds of estimated size SEED_D.  A node near the root
+    // has every factor-base prime up to (B-1)/absprod as a child, so walking the
+    // children one by one costs a division per prime and node: 18 minutes of this one
+    // thread at B = 8e12 with a cap of 1e9, the other threads waiting.  The children
+    // of a node are instead one or two index ranges (two in a call that only raises
+    // the cap: the old primes that leave room for a new one behind them, and the new
+    // primes), and a batch ends where the prefix sum of 1/|q*| has grown by
+    // SEED_D absprod / B: a binary search per seed.
+    if ( i >= oddfb.n ) return;
+    size_t iend = fb_first_gt ((Bbound - 1) / absprod, i, oddfb.n);       // children i..iend-1 keep the product below B
+    size_t seg[2][2];  int nseg = 0;
+    if ( pure_raise ) {
+        if ( i < idx_new ) {
+            size_t e = idx_new < iend ? idx_new : iend;
+            e = fb_first_gt (lim_old / absprod, i, e);                      // from here on: no room for a new prime
+            if ( i < e ) { seg[nseg][0] = i; seg[nseg][1] = e; nseg++; }
+        }
+        size_t s2 = i > idx_new ? i : idx_new;
+        if ( s2 < iend ) { seg[nseg][0] = s2; seg[nseg][1] = iend; nseg++; }
+    } else if ( i < iend ) { seg[0][0] = i; seg[0][1] = iend; nseg = 1; }
+    double target = (double) SEED_D * (double) absprod / (double) Bbound;
+    for ( int k = 0 ; k < nseg ; k++ ) {
+        size_t a = seg[k][0], b = seg[k][1];
+        while ( a < b ) {
+            double want = fb_inv[a] + target;
+            size_t lo = a + 1, hi = b;                                       // smallest j in (a,b] with fb_inv[j] >= want, or b
+            while ( lo < hi ) { size_t mid = lo + (hi - lo) / 2;  if ( fb_inv[mid] >= want ) hi = mid; else lo = mid + 1; }
+            emit_seed (absprod, sign, xprod, a, lo);
+            a = lo;
+        }
     }
 }
 
@@ -410,6 +444,9 @@ int main (int argc, char *argv[])
     }
     // serial pass: emit balanced seeds (and process the few "upper" nodes' D's on states[0])
     double t_gen = wall ();
+    fb_inv = malloc ((oddfb.n + 1) * sizeof(*fb_inv));
+    fb_inv[0] = 0.0;
+    for ( size_t k = 0 ; k < oddfb.n ; k++ ) fb_inv[k + 1] = fb_inv[k] + 1.0 / (double) oddfb.aval[k];
     mpz_t ONE; mpz_init_set_ui (ONE, 1);
     gen_seeds (&states[0], 0, 0, 1, 1, ONE, 0);
     mpz_clear (ONE);
@@ -428,6 +465,7 @@ int main (int argc, char *argv[])
     t_par = wall () - t_par;
     for ( size_t s = 0 ; s < nseeds ; s++ ) mpz_clear (seeds[s].xprod);
     free (seeds);
+    free (fb_inv);
     unsigned long n_scan = 0, n_solv = 0, n_desc = 0, n_test = 0;
     for ( int k = 0 ; k < nth ; k++ ) { n_scan += states[k].n_scan; n_solv += states[k].n_solv; n_test += states[k].n_test; n_desc += states[k].cc.n_descent; }
     tsc = wall () - tsc;
