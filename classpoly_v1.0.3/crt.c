@@ -437,8 +437,9 @@ void _ecrt_file_init (ecrt_context_t ecrt)
     if ( ! ecrt->jobs ) { err_printf("_ecrt_file_init called when jobs was not specified\n"); exit (0); }
     sprintf (filename, "%s_%d_%d.ecrt", ecrt->prefix, ecrt->jobs, ecrt->jobid);
     if ( ! (ecrt->fp = fopen(filename, "wb+")) ) { err_printf ("Unable to create file %s!\n", filename); exit(0); }
-    // write four 32-bit integers containing n, k, P limbs, and MP limbs
+    // write five 64-bit integers containing n, k, P limbs, MP limbs and the caller's tag (ecrt_dump rewrites the tag, which may be set after this point)
     x = ecrt->n;  fwrite (&x,8,1,ecrt->fp);  x = ecrt->k; fwrite (&x,8,1,ecrt->fp); x = ecrt->P->_mp_size;  fwrite (&x,8,1,ecrt->fp);  x = ecrt->MP->_mp_size;  fwrite (&x,8,1,ecrt->fp);
+    x = ecrt->tag;  fwrite (&x,8,1,ecrt->fp);
     if ( fwrite (ecrt->P->_mp_d, sizeof(mp_limb_t), ecrt->P->_mp_size, ecrt->fp) != ecrt->P->_mp_size ) { err_printf ("File write error in ecrt_dump\n"); exit (0); }                   // write P limbs
     if ( fwrite (ecrt->MP->_mp_d, sizeof(mp_limb_t), ecrt->MP->_mp_size, ecrt->fp) != ecrt->MP->_mp_size ) { err_printf ("File write error in ecrt_dump\n"); exit (0); }                // write MP limbs
     ecrt->fpbase = ftell(ecrt->fp);
@@ -665,6 +666,8 @@ void ecrt_merge (ecrt_context_t ecrt, int jobs, char *prefix)
         k = (int)x;
         if ( fread(&Plimbs,8,1,ecrt->infp[i]) != 1 ) { err_printf ("File read error in ecrt_merge\n"); exit (0); }
         if ( fread(&MPlimbs,8,1,ecrt->infp[i]) != 1 ) { err_printf ("File read error in ecrt_merge\n"); exit (0); }
+        if ( fread(&x,8,1,ecrt->infp[i]) != 1 ) { err_printf ("File read error in ecrt_merge\n"); exit (0); }
+        if ( !i ) ecrt->tag = x; else if ( x != ecrt->tag ) { err_printf ("Inconsistent tag in ecrt data file %d of %d: %lu vs %lu\n", i+1, jobs, (unsigned long)x, (unsigned long)ecrt->tag); exit (0); }
         if ( !i ) {
             mpz_init2(P,Plimbs*GMP_NUMB_BITS); mpz_init2(MP,Plimbs*GMP_NUMB_BITS);   P->_mp_size = Plimbs;  MP->_mp_size = MPlimbs;
             if ( fread (P->_mp_d, sizeof(mp_limb_t), Plimbs, ecrt->infp[i]) != Plimbs ) { err_printf ("File read error in ecrt_merge\n"); exit (0); }
@@ -709,6 +712,7 @@ void ecrt_dump (ecrt_context_t ecrt)
             if ( fwrite(ecrt->sdata+i*ecrt->slimbs, ecrt->sbytes, CRT_BATCH_SIZE, ecrt->fp) != CRT_BATCH_SIZE ) { err_printf ("file write error in ecrt_dump\n"); exit (0); }
         }
     }
+    { uint64_t x = ecrt->tag;  if ( fseek (ecrt->fp, 32, SEEK_SET) || fwrite (&x,8,1,ecrt->fp) != 1 ) { err_printf ("file write error in ecrt_dump (tag)\n"); exit (0); } }
     fclose (ecrt->fp);  ecrt->fp = 0;
 }
 

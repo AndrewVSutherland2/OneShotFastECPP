@@ -1,0 +1,64 @@
+# shortsched.py sim <768-bit pool> threads=T runs=300 (c8a costs); see section 9
+== simd_th4.txt
+300 levels simulated in 563s, 4 threads
+  wall to the first win     mean   1580.1 s   median    906.9 s
+  machine cost (wall x thr) mean     6320 core-s = 1.76 core-h
+  work done                 mean     5623 core-s = 1.56 core-h  (scan 2255, ecm 3369); utilisation 89%
+  orders bought             mean    38030   median    34578;  units 994;  rule R at the end: median 5250 core-s
+  wins the model expected from the work done, at the first win: mean 1.07 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 0% of the ECM work
+== sim_th32.txt
+300 levels simulated in 134s, 32 threads
+  wall to the first win     mean    183.6 s   median    117.3 s
+  machine cost (wall x thr) mean     5874 core-s = 1.63 core-h
+  work done                 mean     5398 core-s = 1.50 core-h  (scan 1498, ecm 3900); utilisation 92%
+  orders bought             mean    31428   median    24450;  units 1341;  rule R at the end: median 4819 core-s
+== simc_supply_0_seed_21.txt
+400 levels simulated in 495s, 192 threads
+  wall to the first win     mean     31.7 s   median     21.3 s
+  machine cost (wall x thr) mean     6091 core-s = 1.69 core-h
+  work done                 mean     5552 core-s = 1.54 core-h  (scan 1460, ecm 4091); utilisation 91%
+  orders bought             mean    32266   median    24450;  units 2738;  rule R at the end: median 4852 core-s
+  wins the model expected from the work done, at the first win: mean 0.98 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 11% of the ECM work
+== simb_bpass_1_seed_3.txt
+300 levels simulated in 206s, 192 threads
+  wall to the first win     mean     29.2 s   median     21.5 s
+  machine cost (wall x thr) mean     5602 core-s = 1.56 core-h
+  work done                 mean     5107 core-s = 1.42 core-h  (scan 1335, ecm 3773); utilisation 91%
+  orders bought             mean    31005   median    24450;  units 2553;  rule R at the end: median 4842 core-s
+  wins the model expected from the work done, at the first win: mean 0.90 (1 if the rule's bookkeeping is right)
+DONE
+== simb_bpass_1_seed_5.txt
+300 levels simulated in 229s, 192 threads
+  wall to the first win     mean     36.3 s   median     23.7 s
+  machine cost (wall x thr) mean     6977 core-s = 1.94 core-h
+  work done                 mean     6390 core-s = 1.77 core-h  (scan 1710, ecm 4680); utilisation 92%
+  orders bought             mean    35189   median    34578;  units 3090;  rule R at the end: median 5221 core-s
+  wins the model expected from the work done, at the first win: mean 1.16 (1 if the rule's bookkeeping is right)
+DONE
+== simb_bpass_1_seed_9.txt
+300 levels simulated in 208s, 192 threads
+  wall to the first win     mean     30.0 s   median     19.7 s
+  machine cost (wall x thr) mean     5767 core-s = 1.60 core-h
+  work done                 mean     5265 core-s = 1.46 core-h  (scan 1391, ecm 3875); utilisation 91%
+  orders bought             mean    31091   median    24450;  units 2608;  rule R at the end: median 4816 core-s
+  wins the model expected from the work done, at the first win: mean 0.94 (1 if the rule's bookkeeping is right)
+DONE
+== simd_th768.txt
+300 levels simulated in 252s, 768 threads
+  wall to the first win     mean     12.4 s   median     10.0 s
+  machine cost (wall x thr) mean     9539 core-s = 2.65 core-h
+  work done                 mean     8424 core-s = 2.34 core-h  (scan 2216, ecm 6208); utilisation 88%
+  orders bought             mean    43157   median    34578;  units 4792;  rule R at the end: median 5319 core-s
+  wins the model expected from the work done, at the first win: mean 0.97 (1 if the rule's bookkeeping is right)
+  ECM handed out above the rule to cores that would have idled: 23% of the ECM work
+SIMS_DONE
+== 1030 bits, 192 threads: shortsched.py sim <1030-bit pool, revised format> threads=192 runs=24 seed=2 bits=1030 a=0.406 rate=3.4e-7 strip=0.015 B0=4e8 Bmax=1e13
+table built in 7.7s (54 rewards, 34 sweeps)
+24 levels simulated in 141s, 192 threads
+  wall to the first win     mean    685.1 s   median    462.5 s
+  machine cost (wall x thr) mean   131535 core-s = 36.54 core-h
+  work done                 mean   118434 core-s = 32.90 core-h  (scan 33961, ecm 84472); utilisation 90%
+  orders bought             mean   100792   median    91867;  units 13519;  rule R at the end: median 128679 core-s
+  wins the model expected from the work done, at the first win: mean 0.87 (1 if the rule's bookkeeping is right)

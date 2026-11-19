@@ -1,0 +1,10 @@
+{
+ "p0": "100000000000000000039",
+ "bits": 67,
+ "levels": 2,
+ "seconds": 0.4,
+ "threads": 192,
+ "stats": {},
+ "cm_levels": [],
+ "seq_bits": 286
+}

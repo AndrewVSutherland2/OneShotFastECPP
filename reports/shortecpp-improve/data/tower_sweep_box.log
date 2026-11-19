@@ -1,0 +1,716 @@
+D=-200003 inv=171 deg=129 plain height 198 (bound 207) sqrt=0 cands=2
+   n=43 m=3 c=3: height 113 (bound 198, plain 198) check OK
+   n=3 m=43 c=43: height 176 (bound 289, plain 198) check OK
+D=-200004 inv=26 deg=256 plain height 282 (bound 303) sqrt=0 cands=26
+   n=32 m=8 c=2,2,2: height 151 (bound 231, plain 282) check OK
+   n=128 m=2 c=2,1,1: height 209 (bound 338, plain 282) check OK
+   n=2 m=128 c=2,64,1: height 231 (bound 518, plain 282) check OK
+   n=32 m=8 c=1,8,1: height 148 (bound 239, plain 282) check OK
+   n=128 m=2 c=1,2,1: height 177 (bound 331, plain 282) check OK
+   n=4 m=64 c=1,64,1: height 192 (bound 408, plain 282) check OK
+   n=16 m=16 c=1,8,2: height 153 (bound 252, plain 282) check OK
+   n=2 m=128 c=1,64,2: height 205 (bound 500, plain 282) check OK
+D=-200008 inv=123 deg=48 plain height 230 (bound 515) sqrt=1 cands=7
+   n=24 m=2 c=1,2: height 186 (bound 240, plain 230) check OK
+   n=16 m=3 c=1,3: height 171 (bound 231, plain 230) check OK
+   n=12 m=4 c=1,4: height 181 (bound 221, plain 230) check OK
+   n=8 m=6 c=1,6: height 169 (bound 224, plain 230) check OK
+   n=6 m=8 c=1,8: height 188 (bound 232, plain 230) check OK
+   n=4 m=12 c=1,12: height 185 (bound 240, plain 230) check OK
+   n=2 m=24 c=1,24: height 202 (bound 269, plain 230) check OK
+D=-200011 inv=535 deg=66 plain height 170 (bound 192) sqrt=0 cands=6
+   n=33 m=2 c=2: height 146 (bound 202, plain 170) check OK
+   n=22 m=3 c=3: height 149 (bound 185, plain 170) check OK
+   n=11 m=6 c=6: height 150 (bound 189, plain 170) check OK
+   n=6 m=11 c=11: height 155 (bound 203, plain 170) check OK
+   n=3 m=22 c=22: height 157 (bound 229, plain 170) check OK
+   n=2 m=33 c=33: height 178 (bound 244, plain 170) check OK
+D=-3000003 inv=21 deg=388 plain height 803 (bound 878) sqrt=0 cands=4
+   n=194 m=2 c=2,1: height 574 (bound 844, plain 803) check OK
+   n=194 m=2 c=1,2: height 588 (bound 823, plain 803) check OK
+   n=97 m=4 c=2,2: height 531 (bound 655, plain 803) check OK
+   n=2 m=194 c=97,2: height 825 (bound 1122, plain 803) check OK
+D=-3000004 inv=10 deg=536 plain height 686 (bound 718) sqrt=0 cands=4
+   n=268 m=2 c=1,1,2,1: height 473 (bound 775, plain 686) check OK
+   n=268 m=2 c=1,1,1,2: height 529 (bound 756, plain 686) check OK
+   n=134 m=4 c=1,1,2,2: height 435 (bound 567, plain 686) check OK
+   n=2 m=268 c=1,67,2,2: height 598 (bound 1165, plain 686) check OK
+D=-3000007 inv=1 deg=1120 plain height 902 (bound 949) sqrt=0 cands=22
+   n=28 m=40 c=20,2: height 478 (bound 754, plain 902) check OK
+   n=140 m=8 c=4,2: height 374 (bound 596, plain 902) check OK
+   n=14 m=80 c=40,2: height 572 (bound 951, plain 902) check OK
+   n=7 m=160 c=80,2: height 678 (bound 1263, plain 902) check OK
+   n=70 m=16 c=8,2: height 417 (bound 620, plain 902) check OK
+   n=112 m=10 c=5,2: height 395 (bound 584, plain 902) check OK
+   n=80 m=14 c=7,2: height 394 (bound 586, plain 902) check OK
+   n=35 m=32 c=16,2: height 465 (bound 721, plain 902) check OK
+D=-3000008 inv=23 deg=656 plain height 1233 (bound 1271) sqrt=0 cands=11
+   n=328 m=2 c=1,1,1,2: height 1018 (bound 1368, plain 1233) check OK
+   n=4 m=164 c=1,41,2,2: height 1114 (bound 1361, plain 1233) check OK
+   n=41 m=16 c=2,2,2,2: height 775 (bound 790, plain 1233) check OK
+   n=164 m=4 c=2,1,1,2: height 789 (bound 906, plain 1233) check OK
+   n=164 m=4 c=1,2,1,2: height 773 (bound 909, plain 1233) check OK
+   n=82 m=8 c=2,2,1,2: height 712 (bound 786, plain 1233) check OK
+   n=2 m=328 c=2,41,2,2: height 1228 (bound 1771, plain 1233) check OK
+   n=2 m=328 c=1,82,2,2: height 1151 (bound 1772, plain 1233) check OK
+D=-3000011 inv=141 deg=308 plain height 926 (bound 2102) sqrt=1 cands=4
+   n=154 m=2 c=1,2: height 669 (bound 917, plain 926) check OK
+   n=77 m=4 c=1,4: height 574 (bound 736, plain 926) check OK
+   n=11 m=28 c=7,4: height 650 (bound 846, plain 926) check OK
+   n=7 m=44 c=11,4: height 691 (bound 926, plain 926) check OK
+D=-3000019 inv=111 deg=160 plain height 1935 (bound 4019) sqrt=1 cands=10
+   n=40 m=4 c=4: height 1270 (bound 1451, plain 1935) check OK
+   n=10 m=16 c=16: height 1419 (bound 1572, plain 1935) check OK
+   n=5 m=32 c=32: height 1507 (bound 1717, plain 1935) check OK
+   n=16 m=10 c=10: height 1309 (bound 1478, plain 1935) check OK
+   n=2 m=80 c=80: height 1720 (bound 1960, plain 1935) check OK
+   n=8 m=20 c=20: height 1446 (bound 1607, plain 1935) check OK
+   n=20 m=8 c=8: height 1283 (bound 1455, plain 1935) check OK
+   n=80 m=2 c=2: height 1480 (bound 1624, plain 1935) check OK
+D=-40000003 inv=171 deg=779 plain height 1944 (bound 2009) sqrt=0 cands=2
+   n=41 m=19 c=19: height 1222 (bound 1455, plain 1944) check OK
+   n=19 m=41 c=41: height 1314 (bound 1648, plain 1944) check OK
+D=-40000004 inv=10 deg=2892 plain height 4231 (bound 4435) sqrt=0 cands=14
+   n=241 m=12 c=2,6: height 2202 (bound 2370, plain 4231) check OK
+   n=4 m=723 c=1,723: height 3826 (bound 5059, plain 4231) check OK
+   n=12 m=241 c=1,241: height 3231 (bound 3621, plain 4231) check OK
+   n=2 m=1446 c=2,723: height 4187 (bound 6779, plain 4231) check OK
+   n=2 m=1446 c=1,1446: height 4013 (bound 6790, plain 4231) check OK
+   n=723 m=4 c=2,2: height 2092 (bound 2829, plain 4231) check OK
+   n=6 m=482 c=1,482: height 3552 (bound 5051, plain 4231) check OK
+   n=3 m=964 c=2,482: height 4019 (bound 6275, plain 4231) check OK
+D=-40000007 inv=1 deg=4858 plain height 5172 (bound 5284) sqrt=0 cands=3
+   n=2429 m=2 c=1,2: height 4023 (bound 6537, plain 5172) check OK
+   n=347 m=14 c=7,2: height 1641 (bound 2258, plain 5172) check OK
+   n=7 m=694 c=347,2: height 3203 (bound 5542, plain 5172) check OK
+D=-40000008 inv=147 deg=960 plain height 3094 (bound 6709) sqrt=1 cands=14
+   n=32 m=30 c=2,1,1,3,5: height 1786 (bound 2152, plain 3094) check OK
+   n=4 m=240 c=2,1,8,3,5: height 2260 (bound 3154, plain 3094) check OK
+   n=64 m=15 c=1,1,1,3,5: height 1913 (bound 2209, plain 3094) check OK
+   n=16 m=60 c=1,1,4,3,5: height 1820 (bound 2284, plain 3094) check OK
+   n=192 m=5 c=1,1,1,1,5: height 2107 (bound 2443, plain 3094) check OK
+   n=8 m=120 c=2,1,4,3,5: height 2037 (bound 2696, plain 3094) check OK
+   n=2 m=480 c=1,2,16,3,5: height 2362 (bound 3504, plain 3094) check OK
+   n=32 m=30 c=1,1,2,3,5: height 1675 (bound 2037, plain 3094) check OK
+D=-40000011 inv=171 deg=1632 plain height 3706 (bound 3853) sqrt=0 cands=32
+   n=204 m=8 c=2,2,2: height 1604 (bound 2195, plain 3706) check OK
+   n=12 m=136 c=2,34,2: height 2433 (bound 3331, plain 3706) check OK
+   n=4 m=408 c=2,102,2: height 3006 (bound 4285, plain 3706) check OK
+   n=816 m=2 c=1,1,2: height 2372 (bound 3297, plain 3706) check OK
+   n=272 m=6 c=1,3,2: height 1529 (bound 2259, plain 3706) check OK
+   n=6 m=272 c=1,136,2: height 2518 (bound 3644, plain 3706) check OK
+   n=4 m=408 c=1,204,2: height 2722 (bound 4033, plain 3706) check OK
+   n=8 m=204 c=2,51,2: height 2581 (bound 3639, plain 3706) check OK
+D=-40000015 inv=1 deg=3964 plain height 4099 (bound 4223) sqrt=0 cands=6
+   n=1982 m=2 c=2,1: height 2714 (bound 4824, plain 4099) check OK
+   n=1982 m=2 c=1,2: height 2293 (bound 4486, plain 4099) check OK
+   n=991 m=4 c=2,2: height 1672 (bound 2887, plain 4099) check OK
+   n=4 m=991 c=1,991: height 3317 (bound 6051, plain 4099) check OK
+   n=2 m=1982 c=2,991: height 3944 (bound 7615, plain 4099) check OK
+   n=2 m=1982 c=1,1982: height 3726 (bound 7444, plain 4099) check OK
+D=-300000003 inv=117 deg=1536 plain height 15995 (bound 32878) sqrt=1 cands=9
+   n=768 m=2 c=1,1,1,2: height 12569 (bound 13682, plain 15995) check OK
+   n=4 m=384 c=1,64,3,2: height 12117 (bound 13769, plain 15995) check OK
+   n=16 m=96 c=1,16,3,2: height 10362 (bound 11419, plain 15995) check OK
+   n=64 m=24 c=1,4,3,2: height 9316 (bound 10018, plain 15995) check OK
+   n=8 m=192 c=1,32,3,2: height 11149 (bound 12464, plain 15995) check OK
+   n=128 m=12 c=1,2,3,2: height 8966 (bound 9820, plain 15995) check OK
+   n=32 m=48 c=1,8,3,2: height 9977 (bound 10664, plain 15995) check OK
+   n=2 m=768 c=1,128,3,2: height 13333 (bound 15239, plain 15995) check OK
+D=-300000004 inv=10 deg=5956 plain height 9733 (bound 10132) sqrt=0 cands=4
+   n=2978 m=2 c=2,1: height 5985 (bound 9336, plain 9733) check OK
+   n=2978 m=2 c=1,2: height 6891 (bound 9190, plain 9733) check OK
+   n=1489 m=4 c=2,2: height 4704 (bound 6034, plain 9733) check OK
+   n=2 m=2978 c=1489,2: height 9659 (bound 15163, plain 9733) check OK
+D=-300000007 inv=1 deg=7817 plain height 9502 (bound 9888) sqrt=0 cands=0
+D=-100004 inv=0 deg=152 plain height 7888 (bound 7983) sqrt=0 cands=8
+   n=76 m=2 c=1,2,1: height 5180 (bound 5324, plain 7888) check OK
+   n=76 m=2 c=1,1,2: height 5692 (bound 5839, plain 7888) check OK
+   n=38 m=4 c=2,1,2: height 4682 (bound 4760, plain 7888) check OK
+   n=38 m=4 c=1,2,2: height 4069 (bound 4175, plain 7888) check OK
+   n=19 m=8 c=2,2,2: height 4480 (bound 4554, plain 7888) check OK
+   n=4 m=38 c=1,19,2: height 5271 (bound 5396, plain 7888) check OK
+   n=2 m=76 c=2,19,2: height 6815 (bound 6986, plain 7888) check OK
+   n=2 m=76 c=1,38,2: height 5918 (bound 6092, plain 7888) check OK
+D=-100007 inv=0 deg=336 plain height 14733 (bound 14898) sqrt=0 cands=9
+   n=112 m=3 c=1,3,1: height 8040 (bound 8231, plain 14733) check OK
+   n=14 m=24 c=4,3,2: height 7068 (bound 7203, plain 14733) check OK
+   n=168 m=2 c=1,1,2: height 10628 (bound 10890, plain 14733) check OK
+   n=7 m=48 c=8,3,2: height 8844 (bound 9040, plain 14733) check OK
+   n=56 m=6 c=1,3,2: height 6357 (bound 6487, plain 14733) check OK
+   n=8 m=42 c=7,3,2: height 8562 (bound 8745, plain 14733) check OK
+   n=28 m=12 c=2,3,2: height 5712 (bound 5995, plain 14733) check OK
+   n=4 m=84 c=14,3,2: height 10083 (bound 10348, plain 14733) check OK
+D=-100011 inv=0 deg=72 plain height 4388 (bound 4430) sqrt=0 cands=14
+   n=18 m=4 c=2,1,2: height 3036 (bound 3090, plain 4388) check OK
+   n=36 m=2 c=1,2,1: height 3071 (bound 3134, plain 4388) check OK
+   n=3 m=24 c=2,6,2: height 3669 (bound 3741, plain 4388) check OK
+   n=6 m=12 c=2,3,2: height 3237 (bound 3297, plain 4388) check OK
+   n=2 m=36 c=1,18,2: height 3691 (bound 3774, plain 4388) check OK
+   n=36 m=2 c=1,1,2: height 3523 (bound 3588, plain 4388) check OK
+   n=36 m=2 c=2,1,1: height 3511 (bound 3582, plain 4388) check OK
+   n=18 m=4 c=2,2,1: height 3065 (bound 3117, plain 4388) check OK
+D=-600004 inv=5 deg=256 plain height 5215 (bound 5264) sqrt=0 cands=7
+   n=128 m=2 c=1,1,2: height 3736 (bound 3905, plain 5215) check OK
+   n=64 m=4 c=1,2,2: height 2903 (bound 3006, plain 5215) check OK
+   n=32 m=8 c=1,4,2: height 2941 (bound 3030, plain 5215) check OK
+   n=16 m=16 c=1,8,2: height 3184 (bound 3287, plain 5215) check OK
+   n=8 m=32 c=1,16,2: height 3253 (bound 3393, plain 5215) check OK
+   n=4 m=64 c=1,32,2: height 3561 (bound 3774, plain 5215) check OK
+   n=2 m=128 c=1,64,2: height 4041 (bound 4308, plain 5215) check OK
+D=-600007 inv=5 deg=198 plain height 4896 (bound 4947) sqrt=0 cands=10
+   n=99 m=2 c=2,1: height 3427 (bound 3568, plain 4896) check OK
+   n=6 m=33 c=11,3: height 3973 (bound 4102, plain 4896) check OK
+   n=3 m=66 c=22,3: height 4265 (bound 4440, plain 4896) check OK
+   n=66 m=3 c=3,1: height 3202 (bound 3305, plain 4896) check OK
+   n=22 m=9 c=3,3: height 3113 (bound 3192, plain 4896) check OK
+   n=11 m=18 c=6,3: height 3651 (bound 3750, plain 4896) check OK
+   n=2 m=99 c=33,3: height 4479 (bound 4694, plain 4896) check OK
+   n=33 m=6 c=2,3: height 3027 (bound 3124, plain 4896) check OK
+D=-600008 inv=5 deg=320 plain height 6992 (bound 7049) sqrt=0 cands=12
+   n=160 m=2 c=1,2,1: height 5016 (bound 5229, plain 6992) check OK
+   n=16 m=20 c=1,4,5: height 3801 (bound 3921, plain 6992) check OK
+   n=4 m=80 c=2,8,5: height 5475 (bound 5732, plain 6992) check OK
+   n=2 m=160 c=2,16,5: height 6177 (bound 6513, plain 6992) check OK
+   n=64 m=5 c=1,1,5: height 3862 (bound 3975, plain 6992) check OK
+   n=32 m=10 c=1,2,5: height 3467 (bound 3569, plain 6992) check OK
+   n=2 m=160 c=1,32,5: height 5223 (bound 5545, plain 6992) check OK
+   n=32 m=10 c=2,1,5: height 3909 (bound 4014, plain 6992) check OK
+D=-3000091 inv=159 deg=251 plain height 509 (bound 1128) sqrt=1 cands=0
+D=-3000327 inv=159 deg=400 plain height 886 (bound 1948) sqrt=1 cands=34
+   n=10 m=40 c=20,1,2: height 553 (bound 791, plain 886) check OK
+   n=10 m=40 c=20,2,1: height 611 (bound 841, plain 886) check OK
+   n=20 m=20 c=20,1,1: height 502 (bound 676, plain 886) check OK
+   n=10 m=40 c=10,2,2: height 614 (bound 859, plain 886) check OK
+   n=4 m=100 c=25,2,2: height 729 (bound 1085, plain 886) check OK
+   n=20 m=20 c=5,2,2: height 524 (bound 699, plain 886) check OK
+   n=100 m=4 c=2,1,2: height 460 (bound 626, plain 886) check OK
+   n=2 m=200 c=50,2,2: height 832 (bound 1271, plain 886) check OK
+D=-3000504 inv=26 deg=392 plain height 589 (bound 1239) sqrt=1 cands=14
+   n=49 m=8 c=2,2,2: height 352 (bound 440, plain 589) check OK
+   n=196 m=2 c=2,1,1: height 441 (bound 666, plain 589) check OK
+   n=14 m=28 c=1,14,2: height 386 (bound 508, plain 589) check OK
+   n=196 m=2 c=1,1,2: height 498 (bound 637, plain 589) check OK
+   n=196 m=2 c=1,2,1: height 391 (bound 617, plain 589) check OK
+   n=2 m=196 c=1,98,2: height 462 (bound 901, plain 589) check OK
+   n=98 m=4 c=2,1,2: height 386 (bound 481, plain 589) check OK
+   n=14 m=28 c=2,7,2: height 400 (bound 540, plain 589) check OK
+D=-3000247 inv=171 deg=552 plain height 912 (bound 1890) sqrt=1 cands=11
+   n=46 m=12 c=6,2: height 413 (bound 602, plain 912) check OK
+   n=3 m=184 c=92,2: height 738 (bound 1205, plain 912) check OK
+   n=276 m=2 c=1,2: height 569 (bound 895, plain 912) check OK
+   n=4 m=138 c=69,2: height 708 (bound 1146, plain 912) check OK
+   n=92 m=6 c=3,2: height 379 (bound 607, plain 912) check OK
+   n=23 m=24 c=12,2: height 457 (bound 663, plain 912) check OK
+   n=138 m=4 c=2,2: height 412 (bound 646, plain 912) check OK
+   n=69 m=8 c=4,2: height 382 (bound 593, plain 912) check OK
+D=-3000531 inv=171 deg=228 plain height 456 (bound 917) sqrt=1 cands=5
+   n=114 m=2 c=1,1,2: height 322 (bound 463, plain 456) check OK
+   n=76 m=3 c=1,3,1: height 277 (bound 416, plain 456) check OK
+   n=38 m=6 c=1,3,2: height 259 (bound 358, plain 456) check OK
+   n=6 m=38 c=1,19,2: height 314 (bound 475, plain 456) check OK
+   n=2 m=114 c=1,57,2: height 384 (bound 616, plain 456) check OK
+D=-3000815 inv=171 deg=1128 plain height 1694 (bound 3505) sqrt=1 cands=12
+   n=94 m=12 c=6,1,2: height 550 (bound 816, plain 1694) check OK
+   n=564 m=2 c=1,1,2: height 1095 (bound 1771, plain 1694) check OK
+   n=141 m=8 c=2,2,2: height 481 (bound 790, plain 1694) check OK
+   n=6 m=188 c=47,2,2: height 1141 (bound 1864, plain 1694) check OK
+   n=282 m=4 c=2,1,2: height 639 (bound 1060, plain 1694) check OK
+   n=188 m=6 c=3,1,2: height 569 (bound 891, plain 1694) check OK
+   n=282 m=4 c=1,2,2: height 686 (bound 1090, plain 1694) check OK
+   n=94 m=12 c=3,2,2: height 506 (bound 779, plain 1694) check OK
+D=-3000104 inv=147 deg=584 plain height 1287 (bound 2946) sqrt=1 cands=3
+   n=292 m=2 c=1,1,2: height 757 (bound 1207, plain 1287) check OK
+   n=146 m=4 c=1,1,4: height 654 (bound 910, plain 1287) check OK
+   n=2 m=292 c=1,73,4: height 966 (bound 1670, plain 1287) check OK
+D=-3000151 inv=147 deg=492 plain height 1243 (bound 2736) sqrt=1 cands=8
+   n=246 m=2 c=2,1: height 779 (bound 1098, plain 1243) check OK
+   n=246 m=2 c=1,2: height 832 (bound 1184, plain 1243) check OK
+   n=123 m=4 c=2,2: height 604 (bound 814, plain 1243) check OK
+   n=82 m=6 c=3,2: height 576 (bound 768, plain 1243) check OK
+   n=41 m=12 c=6,2: height 652 (bound 851, plain 1243) check OK
+   n=6 m=82 c=41,2: height 868 (bound 1216, plain 1243) check OK
+   n=3 m=164 c=82,2: height 1047 (bound 1533, plain 1243) check OK
+   n=2 m=246 c=123,2: height 1075 (bound 1656, plain 1243) check OK
+D=-3000292 inv=147 deg=168 plain height 498 (bound 1087) sqrt=1 cands=11
+   n=6 m=28 c=1,28: height 378 (bound 505, plain 498) check OK
+   n=2 m=84 c=1,84: height 422 (bound 621, plain 498) check OK
+   n=8 m=21 c=1,21: height 357 (bound 469, plain 498) check OK
+   n=24 m=7 c=1,7: height 336 (bound 420, plain 498) check OK
+   n=28 m=6 c=1,6: height 341 (bound 426, plain 498) check OK
+   n=56 m=3 c=1,3: height 334 (bound 435, plain 498) check OK
+   n=14 m=12 c=1,12: height 353 (bound 448, plain 498) check OK
+   n=12 m=14 c=1,14: height 341 (bound 445, plain 498) check OK
+D=-3000095 inv=1 deg=1844 plain height 1465 (bound 1525) sqrt=0 cands=6
+   n=922 m=2 c=2,1,1: height 931 (bound 1797, plain 1465) check OK
+   n=922 m=2 c=1,2,1: height 827 (bound 1804, plain 1465) check OK
+   n=461 m=4 c=2,2,1: height 631 (bound 1063, plain 1465) check OK
+   n=4 m=461 c=1,1,461: height 1144 (bound 2439, plain 1465) check OK
+   n=2 m=922 c=2,1,461: height 1400 (bound 3122, plain 1465) check OK
+   n=2 m=922 c=1,2,461: height 1374 (bound 3086, plain 1465) check OK
+D=-3000235 inv=535 deg=180 plain height 479 (bound 1060) sqrt=1 cands=14
+   n=9 m=20 c=10,2: height 396 (bound 477, plain 479) check OK
+   n=18 m=10 c=5,2: height 364 (bound 434, plain 479) check OK
+   n=90 m=2 c=2,1: height 373 (bound 497, plain 479) check OK
+   n=15 m=12 c=6,2: height 363 (bound 441, plain 479) check OK
+   n=2 m=90 c=45,2: height 469 (bound 657, plain 479) check OK
+   n=30 m=6 c=6,1: height 350 (bound 426, plain 479) check OK
+   n=6 m=30 c=15,2: height 416 (bound 521, plain 479) check OK
+   n=45 m=4 c=2,2: height 333 (bound 427, plain 479) check OK
+D=-3000340 inv=24 deg=200 plain height 568 (bound 1160) sqrt=1 cands=22
+   n=10 m=20 c=2,10,1: height 441 (bound 527, plain 568) check OK
+   n=10 m=20 c=1,10,2: height 437 (bound 513, plain 568) check OK
+   n=5 m=40 c=2,10,2: height 482 (bound 607, plain 568) check OK
+   n=20 m=10 c=2,5,1: height 422 (bound 469, plain 568) check OK
+   n=2 m=100 c=1,50,2: height 524 (bound 725, plain 568) check OK
+   n=50 m=4 c=2,1,2: height 427 (bound 472, plain 568) check OK
+   n=4 m=50 c=1,25,2: height 496 (bound 619, plain 568) check OK
+   n=4 m=50 c=2,25,1: height 508 (bound 627, plain 568) check OK
+D=-3000036 inv=539 deg=304 plain height 743 (bound 1618) sqrt=1 cands=8
+   n=152 m=2 c=1,1,1,2: height 621 (bound 823, plain 743) check OK
+   n=76 m=4 c=1,1,2,2: height 548 (bound 663, plain 743) check OK
+   n=38 m=8 c=2,1,2,2: height 499 (bound 577, plain 743) check OK
+   n=38 m=8 c=1,2,2,2: height 460 (bound 529, plain 743) check OK
+   n=19 m=16 c=2,2,2,2: height 518 (bound 610, plain 743) check OK
+   n=4 m=76 c=1,19,2,2: height 575 (bound 816, plain 743) check OK
+   n=2 m=152 c=2,19,2,2: height 716 (bound 1026, plain 743) check OK
+   n=2 m=152 c=1,38,2,2: height 580 (bound 939, plain 743) check OK
+D=-3000387 inv=539 deg=160 plain height 430 (bound 892) sqrt=1 cands=14
+   n=20 m=8 c=2,2,2: height 311 (bound 372, plain 430) check OK
+   n=10 m=16 c=4,2,2: height 328 (bound 412, plain 430) check OK
+   n=80 m=2 c=2,1,1: height 331 (bound 432, plain 430) check OK
+   n=8 m=20 c=5,2,2: height 347 (bound 438, plain 430) check OK
+   n=40 m=4 c=2,1,2: height 314 (bound 376, plain 430) check OK
+   n=80 m=2 c=1,1,2: height 358 (bound 467, plain 430) check OK
+   n=2 m=80 c=20,2,2: height 428 (bound 570, plain 430) check OK
+   n=5 m=32 c=8,2,2: height 355 (bound 472, plain 430) check OK
+D=-3000504 inv=26 deg=392 plain height 589 (bound 1239) sqrt=1 cands=14
+   n=49 m=8 c=2,2,2: height 352 (bound 440, plain 589) check OK
+   n=196 m=2 c=2,1,1: height 441 (bound 666, plain 589) check OK
+   n=14 m=28 c=1,14,2: height 386 (bound 508, plain 589) check OK
+   n=196 m=2 c=1,1,2: height 498 (bound 637, plain 589) check OK
+   n=196 m=2 c=1,2,1: height 391 (bound 617, plain 589) check OK
+   n=2 m=196 c=1,98,2: height 462 (bound 901, plain 589) check OK
+   n=98 m=4 c=2,1,2: height 386 (bound 481, plain 589) check OK
+   n=14 m=28 c=2,7,2: height 400 (bound 540, plain 589) check OK
+D=-3000036 inv=539 deg=304 plain height 743 (bound 1618) sqrt=1 cands=8
+   n=152 m=2 c=1,1,1,2: height 621 (bound 823, plain 743) check OK
+   n=76 m=4 c=1,1,2,2: height 548 (bound 663, plain 743) check OK
+   n=38 m=8 c=2,1,2,2: height 499 (bound 577, plain 743) check OK
+   n=38 m=8 c=1,2,2,2: height 460 (bound 529, plain 743) check OK
+   n=19 m=16 c=2,2,2,2: height 518 (bound 610, plain 743) check OK
+   n=4 m=76 c=1,19,2,2: height 575 (bound 816, plain 743) check OK
+   n=2 m=152 c=2,19,2,2: height 716 (bound 1026, plain 743) check OK
+   n=2 m=152 c=1,38,2,2: height 580 (bound 939, plain 743) check OK
+D=-3000244 inv=10 deg=408 plain height 600 (bound 590) sqrt=0 cands=10
+   n=204 m=2 c=1,1,2,1: height 463 (bound 631, plain 600) check OK
+   n=2 m=204 c=1,51,2,2: height 537 (bound 940, plain 600) check OK
+   n=6 m=68 c=1,17,2,2: height 468 (bound 689, plain 600) check OK
+   n=204 m=2 c=1,1,1,2: height 436 (bound 653, plain 600) check OK
+   n=3 m=136 c=2,17,2,2: height 539 (bound 841, plain 600) check OK
+   n=51 m=8 c=2,1,2,2: height 383 (bound 472, plain 600) check OK
+   n=102 m=4 c=1,1,2,2: height 403 (bound 491, plain 600) check OK
+   n=68 m=6 c=1,3,2,1: height 376 (bound 469, plain 600) check OK
+D=-3000296 inv=26 deg=612 plain height 877 (bound 1852) sqrt=1 cands=12
+   n=306 m=2 c=2,1: height 555 (bound 870, plain 877) check OK
+   n=9 m=68 c=34,2: height 582 (bound 857, plain 877) check OK
+   n=306 m=2 c=1,2: height 550 (bound 873, plain 877) check OK
+   n=51 m=12 c=6,2: height 463 (bound 541, plain 877) check OK
+   n=2 m=306 c=153,2: height 809 (bound 1428, plain 877) check OK
+   n=3 m=204 c=102,2: height 739 (bound 1272, plain 877) check OK
+   n=17 m=36 c=18,2: height 539 (bound 729, plain 877) check OK
+   n=153 m=4 c=2,2: height 417 (bound 606, plain 877) check OK
+D=-3438435 inv=539 deg=192 plain height 482 (bound 1050) sqrt=1 cands=46
+   n=4 m=48 c=2,2,2,2,3: height 433 (bound 562, plain 482) check OK
+   n=8 m=24 c=2,1,2,2,3: height 388 (bound 471, plain 482) check OK
+   n=16 m=12 c=1,2,2,1,3: height 385 (bound 427, plain 482) check OK
+   n=8 m=24 c=2,1,1,4,3: height 401 (bound 464, plain 482) check OK
+   n=2 m=96 c=2,2,2,4,3: height 467 (bound 661, plain 482) check OK
+   n=12 m=16 c=2,1,1,8,1: height 393 (bound 460, plain 482) check OK
+   n=48 m=4 c=1,1,2,2,1: height 359 (bound 420, plain 482) check OK
+   n=32 m=6 c=1,2,1,1,3: height 376 (bound 441, plain 482) check OK
+D=-3483480 inv=26 deg=288 plain height 475 (bound 1019) sqrt=1 cands=94
+   n=36 m=8 c=1,2,1,2,2: height 323 (bound 388, plain 475) check OK
+   n=8 m=36 c=1,1,1,2,18: height 380 (bound 499, plain 475) check OK
+   n=144 m=2 c=1,1,1,1,2: height 388 (bound 517, plain 475) check OK
+   n=72 m=4 c=2,1,1,2,1: height 352 (bound 398, plain 475) check OK
+   n=4 m=72 c=1,1,2,2,18: height 397 (bound 592, plain 475) check OK
+   n=8 m=36 c=1,2,1,2,9: height 380 (bound 504, plain 475) check OK
+   n=12 m=24 c=2,2,1,2,3: height 367 (bound 443, plain 475) check OK
+   n=12 m=24 c=2,2,2,1,3: height 368 (bound 457, plain 475) check OK
+D=-30002280 inv=27 deg=928 plain height 3007 (bound 6337) sqrt=1 cands=18
+   n=4 m=232 c=2,1,1,29,2,2: height 2483 (bound 3162, plain 3007) check OK
+   n=8 m=116 c=1,1,1,29,2,2: height 2272 (bound 2688, plain 3007) check OK
+   n=232 m=4 c=1,1,1,1,2,2: height 2035 (bound 2217, plain 3007) check OK
+   n=2 m=464 c=2,1,2,29,2,2: height 2641 (bound 3640, plain 3007) check OK
+   n=4 m=232 c=1,2,2,29,1,2: height 2412 (bound 3085, plain 3007) check OK
+   n=4 m=232 c=2,1,2,29,1,2: height 2482 (bound 3169, plain 3007) check OK
+   n=4 m=232 c=1,2,1,29,2,2: height 2364 (bound 3077, plain 3007) check OK
+   n=8 m=116 c=2,1,1,29,1,2: height 2338 (bound 2747, plain 3007) check OK
+D=-30025380 inv=535 deg=800 plain height 2605 (bound 5720) sqrt=1 cands=62
+   n=50 m=16 c=2,2,1,2,2: height 1706 (bound 1824, plain 2605) check OK
+   n=100 m=8 c=1,1,2,2,2: height 1676 (bound 1758, plain 2605) check OK
+   n=20 m=40 c=1,1,2,10,2: height 1866 (bound 1971, plain 2605) check OK
+   n=10 m=80 c=2,1,2,10,2: height 1953 (bound 2228, plain 2605) check OK
+   n=100 m=8 c=1,2,2,1,2: height 1632 (bound 1691, plain 2605) check OK
+   n=200 m=4 c=2,1,1,1,2: height 1740 (bound 1989, plain 2605) check OK
+   n=50 m=16 c=2,2,2,1,2: height 1758 (bound 1816, plain 2605) check OK
+   n=40 m=20 c=2,1,1,5,2: height 1690 (bound 1797, plain 2605) check OK
+D=-20000040 inv=159 deg=1120 plain height 3049 (bound 3278) sqrt=0 cands=22
+   n=56 m=20 c=1,2,1,5,2: height 1405 (bound 1909, plain 3049) check OK
+   n=2 m=560 c=2,2,1,70,2: height 2580 (bound 3911, plain 3049) check OK
+   n=28 m=40 c=1,2,1,10,2: height 1522 (bound 2113, plain 3049) check OK
+   n=80 m=14 c=1,1,1,7,2: height 1412 (bound 2128, plain 3049) check OK
+   n=140 m=8 c=1,2,1,2,2: height 1448 (bound 2115, plain 3049) check OK
+   n=8 m=140 c=1,2,1,35,2: height 1814 (bound 2686, plain 3049) check OK
+   n=4 m=280 c=1,2,1,70,2: height 1992 (bound 3145, plain 3049) check OK
+   n=40 m=28 c=1,1,1,14,2: height 1494 (bound 2247, plain 3049) check OK
+D=-20000055 inv=14 deg=3096 plain height 4497 (bound 4774) sqrt=0 cands=12
+   n=1548 m=2 c=1,2,1,1,1: height 2713 (bound 4314, plain 4497) check OK
+   n=258 m=12 c=1,2,1,2,3: height 1953 (bound 2103, plain 4497) check OK
+   n=2 m=1548 c=1,2,43,6,3: height 3691 (bound 6747, plain 4497) check OK
+   n=2 m=1548 c=2,1,43,6,3: height 3666 (bound 7014, plain 4497) check OK
+   n=172 m=18 c=1,2,1,3,3: height 1861 (bound 2175, plain 4497) check OK
+   n=86 m=36 c=1,2,1,6,3: height 2176 (bound 2487, plain 4497) check OK
+   n=516 m=6 c=1,1,1,2,3: height 1957 (bound 2388, plain 4497) check OK
+   n=172 m=18 c=1,1,1,6,3: height 1955 (bound 2269, plain 4497) check OK
+D=-20000235 inv=21 deg=1320 plain height 2884 (bound 3119) sqrt=0 cands=20
+   n=660 m=2 c=1,1,2,1: height 2160 (bound 2699, plain 2884) check OK
+   n=220 m=6 c=1,1,2,3: height 1552 (bound 1941, plain 2884) check OK
+   n=110 m=12 c=2,1,2,3: height 1527 (bound 1768, plain 2884) check OK
+   n=55 m=24 c=2,2,2,3: height 1593 (bound 1869, plain 2884) check OK
+   n=2 m=660 c=2,55,2,3: height 2768 (bound 4100, plain 2884) check OK
+   n=220 m=6 c=1,2,1,3: height 1538 (bound 1925, plain 2884) check OK
+   n=440 m=3 c=1,1,1,3: height 1718 (bound 2520, plain 2884) check OK
+   n=10 m=132 c=1,22,2,3: height 2003 (bound 2597, plain 2884) check OK
+D=-20000127 inv=14 deg=3136 plain height 4282 (bound 4510) sqrt=0 cands=30
+   n=392 m=8 c=1,2,2,2: height 1668 (bound 2096, plain 4282) check OK
+   n=196 m=16 c=2,2,2,2: height 1819 (bound 1982, plain 4282) check OK
+   n=196 m=16 c=1,4,2,2: height 1723 (bound 1995, plain 4282) check OK
+   n=1568 m=2 c=1,1,2,1: height 2500 (bound 4181, plain 4282) check OK
+   n=14 m=224 c=1,56,2,2: height 2559 (bound 3578, plain 4282) check OK
+   n=392 m=8 c=2,2,2,1: height 1877 (bound 2185, plain 4282) check OK
+   n=49 m=64 c=2,8,2,2: height 2338 (bound 2726, plain 4282) check OK
+   n=784 m=4 c=1,1,2,2: height 1979 (bound 2825, plain 4282) check OK
+D=-20000148 inv=26 deg=1056 plain height 2085 (bound 2184) sqrt=0 cands=46
+   n=88 m=12 c=1,2,2,3: height 1199 (bound 1391, plain 2085) check OK
+   n=44 m=24 c=1,1,4,6: height 1227 (bound 1465, plain 2085) check OK
+   n=2 m=528 c=1,2,44,6: height 1637 (bound 2834, plain 2085) check OK
+   n=88 m=12 c=2,2,1,3: height 1377 (bound 1480, plain 2085) check OK
+   n=22 m=48 c=1,2,4,6: height 1347 (bound 1630, plain 2085) check OK
+   n=8 m=132 c=1,1,22,6: height 1485 (bound 2016, plain 2085) check OK
+   n=22 m=48 c=2,2,2,6: height 1487 (bound 1739, plain 2085) check OK
+   n=11 m=96 c=2,2,4,6: height 1657 (bound 2044, plain 2085) check OK
+D=-20000463 inv=14 deg=2136 plain height 3545 (bound 3658) sqrt=0 cands=18
+   n=178 m=12 c=1,6,2: height 1576 (bound 1834, plain 3545) check OK
+   n=178 m=12 c=2,3,2: height 1758 (bound 2036, plain 3545) check OK
+   n=12 m=178 c=1,89,2: height 2241 (bound 2994, plain 3545) check OK
+   n=1068 m=2 c=1,1,2: height 2423 (bound 3249, plain 3545) check OK
+   n=534 m=4 c=1,2,2: height 1838 (bound 2255, plain 3545) check OK
+   n=3 m=712 c=2,178,2: height 3153 (bound 4862, plain 3545) check OK
+   n=2 m=1068 c=1,534,2: height 2875 (bound 4976, plain 3545) check OK
+   n=6 m=356 c=1,178,2: height 2450 (bound 3604, plain 3545) check OK
+D=-1000020 inv=535 deg=160 plain height 420 (bound 940) sqrt=1 cands=15
+   n=2 m=80 c=2,2,4,5: height 420 (bound 565, plain 420) check OK
+   n=2 m=80 c=2,1,8,5: height 359 (bound 548, plain 420) check OK
+   n=8 m=20 c=1,1,4,5: height 338 (bound 428, plain 420) check OK
+   n=8 m=20 c=2,1,2,5: height 310 (bound 378, plain 420) check OK
+   n=8 m=20 c=2,2,1,5: height 347 (bound 401, plain 420) check OK
+   n=4 m=40 c=1,1,8,5: height 336 (bound 465, plain 420) check OK
+   n=16 m=10 c=2,1,1,5: height 312 (bound 356, plain 420) check OK
+   n=32 m=5 c=1,1,1,5: height 333 (bound 406, plain 420) check OK
+D=-1000027 inv=119 deg=84 plain height 558 (bound 1167) sqrt=1 cands=8
+   n=42 m=2 c=1,2,1: height 428 (bound 508, plain 558) check OK
+   n=28 m=3 c=1,1,3: height 408 (bound 479, plain 558) check OK
+   n=14 m=6 c=2,1,3: height 388 (bound 473, plain 558) check OK
+   n=14 m=6 c=1,2,3: height 373 (bound 444, plain 558) check OK
+   n=7 m=12 c=2,2,3: height 406 (bound 498, plain 558) check OK
+   n=4 m=21 c=1,7,3: height 443 (bound 546, plain 558) check OK
+   n=2 m=42 c=2,7,3: height 503 (bound 611, plain 558) check OK
+   n=2 m=42 c=1,14,3: height 491 (bound 608, plain 558) check OK
+D=-1000036 inv=129 deg=96 plain height 449 (bound 1013) sqrt=1 cands=11
+   n=12 m=8 c=1,4,2: height 332 (bound 420, plain 449) check OK
+   n=48 m=2 c=1,1,2: height 396 (bound 489, plain 449) check OK
+   n=24 m=4 c=1,1,4: height 381 (bound 450, plain 449) check OK
+   n=24 m=4 c=1,4,1: height 340 (bound 420, plain 449) check OK
+   n=24 m=4 c=1,2,2: height 307 (bound 420, plain 449) check OK
+   n=6 m=16 c=1,4,4: height 347 (bound 447, plain 449) check OK
+   n=48 m=2 c=1,2,1: height 327 (bound 457, plain 449) check OK
+   n=8 m=12 c=1,3,4: height 329 (bound 430, plain 449) check OK
+D=-1000040 inv=10 deg=344 plain height 336 (bound 716) sqrt=1 cands=6
+   n=172 m=2 c=2,1: height 261 (bound 423, plain 336) check OK
+   n=172 m=2 c=1,2: height 220 (bound 419, plain 336) check OK
+   n=86 m=4 c=2,2: height 191 (bound 296, plain 336) check OK
+   n=86 m=4 c=1,4: height 204 (bound 316, plain 336) check OK
+   n=43 m=8 c=2,4: height 193 (bound 284, plain 336) check OK
+   n=2 m=172 c=43,4: height 371 (bound 649, plain 336) check OK
+D=-5000008 inv=26 deg=260 plain height 461 (bound 967) sqrt=1 cands=8
+   n=130 m=2 c=2,1: height 344 (bound 499, plain 461) check OK
+   n=130 m=2 c=1,2: height 360 (bound 519, plain 461) check OK
+   n=65 m=4 c=2,2: height 319 (bound 406, plain 461) check OK
+   n=26 m=10 c=5,2: height 322 (bound 405, plain 461) check OK
+   n=13 m=20 c=10,2: height 374 (bound 441, plain 461) check OK
+   n=10 m=26 c=13,2: height 366 (bound 475, plain 461) check OK
+   n=5 m=52 c=26,2: height 395 (bound 563, plain 461) check OK
+   n=2 m=130 c=65,2: height 450 (bound 703, plain 461) check OK
+D=-5000052 inv=131 deg=240 plain height 1141 (bound 2532) sqrt=1 cands=24
+   n=16 m=15 c=1,1,15: height 824 (bound 974, plain 1141) check OK
+   n=4 m=60 c=2,1,30: height 893 (bound 1153, plain 1141) check OK
+   n=40 m=6 c=1,1,6: height 780 (bound 949, plain 1141) check OK
+   n=30 m=8 c=2,1,4: height 746 (bound 898, plain 1141) check OK
+   n=120 m=2 c=1,1,2: height 829 (bound 1115, plain 1141) check OK
+   n=48 m=5 c=1,1,5: height 770 (bound 954, plain 1141) check OK
+   n=24 m=10 c=2,1,5: height 746 (bound 900, plain 1141) check OK
+   n=40 m=6 c=2,1,3: height 746 (bound 897, plain 1141) check OK
+D=-5000072 inv=27 deg=528 plain height 1457 (bound 3101) sqrt=1 cands=16
+   n=176 m=3 c=1,1,3: height 1014 (bound 1252, plain 1457) check OK
+   n=44 m=12 c=4,1,3: height 843 (bound 886, plain 1457) check OK
+   n=22 m=24 c=4,2,3: height 923 (bound 1040, plain 1457) check OK
+   n=8 m=66 c=11,2,3: height 1156 (bound 1353, plain 1457) check OK
+   n=44 m=12 c=2,2,3: height 822 (bound 893, plain 1457) check OK
+   n=22 m=24 c=8,1,3: height 937 (bound 1054, plain 1457) check OK
+   n=8 m=66 c=22,1,3: height 1149 (bound 1203, plain 1457) check OK
+   n=4 m=132 c=22,2,3: height 1306 (bound 1596, plain 1457) check OK
+D=-5000116 inv=10 deg=672 plain height 897 (bound 922) sqrt=0 cands=62
+   n=16 m=42 c=1,21,2: height 626 (bound 775, plain 897) check OK
+   n=12 m=56 c=2,7,4: height 645 (bound 852, plain 897) check OK
+   n=21 m=32 c=2,2,8: height 594 (bound 732, plain 897) check OK
+   n=4 m=168 c=1,21,8: height 749 (bound 1248, plain 897) check OK
+   n=84 m=8 c=2,2,2: height 489 (bound 615, plain 897) check OK
+   n=84 m=8 c=1,2,4: height 520 (bound 639, plain 897) check OK
+   n=14 m=48 c=2,3,8: height 654 (bound 823, plain 897) check OK
+   n=168 m=4 c=2,1,2: height 530 (bound 737, plain 897) check OK
+D=-30000007 inv=1 deg=1528 plain height 1860 (bound 1905) sqrt=0 cands=14
+   n=764 m=2 c=2,1,1: height 1237 (bound 2028, plain 1860) check OK
+   n=2 m=764 c=382,2,1: height 1854 (bound 3261, plain 1860) check OK
+   n=382 m=4 c=1,2,2: height 1317 (bound 1755, plain 1860) check OK
+   n=4 m=382 c=191,1,2: height 1626 (bound 2740, plain 1860) check OK
+   n=191 m=8 c=2,2,2: height 989 (bound 1245, plain 1860) check OK
+   n=764 m=2 c=1,1,2: height 1476 (bound 2283, plain 1860) check OK
+   n=382 m=4 c=2,2,1: height 1073 (bound 1486, plain 1860) check OK
+   n=764 m=2 c=1,2,1: height 1503 (bound 2315, plain 1860) check OK
+D=-30000020 inv=24 deg=1308 plain height 3546 (bound 7458) sqrt=1 cands=8
+   n=654 m=2 c=2,1: height 2347 (bound 3026, plain 3546) check OK
+   n=654 m=2 c=1,2: height 2405 (bound 3006, plain 3546) check OK
+   n=327 m=4 c=2,2: height 1891 (bound 2156, plain 3546) check OK
+   n=218 m=6 c=3,2: height 2036 (bound 2066, plain 3546) check OK
+   n=109 m=12 c=6,2: height 1928 (bound 1912, plain 3546) check OK
+   n=6 m=218 c=109,2: height 2992 (bound 3627, plain 3546) check OK
+   n=3 m=436 c=218,2: height 3272 (bound 4267, plain 3546) check OK
+   n=2 m=654 c=327,2: height 3370 (bound 4610, plain 3546) check OK
+D=-30000031 inv=1 deg=4336 plain height 4087 (bound 4279) sqrt=0 cands=11
+   n=271 m=16 c=4,2,2: height 1269 (bound 1911, plain 4087) check OK
+   n=1084 m=4 c=2,1,2: height 1748 (bound 2861, plain 4087) check OK
+   n=2 m=2168 c=542,2,2: height 4021 (bound 8117, plain 4087) check OK
+   n=1084 m=4 c=2,2,1: height 1717 (bound 2876, plain 4087) check OK
+   n=2168 m=2 c=1,1,2: height 2475 (bound 4606, plain 4087) check OK
+   n=542 m=8 c=2,2,2: height 1357 (bound 1985, plain 4087) check OK
+   n=1084 m=4 c=1,2,2: height 1747 (bound 2791, plain 4087) check OK
+   n=2168 m=2 c=2,1,1: height 2684 (bound 4984, plain 4087) check OK
+D=-2000004 inv=0 deg=500 plain height 36970 (bound 37272) sqrt=0 cands=8
+   n=250 m=2 c=1,2,1: height 23851 (bound 24247, plain 36970) check OK
+   n=100 m=5 c=1,1,5: height 19313 (bound 19513, plain 36970) check OK
+   n=50 m=10 c=1,2,5: height 18743 (bound 18894, plain 36970) check OK
+   n=20 m=25 c=1,1,25: height 20851 (bound 21027, plain 36970) check OK
+   n=10 m=50 c=1,2,25: height 22346 (bound 22587, plain 36970) check OK
+   n=4 m=125 c=1,1,125: height 24449 (bound 24839, plain 36970) check OK
+   n=2 m=250 c=2,1,125: height 29382 (bound 29944, plain 36970) check OK
+   n=2 m=250 c=1,2,125: height 27735 (bound 28265, plain 36970) check OK
+D=-2000011 inv=0 deg=340 plain height 23868 (bound 24040) sqrt=0 cands=14
+   n=85 m=4 c=2,2: height 15187 (bound 15351, plain 23868) check OK
+   n=10 m=34 c=34,1: height 15109 (bound 15273, plain 23868) check OK
+   n=170 m=2 c=2,1: height 17103 (bound 17381, plain 23868) check OK
+   n=34 m=10 c=10,1: height 13835 (bound 13948, plain 23868) check OK
+   n=20 m=17 c=17,1: height 14249 (bound 14366, plain 23868) check OK
+   n=10 m=34 c=17,2: height 15388 (bound 15559, plain 23868) check OK
+   n=4 m=85 c=85,1: height 19026 (bound 19288, plain 23868) check OK
+   n=5 m=68 c=34,2: height 16863 (bound 17103, plain 23868) check OK
+D=-2000015 inv=0 deg=1880 plain height 102525 (bound 103637) sqrt=0 cands=22
+   n=188 m=10 c=10,1: height 31234 (bound 31618, plain 102525) check OK
+   n=4 m=470 c=235,2: height 75979 (bound 77399, plain 102525) check OK
+   n=235 m=8 c=4,2: height 31776 (bound 32215, plain 102525) check OK
+   n=470 m=4 c=2,2: height 42584 (bound 43569, plain 102525) check OK
+   n=40 m=47 c=47,1: height 35929 (bound 36285, plain 102525) check OK
+   n=940 m=2 c=2,1: height 57259 (bound 58758, plain 102525) check OK
+   n=20 m=94 c=94,1: height 48070 (bound 48605, plain 102525) check OK
+   n=376 m=5 c=5,1: height 34973 (bound 35615, plain 102525) check OK
+D=-1000020 inv=535 deg=160 plain height 420 (bound 940) sqrt=1 cands=15
+   n=2 m=80 c=2,2,4,5: height 420 (bound 565, plain 420) check OK
+   n=2 m=80 c=2,1,8,5: height 359 (bound 548, plain 420) check OK
+   n=8 m=20 c=1,1,4,5: height 338 (bound 428, plain 420) check OK
+   n=8 m=20 c=2,1,2,5: height 310 (bound 378, plain 420) check OK
+   n=8 m=20 c=2,2,1,5: height 347 (bound 401, plain 420) check OK
+   n=4 m=40 c=1,1,8,5: height 336 (bound 465, plain 420) check OK
+   n=16 m=10 c=2,1,1,5: height 312 (bound 356, plain 420) check OK
+   n=32 m=5 c=1,1,1,5: height 333 (bound 406, plain 420) check OK
+D=-1000155 inv=539 deg=96 plain height 230 (bound 501) sqrt=1 cands=12
+   n=24 m=4 c=1,1,1,2,2: height 195 (bound 232, plain 230) check OK
+   n=48 m=2 c=1,1,2,1,1: height 202 (bound 260, plain 230) check OK
+   n=12 m=8 c=1,1,2,2,2: height 183 (bound 234, plain 230) check OK
+   n=24 m=4 c=1,1,2,2,1: height 191 (bound 232, plain 230) check OK
+   n=24 m=4 c=1,1,2,1,2: height 187 (bound 231, plain 230) check OK
+   n=48 m=2 c=1,1,1,2,1: height 205 (bound 258, plain 230) check OK
+   n=6 m=16 c=1,1,4,2,2: height 199 (bound 258, plain 230) check OK
+   n=4 m=24 c=1,3,4,1,2: height 204 (bound 280, plain 230) check OK
+D=-5000132 inv=159 deg=262 plain height 701 (bound 1495) sqrt=1 cands=1
+   n=2 m=131 c=1,131: height 571 (bound 876, plain 701) check OK
+D=-5000191 inv=159 deg=732 plain height 1498 (bound 3293) sqrt=1 cands=10
+   n=183 m=4 c=4: height 685 (bound 1006, plain 1498) check OK
+   n=12 m=61 c=61: height 886 (bound 1335, plain 1498) check OK
+   n=6 m=122 c=122: height 1059 (bound 1637, plain 1498) check OK
+   n=244 m=3 c=3: height 755 (bound 1117, plain 1498) check OK
+   n=61 m=12 c=12: height 687 (bound 949, plain 1498) check OK
+   n=3 m=244 c=244: height 1268 (bound 1986, plain 1498) check OK
+   n=366 m=2 c=2: height 891 (bound 1382, plain 1498) check OK
+   n=122 m=6 c=6: height 641 (bound 950, plain 1498) check OK
+D=-5000663 inv=159 deg=1060 plain height 2029 (bound 4485) sqrt=1 cands=7
+   n=530 m=2 c=2,1: height 1112 (bound 1846, plain 2029) check OK
+   n=265 m=4 c=4,1: height 913 (bound 1288, plain 2029) check OK
+   n=212 m=5 c=1,5: height 835 (bound 1229, plain 2029) check OK
+   n=106 m=10 c=2,5: height 668 (bound 1006, plain 2029) check OK
+   n=53 m=20 c=4,5: height 816 (bound 1123, plain 2029) check OK
+   n=4 m=265 c=53,5: height 1658 (bound 2517, plain 2029) check OK
+   n=2 m=530 c=106,5: height 1889 (bound 3012, plain 2029) check OK
+D=-5000104 inv=171 deg=318 plain height 631 (bound 1304) sqrt=1 cands=2
+   n=106 m=3 c=1,1,3: height 432 (bound 586, plain 631) check OK
+   n=2 m=159 c=1,53,3: height 503 (bound 833, plain 631) check OK
+D=-5000388 inv=171 deg=308 plain height 615 (bound 1299) sqrt=1 cands=14
+   n=154 m=2 c=2,1,1: height 435 (bound 626, plain 615) check OK
+   n=77 m=4 c=2,2,1: height 379 (bound 514, plain 615) check OK
+   n=22 m=14 c=1,2,7: height 377 (bound 501, plain 615) check OK
+   n=154 m=2 c=1,2,1: height 416 (bound 625, plain 615) check OK
+   n=4 m=77 c=1,1,77: height 469 (bound 711, plain 615) check OK
+   n=11 m=28 c=2,2,7: height 437 (bound 607, plain 615) check OK
+   n=7 m=44 c=2,2,11: height 466 (bound 672, plain 615) check OK
+   n=28 m=11 c=1,1,11: height 383 (bound 505, plain 615) check OK
+D=-5000743 inv=171 deg=380 plain height 856 (bound 1733) sqrt=1 cands=8
+   n=190 m=2 c=2,1: height 550 (bound 767, plain 856) check OK
+   n=190 m=2 c=1,2: height 593 (bound 837, plain 856) check OK
+   n=95 m=4 c=2,2: height 445 (bound 597, plain 856) check OK
+   n=38 m=10 c=5,2: height 479 (bound 623, plain 856) check OK
+   n=19 m=20 c=10,2: height 557 (bound 725, plain 856) check OK
+   n=10 m=38 c=19,2: height 602 (bound 813, plain 856) check OK
+   n=5 m=76 c=38,2: height 678 (bound 945, plain 856) check OK
+   n=2 m=190 c=95,2: height 785 (bound 1167, plain 856) check OK
+D=-5000135 inv=1 deg=2336 plain height 2009 (bound 2077) sqrt=0 cands=34
+   n=4 m=584 c=2,1,146,2: height 1640 (bound 3287, plain 2009) check OK
+   n=8 m=292 c=1,2,73,2: height 1300 (bound 2438, plain 2009) check OK
+   n=8 m=292 c=2,1,73,2: height 1382 (bound 2471, plain 2009) check OK
+   n=1168 m=2 c=1,2,1,1: height 1239 (bound 2365, plain 2009) check OK
+   n=16 m=146 c=1,1,73,2: height 1071 (bound 1798, plain 2009) check OK
+   n=292 m=8 c=2,1,4,1: height 634 (bound 1053, plain 2009) check OK
+   n=4 m=584 c=2,2,73,2: height 1697 (bound 3311, plain 2009) check OK
+   n=292 m=8 c=2,2,2,1: height 646 (bound 1008, plain 2009) check OK
+D=-5000415 inv=535 deg=960 plain height 2174 (bound 4971) sqrt=1 cands=46
+   n=160 m=6 c=6,1: height 1039 (bound 1245, plain 2174) check OK
+   n=80 m=12 c=6,2: height 1135 (bound 1246, plain 2174) check OK
+   n=16 m=60 c=30,2: height 1509 (bound 1692, plain 2174) check OK
+   n=24 m=40 c=20,2: height 1374 (bound 1546, plain 2174) check OK
+   n=5 m=192 c=96,2: height 1907 (bound 2451, plain 2174) check OK
+   n=10 m=96 c=48,2: height 1613 (bound 1893, plain 2174) check OK
+   n=60 m=16 c=8,2: height 1187 (bound 1283, plain 2174) check OK
+   n=120 m=8 c=4,2: height 1064 (bound 1189, plain 2174) check OK
+D=-5000520 inv=27 deg=432 plain height 1186 (bound 2534) sqrt=1 cands=20
+   n=8 m=54 c=1,1,27,2: height 925 (bound 1039, plain 1186) check OK
+   n=54 m=8 c=2,1,2,2: height 698 (bound 799, plain 1186) check OK
+   n=108 m=4 c=2,1,2,1: height 724 (bound 829, plain 1186) check OK
+   n=36 m=12 c=1,1,6,2: height 739 (bound 802, plain 1186) check OK
+   n=12 m=36 c=1,1,18,2: height 832 (bound 935, plain 1186) check OK
+   n=12 m=36 c=2,1,9,2: height 824 (bound 963, plain 1186) check OK
+   n=72 m=6 c=1,1,3,2: height 707 (bound 805, plain 1186) check OK
+   n=216 m=2 c=1,1,1,2: height 997 (bound 1104, plain 1186) check OK
+D=-5000008 inv=26 deg=260 plain height 461 (bound 967) sqrt=1 cands=8
+   n=130 m=2 c=2,1: height 344 (bound 499, plain 461) check OK
+   n=130 m=2 c=1,2: height 360 (bound 519, plain 461) check OK
+   n=65 m=4 c=2,2: height 319 (bound 406, plain 461) check OK
+   n=26 m=10 c=5,2: height 322 (bound 405, plain 461) check OK
+   n=13 m=20 c=10,2: height 374 (bound 441, plain 461) check OK
+   n=10 m=26 c=13,2: height 366 (bound 475, plain 461) check OK
+   n=5 m=52 c=26,2: height 395 (bound 563, plain 461) check OK
+   n=2 m=130 c=65,2: height 450 (bound 703, plain 461) check OK
+D=-5000164 inv=10 deg=632 plain height 817 (bound 849) sqrt=0 cands=5
+   n=316 m=2 c=1,2,1: height 578 (bound 918, plain 817) check OK
+   n=316 m=2 c=1,1,2: height 593 (bound 915, plain 817) check OK
+   n=158 m=4 c=1,2,2: height 505 (bound 686, plain 817) check OK
+   n=4 m=158 c=1,79,2: height 713 (bound 1162, plain 817) check OK
+   n=2 m=316 c=1,158,2: height 745 (bound 1390, plain 817) check OK
+D=-5000216 inv=26 deg=470 plain height 798 (bound 1693) sqrt=1 cands=6
+   n=235 m=2 c=2: height 566 (bound 810, plain 798) check OK
+   n=94 m=5 c=5: height 467 (bound 599, plain 798) check OK
+   n=47 m=10 c=10: height 475 (bound 641, plain 798) check OK
+   n=10 m=47 c=47: height 635 (bound 804, plain 798) check OK
+   n=5 m=94 c=94: height 717 (bound 976, plain 798) check OK
+   n=2 m=235 c=235: height 787 (bound 1227, plain 798) check OK
+D=-5000151 inv=539 deg=904 plain height 1903 (bound 4218) sqrt=1 cands=7
+   n=452 m=2 c=2,1: height 1185 (bound 1741, plain 1903) check OK
+   n=452 m=2 c=1,2: height 1513 (bound 2069, plain 1903) check OK
+   n=226 m=4 c=4,1: height 924 (bound 1239, plain 1903) check OK
+   n=226 m=4 c=2,2: height 1008 (bound 1300, plain 1903) check OK
+   n=113 m=8 c=4,2: height 874 (bound 1075, plain 1903) check OK
+   n=4 m=226 c=113,2: height 1698 (bound 2297, plain 1903) check OK
+   n=2 m=452 c=226,2: height 1957 (bound 2737, plain 1903) check OK
+D=-5000307 inv=539 deg=146 plain height 411 (bound 890) sqrt=1 cands=2
+   n=73 m=2 c=2: height 341 (bound 443, plain 411) check OK
+   n=2 m=73 c=73: height 417 (bound 547, plain 411) check OK
+D=-5000424 inv=26 deg=352 plain height 613 (bound 1277) sqrt=1 cands=26
+   n=176 m=2 c=1,1,1,1,2: height 539 (bound 650, plain 613) check OK
+   n=44 m=8 c=1,1,2,2,2: height 456 (bound 486, plain 613) check OK
+   n=22 m=16 c=2,2,1,2,2: height 409 (bound 506, plain 613) check OK
+   n=44 m=8 c=2,2,1,2,1: height 398 (bound 473, plain 613) check OK
+   n=88 m=4 c=1,1,1,2,2: height 485 (bound 528, plain 613) check OK
+   n=4 m=88 c=1,11,2,2,2: height 480 (bound 738, plain 613) check OK
+   n=2 m=176 c=1,22,2,2,2: height 494 (bound 872, plain 613) check OK
+   n=44 m=8 c=2,2,1,1,2: height 403 (bound 473, plain 613) check OK
+D=-50000151 inv=147 deg=3036 plain height 8569 (bound 18629) sqrt=1 cands=30
+   n=6 m=506 c=506,1: height 5508 (bound 7775, plain 8569) check OK
+   n=44 m=69 c=69,1: height 3820 (bound 4888, plain 8569) check OK
+   n=46 m=66 c=33,2: height 4231 (bound 5463, plain 8569) check OK
+   n=506 m=6 c=6,1: height 3522 (bound 4404, plain 8569) check OK
+   n=4 m=759 c=759,1: height 5984 (bound 8635, plain 8569) check OK
+   n=138 m=22 c=11,2: height 3526 (bound 4357, plain 8569) check OK
+   n=276 m=11 c=11,1: height 2963 (bound 3871, plain 8569) check OK
+   n=1518 m=2 c=1,2: height 5319 (bound 7262, plain 8569) check OK
+D=-50000527 inv=147 deg=1628 plain height 5065 (bound 10904) sqrt=1 cands=6
+   n=814 m=2 c=2,1: height 3099 (bound 4138, plain 5065) check OK
+   n=148 m=11 c=1,11: height 2573 (bound 3005, plain 5065) check OK
+   n=74 m=22 c=2,11: height 2173 (bound 2661, plain 5065) check OK
+   n=37 m=44 c=4,11: height 2553 (bound 3158, plain 5065) check OK
+   n=4 m=407 c=37,11: height 4202 (bound 5665, plain 5065) check OK
+   n=2 m=814 c=74,11: height 4663 (bound 6517, plain 5065) check OK
+D=-50000856 inv=147 deg=1408 plain height 4662 (bound 10036) sqrt=1 cands=14
+   n=88 m=16 c=1,1,8,2: height 2434 (bound 2807, plain 4662) check OK
+   n=8 m=176 c=1,1,88,2: height 2713 (bound 3597, plain 4662) check OK
+   n=352 m=4 c=1,1,4,1: height 2723 (bound 3276, plain 4662) check OK
+   n=64 m=22 c=1,1,11,2: height 2197 (bound 2618, plain 4662) check OK
+   n=352 m=4 c=1,1,2,2: height 2465 (bound 3055, plain 4662) check OK
+   n=704 m=2 c=1,1,1,2: height 3495 (bound 4491, plain 4662) check OK
+   n=16 m=88 c=1,1,44,2: height 2554 (bound 3161, plain 4662) check OK
+   n=4 m=352 c=1,1,176,2: height 2939 (bound 4204, plain 4662) check OK
+D=-4000004 inv=10 deg=1032 plain height 1285 (bound 1350) sqrt=0 cands=8
+   n=516 m=2 c=2,1,1: height 794 (bound 1351, plain 1285) check OK
+   n=344 m=3 c=1,1,3: height 744 (bound 1135, plain 1285) check OK
+   n=172 m=6 c=2,1,3: height 677 (bound 858, plain 1285) check OK
+   n=172 m=6 c=1,2,3: height 681 (bound 868, plain 1285) check OK
+   n=86 m=12 c=2,2,3: height 695 (bound 794, plain 1285) check OK
+   n=43 m=24 c=4,2,3: height 724 (bound 860, plain 1285) check OK
+   n=4 m=258 c=43,2,3: height 1156 (bound 1852, plain 1285) check OK
+   n=2 m=516 c=86,2,3: height 1253 (bound 2227, plain 1285) check OK
+D=-16000016 inv=15 deg=2064 plain height 3952 (bound 4220) sqrt=0 cands=10
+   n=8 m=258 c=43,2,3: height 2489 (bound 3633, plain 3952) check OK
+   n=344 m=6 c=2,1,3: height 1712 (bound 2256, plain 3952) check OK
+   n=344 m=6 c=1,2,3: height 1590 (bound 2244, plain 3952) check OK
+   n=4 m=516 c=86,2,3: height 2644 (bound 4432, plain 3952) check OK
+   n=2 m=1032 c=172,2,3: height 2777 (bound 5315, plain 3952) check OK
+   n=86 m=24 c=4,2,3: height 1744 (bound 2083, plain 3952) check OK
+   n=688 m=3 c=1,1,3: height 2005 (bound 3058, plain 3952) check OK
+   n=43 m=48 c=8,2,3: height 2176 (bound 2394, plain 3952) check OK
+D=-99999900 inv=107 deg=1824 plain height 32090 (bound 66412) sqrt=1 cands=10
+   n=456 m=4 c=1,1,1,2,2: height 16819 (bound 18990, plain 32090) check OK
+   n=4 m=456 c=1,1,57,4,2: height 24759 (bound 27360, plain 32090) check OK
+   n=76 m=24 c=1,1,3,4,2: height 15066 (bound 16254, plain 32090) check OK
+   n=456 m=4 c=1,1,1,4,1: height 17472 (bound 18655, plain 32090) check OK
+   n=2 m=912 c=2,1,57,4,2: height 28079 (bound 30997, plain 32090) check OK
+   n=12 m=152 c=1,1,19,4,2: height 19886 (bound 22177, plain 32090) check OK
+   n=228 m=8 c=1,1,1,4,2: height 15418 (bound 16072, plain 32090) check OK
+   n=912 m=2 c=1,1,1,1,2: height 21159 (bound 24725, plain 32090) check OK
+SWEEP 625/625 OK

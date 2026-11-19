@@ -1,0 +1,33 @@
+[14:58:39] revised format: B = 741, log2 rad <= 12, recursion floor B^2 = 549081
+[14:58:39] proving p0 (67 bits), n2 = 4489
+[14:58:39]     WINNER D=-111 q 30 bits, o=m*q with m=24 (|D| h~10)
+[14:58:39]     WINNER D=-895 q 28 bits, o=m*q with m=48 (|D| h~29)
+[14:58:39]     WINNER D=-4507 q 32 bits, o=m*q with m=3 (|D| h~67)
+[14:58:39]     WINNER D=-4951 q 23 bits, o=m*q with m=1719 (|D| h~70)
+[14:58:39]     WINNER D=-7883 q 31 bits, o=m*q with m=509 (|D| h~88)
+[14:58:39]     WINNER D=-8103 q 30 bits, o=m*q with m=22 (|D| h~90)
+[14:58:39]     WINNER D=-12711 q 22 bits, o=m*q with m=4480 (|D| h~112)
+[14:58:39]     WINNER D=-15207 q 24 bits, o=m*q with m=1116 (|D| h~123)
+[14:58:39]     WINNER D=-18551 q 25 bits, o=m*q with m=597 (|D| h~136)
+[14:58:39]     WINNER D=-18751 q 30 bits, o=m*q with m=12 (|D| h~136)
+[14:58:39]     WINNER D=-23235 q 29 bits, o=m*q with m=37 (|D| h~152)
+[14:58:39]     WINNER D=-27219 q 25 bits, o=m*q with m=364 (|D| h~164)
+[14:58:39]     WINNER D=-43667 q 25 bits, o=m*q with m=379 (|D| h~208)
+[14:58:39]     WINNER D=-46111 q 29 bits, o=m*q with m=36 (|D| h~214)
+[14:58:39]     WINNER D=-57583 q 26 bits, o=m*q with m=388 (|D| h~239)
+[14:58:39]     WINNER D=-63607 q 25 bits, o=m*q with m=521 (|D| h~252)
+[14:58:39]     WINNER D=-74527 q 29 bits, o=m*q with m=32 (|D| h~272)
+[14:58:39]     WINNER D=-79115 q 31 bits, o=m*q with m=9 (|D| h~281)
+[14:58:39]     WINNER D=-85243 q 24 bits, o=m*q with m=1041 (|D| h~291)
+[14:58:39]     WINNER D=-85639 q 24 bits, o=m*q with m=1390 (|D| h~292)
+[14:58:39]     WINNER D=-99739 q 32 bits, o=m*q with m=4 (|D| h~315)
+[14:58:39]   level 67 bits: dscan[0,100000) maxfb=1e+06 +361 D -> +298 orders (109 live) in 0.0s (strip 0.0s), 21 winners
+[14:58:39]     cm_method D=-111: H_D^inv(deg 8, inv 14): 0.009s   root: 0.000s   1 j-candidate(s)
+[14:58:39]   level 67 bits: built D=-111 h~10 in 0.0s; o has 36 bits, q 30 bits (total 0.0s, 298 cands, 0 ecm-s)
+[14:58:39] finishing below 64 bits with short2.gp (p has 30 bits)
+[14:58:39]   gp tail: 1 levels in 0.0s
+[14:58:39] chain complete: 2 levels, 0.1s; verifying...
+[14:58:39] vshort2.verify = True   PARI cross-check = True
+[14:58:39] certificate written to /home/ubuntu/rule/out4/c20.cert.txt (verified twice)
+RUN c20 wall=0.10 user=0.08 sys=0.01
+EXIT 0

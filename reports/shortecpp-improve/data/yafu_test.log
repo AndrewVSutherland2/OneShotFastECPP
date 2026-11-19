@@ -1,0 +1,23 @@
+2880 tasks, yafu stage 2 mode 1
+[    2s] ('cost', 'gmp', 50000): 192 tasks in 2.3s
+[   12s] ('cost', 'gmp', 250000): 192 tasks in 9.8s
+[   56s] ('cost', 'gmp', 1000000): 192 tasks in 43.8s
+[   57s] ('cost', 'yafu', 50000): 192 tasks in 0.6s
+[   60s] ('cost', 'yafu', 250000): 192 tasks in 3.4s
+[   69s] ('cost', 'yafu', 1000000): 192 tasks in 8.6s
+[  152s] ('success',): 1728 tasks in 83.8s
+cost, core-seconds per curve with all cores busy (8 curves per process):
+  B1=50000: gmp 0.274 (median of 192, B2=12746592)   yafu 0.059 (median of 192, B2=14241149)
+  B1=250000: gmp 1.206 (median of 192, B2=128992510)   yafu 0.298 (median of 192, B2=156787994)
+  B1=1000000: gmp 4.938 (median of 192, B2=1045563762)   yafu 0.946 (median of 192, B2=966061634)
+success, numbers out of 96 whose factor was found in one batch of 8 curves:
+  B1=50000, 54-bit factor: gmp 71 (bad factors 0)   yafu 74 (bad factors 0)
+  B1=50000, 62-bit factor: gmp 41 (bad factors 0)   yafu 49 (bad factors 0)
+  B1=50000, 70-bit factor: gmp 20 (bad factors 0)   yafu 19 (bad factors 0)
+  B1=250000, 62-bit factor: gmp 68 (bad factors 0)   yafu 82 (bad factors 0)
+  B1=250000, 74-bit factor: gmp 23 (bad factors 0)   yafu 37 (bad factors 0)
+  B1=250000, 86-bit factor: gmp 10 (bad factors 0)   yafu 10 (bad factors 0)
+  B1=1000000, 70-bit factor: gmp 63 (bad factors 0)   yafu 71 (bad factors 0)
+  B1=1000000, 82-bit factor: gmp 29 (bad factors 0)   yafu 34 (bad factors 0)
+  B1=1000000, 94-bit factor: gmp 8 (bad factors 0)   yafu 12 (bad factors 0)
+YTEST_DONE 152s

@@ -1,0 +1,13 @@
+yafu_bigN.py on the 16-core box, 2026-11-16 (96 primes f per cell, one batch of 8 curves each)
+N ~ 780 bits, B1=50000    f 50 bits: 189 of 768 curves hit ( 39 in stage 1)  rate 0.246
+N ~ 780 bits, B1=50000    f 62 bits:  55 of 768 curves hit ( 12 in stage 1)  rate 0.072
+N ~ 780 bits, B1=1000000  f 78 bits:  58 of 768 curves hit (  5 in stage 1)  rate 0.076
+N ~1030 bits, B1=50000    f 50 bits: 182 of 768 curves hit ( 42 in stage 1)  rate 0.237
+N ~1030 bits, B1=50000    f 62 bits:  51 of 768 curves hit ( 10 in stage 1)  rate 0.066
+N ~1030 bits, B1=1000000  f 78 bits:  60 of 768 curves hit (  8 in stage 1)  rate 0.078
+N ~1130 bits, B1=50000    f 50 bits: 205 of 768 curves hit ( 48 in stage 1)  rate 0.267
+N ~1130 bits, B1=50000    f 62 bits:  63 of 768 curves hit (  6 in stage 1)  rate 0.082
+N ~1130 bits, B1=1000000  f 78 bits:  53 of 768 curves hit (  2 in stage 1)  rate 0.069
+N ~1330 bits, B1=50000    f 50 bits: 223 of 768 curves hit ( 39 in stage 1)  rate 0.290
+N ~1330 bits, B1=50000    f 62 bits:  51 of 768 curves hit ( 11 in stage 1)  rate 0.066
+N ~1330 bits, B1=1000000  f 78 bits:  54 of 768 curves hit (  8 in stage 1)  rate 0.070

@@ -1,0 +1,39 @@
+[17:40:13] revised format: B = 61685, log2 rad <= 81, recursion floor B^2 = 3805039225
+[17:40:13] proving p0 (769 bits), n2 = 591361
+[17:40:14]   yafu here: 0.0382 s per curve at B1=50000 on 769 bits with 32 processes -> cost factor 0.95
+[17:40:16]   level 769 bits: rule table in 2.0s (28 sweeps, rewards 30..32818515 core-s)
+[17:40:16]   level 769 bits: dscan[0,6e+07) maxfb=1e+06 on 32 threads: +2768 D -> +2210 orders (2072 live), 23 core-s (strip 3) = 0.0106 per order; 0 winners
+[17:40:17]   level 769 bits: dscan[6e+07,1.2e+08) maxfb=1e+06 on 11 threads: +961 D -> +792 orders (738 live), 14 core-s (strip 4) = 0.0182 per order; 0 winners
+[17:40:20]   level 769 bits: dscan[1.2e+08,2.4e+08) maxfb=1e+06 on 11 threads: +1314 D -> +976 orders (932 live), 25 core-s (strip 4) = 0.0251 per order; 0 winners
+[17:40:24]   level 769 bits: dscan[2.4e+08,4.8e+08) maxfb=1e+06 on 11 threads: +1673 D -> +1228 orders (1151 live), 40 core-s (strip 5) = 0.0326 per order; 0 winners
+[17:40:26]        10s: 5206 orders, rule R = 1512 core-s (0.42 core-h); the model expects 0.17 wins from the work done (0.45 once all orders are worked to R); 19 units running + scan, queued by B1 [3075, 1190, 213, 37, 5, 0, 0, 0], 0 abandoned; scan 102 + ecm 202 core-s (72 above the rule)
+[17:40:29]   level 769 bits: dscan[4.8e+08,9.6e+08) maxfb=1e+06 on 12 threads: +2165 D -> +1616 orders (1509 live), 69 core-s (strip 6) = 0.0424 per order; 0 winners
+[17:40:30]     WINNER D=-221131823 q 376 bits, o=m*q with m=502 (|D| h~14870)
+[17:40:30]     search: 6822 orders, scan 171 + ecm 298 core-s (117 above the rule), 14.0s wall, 277 units, 1123 splits, rule R = 1678 core-s; the model expected 0.21 wins from this work; measured/modelled ECM cost by B1: 2000:0.96 11000:0.94 50000:0.90 250000:0.78 1e+06:0.87; wins expected by B1: 2000:0.000 11000:0.000 50000:0.029 250000:0.124 1e+06:0.054; won at B1=1000000
+[17:40:31]     cm_method D=-221131823: H_D^inv(deg 7488 = 78 x 96, inv 159): 0.132s   roots: 0.412s + 0.574s   1 j-candidate(s)
+[17:40:32]   level 769 bits: built D=-221131823 h~14870 in 2.6s; o has 385 bits, q 376 bits (total 19.4s, 6822 cands, 298 ecm-s)
+[17:40:33]   level 376 bits: dscan[0,3e+07) maxfb=1e+06 +1998 D -> +1938 orders (1673 live) in 0.6s (strip 0.4s), 0 winners
+[17:40:36]     ecm B1=2000 c=10 on 1673 tails: 813 split, 0 winners, 2.8s
+[17:40:37]     WINNER D=-1610948 q 174 bits, o=m*q with m=12483 (|D| h~1269)
+[17:40:37]     ecm B1=11000 c=16 on 1454 tails: 2 split, 1 winners, 1.0s (stopped at the first winner, 6 tails done)
+[17:40:37]     cm_method D=-1610948: H_D^inv(deg 540 = 20 x 27, inv 26): 0.024s   roots: 0.018s + 0.026s   1 j-candidate(s)
+[17:40:37]   level 376 bits: built D=-1610948 h~1269 in 0.1s; o has 188 bits, q 174 bits (total 4.5s, 8760 cands, 419 ecm-s)
+[17:40:37]     WINNER D=-191623 q 68 bits, o=m*q with m=752148 (|D| h~437)
+[17:40:37]     WINNER D=-279151 q 66 bits, o=m*q with m=2247552 (|D| h~528)
+[17:40:37]     WINNER D=-410803 q 85 bits, o=m*q with m=89 (|D| h~640)
+[17:40:37]     WINNER D=-3070743 q 69 bits, o=m*q with m=493552 (|D| h~1752)
+[17:40:37]     WINNER D=-4956631 q 85 bits, o=m*q with m=8 (|D| h~2226)
+[17:40:37]     WINNER D=-8926719 q 77 bits, o=m*q with m=1690 (|D| h~2987)
+[17:40:37]     WINNER D=-12759131 q 74 bits, o=m*q with m=13485 (|D| h~3571)
+[17:40:37]     WINNER D=-14951587 q 82 bits, o=m*q with m=68 (|D| h~3866)
+[17:40:37]     WINNER D=-19536787 q 73 bits, o=m*q with m=32186 (|D| h~4420)
+[17:40:37]   level 174 bits: dscan[0,3e+07) maxfb=1e+06 +4977 D -> +3756 orders (2591 live) in 0.5s (strip 0.4s), 9 winners
+[17:40:38]     cm_method D=-191623: H_D^inv(deg 256 = 16 x 16, inv 1): 0.014s   roots: 0.003s + 0.003s   1 j-candidate(s)
+[17:40:38]   level 174 bits: built D=-191623 h~437 in 0.1s; o has 88 bits, q 68 bits (total 0.6s, 12516 cands, 419 ecm-s)
+[17:40:38] finishing below 135 bits with short2.gp (p has 68 bits)
+[17:40:38]   gp tail: 1 levels in 0.2s
+[17:40:38] chain complete: 4 levels, 24.9s; verifying...
+[17:40:38] vshort2.verify = True   PARI cross-check = True
+[17:40:38] certificate written to /tmp/claude-1000/-home-claude-OneShotFastECPP/f1db9bbb-8f84-4630-ad02-28f9e40f5dc3/scratchpad/ylocal/y768_3.cert.txt (verified twice)
+RUN y768_3 wall=24.99 user=576.13 sys=16.64
+EXIT 0

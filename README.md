@@ -88,23 +88,57 @@ discarded cofactor is never factored, so each level only needs its curve order t
 "√-semismooth": one prime just below √p, everything else ECM-findable.
 
 Per level it runs this repository's toolchain end to end: `dscan` (Cornacchia discriminant
-scan; the `maxfb=` option bounds the factor base so 10⁵-candidate pools stay affordable at
-1000+ bits), `smoothtest` (batched Bernstein remainder trees against a cached primorial),
-staged `gmp-ecm` peeling under a Bayesian index scheduler (coverage ~ln s, per-curve failure
-discounts, round-robin sub-sweeps, an economic widen-vs-deepen trigger), then `classpoly`/
-`cm_method` for the winner's curve (2-volcano floor descent when p ≡ 3 mod 4 requires it) and
-`short.gp` for the levels below 135 bits.  Every chain is verified by `vsmallECPP.py` plus an
-independent PARI `ellmul` cross-check before it is written.
+scan with a capped factor base), `smoothtest` (batched Bernstein remainder trees against a
+cached primorial), ECM on the rough tails of the candidate orders, then `classpoly`/
+`cm_method` for the winner's curve (class-group decomposition of the class polynomial,
+volcano-floor descent where the exact order needs it) and `short.gp` for the last level or
+two (below 64 to 94 bits in the revised format, where a prime above the recursion floor no
+longer fits).  The first scan, the strip bound and the number of threads follow the size of
+the level, so small primes cost what they should: half a second at 10⁵⁰.  Every chain is verified by the format's verifier plus an independent PARI `ellmul`
+cross-check before it is written.
+
+Which tail gets which curves is decided, for levels of 280 bits and more, by a stopping rule
+(`ecpp/shortsched.py`, model in `ecpp/shortsim.py`): every candidate state has a break-even
+reward, candidates are worked in that order and only while it is below what a fresh order
+from the scan is worth at the scan's current price.  Smaller levels use tiered rounds.  The
+scan itself has two bounds, on the discriminant and on its prime factors, and more orders
+come from whichever is cheaper to move.  The
+ECM program is gmp-ecm, or yafu's AVX-512 ECM (`engine=yafu yafu=<binary>`, about four times
+cheaper per curve; it has its own cost and success tables).  See
+`reports/shortecpp-improve/` for the model, the measurements and the runs behind this.
 
 ```sh
 . ./setenv.sh
 python3 ecpp/shortECPP.py c=150 threads=32          # nextprime(10^150)
 python3 ecpp/shortECPP.py p=<decimal> tag=myprime   # any (probable) prime
-# knobs: B0=/Bmax= (discriminant-scan schedule), maxfb= (factor-base cap),
-#        resume=1 (replay the winner journal after a crash/preemption), out=<file>
+# knobs: v2=1 (the revised format), sched=auto|rule|old, engine=auto|gmp|yafu, yafu=<binary>,
+#        B0=/Bmax= (discriminant-scan range), maxfb= (factor-base cap),
+#        resume=1 (after a crash or preemption: the levels done, the winners in hand and,
+#        for levels of 900 bits and more, the search itself from its last checkpoint),
+#        out=<file>
 ```
 
-Needs a `gmp-ecm` binary (`CHAIN_ECM` env or `ecm` on PATH).  With it, this prover produced
+Needs a `gmp-ecm` binary (`CHAIN_ECM` env or `ecm` on PATH) and, for the stopping rule,
+numpy.  yafu is optional and not part of this repository: the runs reported here used yafu
+3.1.9 ([bbuhrow/yafu](https://github.com/bbuhrow/yafu) with its `ytools` and `ysieve`,
+gmp-ecm 7.0.6) built with `make yafu USE_AVX512IFMA=1 ECM=1`, which needs a CPU with AVX-512
+IFMA; the prover tests the binary on a planted factor before it uses it.  `CLASSPOLY_PHI_DIR` should hold the full set of modular polynomials: the repository
+carries them up to degree 71, and up to 109 for the Weber functions and eight double eta
+quotients whose polynomials are small; about one discriminant in a hundred still needs a
+file that is not bundled (the prover then says which and goes on with the search).
+
+On one 192-core machine with yafu (November 2026) every entry of the ShortPrimalityProofs
+table from 10¹⁰ to 10⁴⁰⁰ is proved faster than the table records, by a factor 2.5 to 750 in CPU
+time: a second up to 10¹²⁰, 4 to 15 s from 10¹⁵⁰ to 10²²⁰, half a minute to four and a half
+minutes from 10²³⁰ to 10³²⁰ (10³¹⁰ + 733: 268 s), 17 minutes and 42 core-hours for the
+seventeen entries from 10¹⁶⁰ to 10³²⁰, and five minutes to two hours each from 10³³⁰ to 10⁴⁰⁰
+(6.0 hours and 1,020 core-hours for the eight, where the table records 51 hours and 8,290).
+The table's five largest entries, the least primes above 10⁴¹⁰, 10⁴²⁰, 10⁴³⁰, 10⁴⁴⁰ and 10⁴⁵⁰
+(1362 to 1495 bits; `certs/short2/nextprime1e410.csv` … `nextprime1e450.csv`), were first
+proved this way: 7.8, 2.0, 16.4, 8.5 and 11.9 hours of one such machine each, 953, 359, 2,797,
+1,537 and 2,151 core-hours (logs in `reports/shortecpp-improve/data/yafu_c8a_8/` and
+`data/yafu_big/`).  With gmp-ecm a 768-bit prime takes about 35 seconds there
+and a 1030-bit prime 3 to 20 minutes.  With its first scheduler, in August 2026, this prover produced
 the ShortPrimalityProofs table entries for nextprime(10^c), c = 210, …, 310 — the largest a
 1030-bit prime exceeding Bernstein's 1025-bit AKS example — in one day on spot instances
 (≈3,500 CPU core-hours; see `reports/short-ecpp-records/` for the full campaign report and
@@ -159,7 +193,7 @@ Verify any of them with `python3 voneshot.py $(cat certs/<file>)`.
 
 - **gcc** 13+ and **GMP** 6+ (the build and `oneshotECPP` itself).
 - **PARI/GP** 2.x — only for the correctness test suites, *not* for `oneshotECPP`.
-- Modular polynomials: a **46 MB subset** is bundled (`phi_files/`, see
+- Modular polynomials: a **52 MB subset** is bundled (`phi_files/`, see
   [`INSTALL`](INSTALL)); it covers the class invariants and levels the CM method
   uses over the 128–384-bit range.
 
@@ -178,7 +212,7 @@ python3 ecpp/test_dscan.py        # discriminant scan vs PARI + brute force
 Makefile        setenv.sh          design.md
 ff_poly_v2.0.0/   classpoly_v1.0.3/    (vendored: word-size F_p / class polynomials,
                  including the zp_poly large-p F_p[x] code: fast gcd, invariant->j)
-phi_files/      (28 MB subset of modular polynomials; see INSTALL)
+phi_files/      (52 MB subset of modular polynomials; see INSTALL)
 ecpp/           (this project: discriminant search, smoothness, root-finding,
                  invariant->j, curve assembly, oneshotECPP)
 tests/          (classpoly correctness suites vs PARI)

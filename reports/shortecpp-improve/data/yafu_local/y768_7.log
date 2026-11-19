@@ -1,0 +1,35 @@
+[17:43:10] revised format: B = 61685, log2 rad <= 81, recursion floor B^2 = 3805039225
+[17:43:10] proving p0 (769 bits), n2 = 591361
+[17:43:11]   yafu here: 0.0386 s per curve at B1=50000 on 769 bits with 32 processes -> cost factor 0.96
+[17:43:13]   level 769 bits: rule table in 2.2s (28 sweeps, rewards 30..32818515 core-s)
+[17:43:13]   level 769 bits: dscan[0,6e+07) maxfb=1e+06 on 32 threads: +2428 D -> +2374 orders (2224 live), 30 core-s (strip 3) = 0.0125 per order; 0 winners
+[17:43:14]   level 769 bits: dscan[6e+07,1.2e+08) maxfb=1e+06 on 10 threads: +813 D -> +848 orders (809 live), 12 core-s (strip 4) = 0.0147 per order; 0 winners
+[17:43:16]   level 769 bits: dscan[1.2e+08,2.4e+08) maxfb=1e+06 on 10 threads: +1070 D -> +1096 orders (1012 live), 21 core-s (strip 4) = 0.0195 per order; 0 winners
+[17:43:20]   level 769 bits: dscan[2.4e+08,4.8e+08) maxfb=1e+06 on 10 threads: +1459 D -> +1498 orders (1417 live), 38 core-s (strip 6) = 0.0252 per order; 0 winners
+[17:43:23]        10s: 5816 orders, rule R = 1479 core-s (0.41 core-h); the model expects 0.17 wins from the work done (0.42 once all orders are worked to R); 20 units running + scan, queued by B1 [3650, 1217, 179, 45, 3, 1, 0, 0], 0 abandoned; scan 101 + ecm 207 core-s (45 above the rule)
+[17:43:26]   level 769 bits: dscan[4.8e+08,9.6e+08) maxfb=1e+06 on 11 threads: +1974 D -> +1974 orders (1845 live), 64 core-s (strip 5) = 0.0324 per order; 0 winners
+[17:43:33]        20s: 7790 orders, rule R = 1594 core-s (0.44 core-h); the model expects 0.38 wins from the work done (0.66 once all orders are worked to R); 20 units running + scan, queued by B1 [5019, 1621, 273, 64, 4, 3, 0, 0], 0 abandoned; scan 165 + ecm 403 core-s (45 above the rule)
+[17:43:36]     WINNER D=-535461748 q 371 bits, o=m*q with m=13582 (|D| h~23140)
+[17:43:36]     search: 7790 orders, scan 165 + ecm 496 core-s (45 above the rule), 23.0s wall, 323 units, 1340 splits, rule R = 1594 core-s; the model expected 0.41 wins from this work; measured/modelled ECM cost by B1: 2000:0.95 11000:0.91 50000:0.89 250000:0.78 1e+06:0.92 3e+06:0.92; wins expected by B1: 2000:0.000 11000:0.001 50000:0.016 250000:0.107 1e+06:0.216 3e+06:0.072; won at B1=1000000
+[17:43:40]     cm_method D=-535461748: H_D^inv(deg 5748 = 12 x 479, inv 26): 0.180s   roots: 0.031s + 3.532s   1 j-candidate(s)
+[17:43:40]   level 769 bits: built D=-535461748 h~23140 in 4.5s; o has 387 bits, q 371 bits (total 30.5s, 7790 cands, 496 ecm-s)
+[17:43:41]   level 371 bits: dscan[0,3e+07) maxfb=1e+06 +5086 D -> +4026 orders (3507 live) in 0.6s (strip 0.3s), 0 winners
+[17:43:43]     WINNER D=-25721079 q 181 bits, o=m*q with m=40 (|D| h~5071)
+[17:43:43]     ecm B1=2000 c=10 on 3507 tails: 564 split, 1 winners, 2.5s (stopped at the first winner, 1184 tails done)
+[17:43:43]     cm_method D=-25721079: H_D^inv(deg 2220 = 60 x 37, inv 147): 0.031s   roots: 0.045s + 0.040s   1 j-candidate(s)
+[17:43:44]   level 371 bits: built D=-25721079 h~5071 in 0.4s; o has 188 bits, q 181 bits (total 3.5s, 11816 cands, 576 ecm-s)
+[17:43:44]     WINNER D=-315043 q 86 bits, o=m*q with m=34 (|D| h~561)
+[17:43:44]     WINNER D=-7610507 q 90 bits, o=m*q with m=2 (|D| h~2758)
+[17:43:44]     WINNER D=-10718183 q 83 bits, o=m*q with m=184 (|D| h~3273)
+[17:43:44]     WINNER D=-11657551 q 72 bits, o=m*q with m=299656 (|D| h~3414)
+[17:43:44]     WINNER D=-18349951 q 89 bits, o=m*q with m=5 (|D| h~4283)
+[17:43:44]   level 181 bits: dscan[0,3e+07) maxfb=1e+06 +2320 D -> +1878 orders (1325 live) in 0.2s (strip 0.1s), 5 winners
+[17:43:44]     cm_method D=-315043: H_D^inv(deg 72 = 6 x 12, inv 159): 0.018s   roots: 0.000s + 0.001s   1 j-candidate(s)   ell=2 floor
+[17:43:44]   level 181 bits: built D=-315043 h~561 in 0.0s; o has 92 bits, q 86 bits (total 0.2s, 13694 cands, 576 ecm-s)
+[17:43:44] finishing below 135 bits with short2.gp (p has 86 bits)
+[17:43:44]   gp tail: 2 levels in 0.1s
+[17:43:44] chain complete: 5 levels, 34.4s; verifying...
+[17:43:44] vshort2.verify = True   PARI cross-check = True
+[17:43:44] certificate written to /tmp/claude-1000/-home-claude-OneShotFastECPP/f1db9bbb-8f84-4630-ad02-28f9e40f5dc3/scratchpad/ylocal/y768_7.cert.txt (verified twice)
+RUN y768_7 wall=34.55 user=836.50 sys=24.65
+EXIT 0

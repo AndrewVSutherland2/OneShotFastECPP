@@ -177,6 +177,7 @@ static void fpoly_mul_kron (const fp_ctx *C, fp_poly *g, const fp_poly *a, const
 // the three Karatsuba half-products as OpenMP tasks (recursively: 3^depth leaves,
 // each a serial Kronecker product big enough to keep GMP's FFT efficient).
 #define FPROOT_PAR_MIN 2048     // parallelize when both halves have degree >= this
+#define FPROOT_MULTI_MIN 48     // degree from which fp_find_root_bounded takes its first step with several shifts in parallel
 
 static int par_depth (int d)
 { return d >= 32768 ? 3 : d >= 8192 ? 2 : d >= 2*FPROOT_PAR_MIN ? 1 : 0; }
@@ -422,6 +423,7 @@ static void fpoly_rem (const fp_ctx *C, fp_poly *r, const fp_poly *f, const fp_p
     int s = C->s, dg = g->deg;
     fpoly_copy (C, r, f);
     if ( dg == 0 ) { r->deg = -1; return; }
+    if ( f->deg < dg ) return;                              // already reduced (without this r->deg would be set past the copied part)
     mp_limb_t ginv[MAXLIMB];  fp_inv (C, ginv, CF(g, dg));
     for ( int i = r->deg ; i >= dg ; i-- ) {
         if ( fp_is_zero (C, CF(r, i)) ) continue;
@@ -525,8 +527,19 @@ static void fpoly_divexact_fast (const fp_ctx *C, fp_poly *q, const fp_poly *f, 
 }
 
 void fp_find_root (const fp_ctx *C, fp_poly *h, mp_limb_t *root, uint64_t seed)
+    { fp_find_root_bounded (C, h, root, seed, 0); }
+
+// As fp_find_root, for input that may not split completely, on which the loop
+// could otherwise run forever.  A split of a product of k distinct linear factors
+// is trivial with probability 2^(1-k), so each trivial split of a polynomial of
+// degree k is k-1 bits of evidence that it does not split completely; we give up
+// and return 0 once consecutive trivial splits add up to `bits` bits (bits = 0:
+// never give up).  With bits = 30 a polynomial that does split is rejected about
+// once in 10^9, and one of degree > 30 that does not is given up at once.  A root
+// that is returned (return value 1) is always a genuine root of the input.
+int fp_find_root_bounded (const fp_ctx *C, fp_poly *h, mp_limb_t *root, uint64_t seed, int bits)
 {
-    int s = C->s;
+    int s = C->s, fails = 0, ok = 1;
     mpz_t e;  mpz_init (e);  mpz_sub_ui (e, C->pz, 1);  mpz_fdiv_q_2exp (e, e, 1);   // (p-1)/2
     int cap = 2 * h->deg + 2;
     fp_poly b, g, q;  fpoly_init (C, &b, cap);  fpoly_init (C, &g, cap);  fpoly_init (C, &q, cap);
@@ -534,7 +547,47 @@ void fp_find_root (const fp_ctx *C, fp_poly *h, mp_limb_t *root, uint64_t seed)
     mpz_t az;  mpz_init (az);
     mp_limb_t zero[MAXLIMB];  memset (zero, 0, (size_t) s * sizeof(mp_limb_t));
 
-    while ( h->deg > 1 ) {
+    // With cores to spare, take the first splitting step with k independent shifts at once: the powers (x+a_i)^((p-1)/2) mod h
+    // are computed in parallel, one per thread, and the k splits are then intersected by gcds against a shrinking h.  Each
+    // split halves the surviving roots, so with k ~ lg(deg) shifts h usually comes down to a single root after one modular
+    // exponentiation at full degree, where the one-shift loop below needs about two (deg + deg/2 + deg/4 + ...).  Larger
+    // degrees are left to the loop, whose multiplications are themselves parallel (fpoly_mul_par).
+    int nt = omp_get_max_threads ();
+    if ( nt > 1 && ! omp_in_parallel () && h->deg >= FPROOT_MULTI_MIN && h->deg < 2 * FPROOT_PAR_MIN ) {
+        int k = ceil_log2 (h->deg) + 3;  if ( k > nt ) k = nt;
+        mp_limb_t *ams = malloc ((size_t) k * s * sizeof(mp_limb_t));
+        fp_poly *bs = malloc ((size_t) k * sizeof(fp_poly));
+        for ( int i = 0 ; i < k ; i++ ) {
+            mp_limb_t a[MAXLIMB];
+            for ( int j = 0 ; j < s ; j++ ) { st = st * 6364136223846793005ULL + 1442695040888963407ULL; a[j] = st; }
+            mpz_import (az, s, -1, sizeof(mp_limb_t), 0, 0, a);  mpz_mod (az, az, C->pz);
+            fp_set_mpz (C, ams + (size_t) i * s, az);
+            fpoly_init (C, bs + i, cap);
+        }
+        #pragma omp parallel for schedule(static,1) num_threads(k)
+        for ( int i = 0 ; i < k ; i++ ) fpoly_powmod_linear (C, bs + i, ams + (size_t) i * s, e, h);
+        for ( int i = 0 ; i < k && ok && h->deg > 1 ; i++ ) {
+            fp_poly *bi = bs + i;                           // reduced mod the original h; the gcd reduces it mod the current one
+            if ( bi->deg < 0 ) { memset (bi->c, 0, (size_t) s * sizeof(mp_limb_t));  bi->deg = 0; }
+            fp_sub (C, CF(bi, 0), CF(bi, 0), C->R1);
+            fpoly_trim (C, bi);
+            if ( bi->deg >= h->deg ) fpoly_gcd_fast (C, &g, bi, h); else fpoly_gcd_fast (C, &g, h, bi);     // larger degree first
+            int dg = g.deg;
+            if ( dg <= 0 || dg >= h->deg ) {
+                fails += h->deg - 1;
+                if ( bits && fails >= bits ) ok = 0;
+                continue;
+            }
+            fails = 0;
+            if ( 2 * dg <= h->deg ) fpoly_copy (C, h, &g);
+            else { fpoly_divexact_fast (C, &q, h, &g);  fpoly_copy (C, h, &q); }
+            fpoly_make_monic (C, h);
+        }
+        for ( int i = 0 ; i < k ; i++ ) fpoly_clear (bs + i);
+        free (bs);  free (ams);
+    }
+
+    while ( ok && h->deg > 1 ) {
         mp_limb_t a[MAXLIMB], am[MAXLIMB];
         for ( int i = 0 ; i < s ; i++ ) { st = st * 6364136223846793005ULL + 1442695040888963407ULL; a[i] = st; }
         mpz_import (az, s, -1, sizeof(mp_limb_t), 0, 0, a);  mpz_mod (az, az, C->pz);
@@ -544,14 +597,20 @@ void fp_find_root (const fp_ctx *C, fp_poly *h, mp_limb_t *root, uint64_t seed)
         fpoly_trim (C, &b);
         fpoly_gcd_fast (C, &g, h, &b);
         int dg = g.deg;
-        if ( dg <= 0 || dg >= h->deg ) continue;           // trivial split; new a
+        if ( dg <= 0 || dg >= h->deg ) {                    // trivial split; new a
+            fails += h->deg - 1;
+            if ( bits && fails >= bits ) { ok = 0; break; }
+            continue;
+        }
+        fails = 0;
         if ( 2 * dg <= h->deg ) fpoly_copy (C, h, &g);      // keep smaller side
         else { fpoly_divexact_fast (C, &q, h, &g);  fpoly_copy (C, h, &q); }
         fpoly_make_monic (C, h);
     }
-    fp_sub (C, root, zero, CF(h, 0));                       // h = x - r (monic) => root = -h_0
+    if ( ok ) fp_sub (C, root, zero, CF(h, 0));             // h = x - r (monic) => root = -h_0
     mpz_clear (e);  mpz_clear (az);
     fpoly_clear (&b);  fpoly_clear (&g);  fpoly_clear (&q);
+    return ok;
 }
 
 void fp_pow (const fp_ctx *C, mp_limb_t *r, const mp_limb_t *a, const mpz_t e)

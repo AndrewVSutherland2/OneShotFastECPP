@@ -1,0 +1,13 @@
+17:32:26 r768_1 done: RUN r768_1 wall=37.21 user=4412.59 sys=196.37 verified=1 reserve=0 D=3290562571 build 2.4s
+17:33:04 r768_2 done: RUN r768_2 wall=37.26 user=3391.72 sys=162.76 verified=1 reserve=0 D=1427001495 build 9.4s
+17:34:03 r768_3 done: RUN r768_3 wall=59.60 user=6730.43 sys=294.04 verified=1 reserve=0 D=5201738755 build 8.0s
+17:34:48 r768_4 done: RUN r768_4 wall=44.80 user=5063.78 sys=239.16 verified=1 reserve=0 D=72934123 build 4.9s
+17:35:21 r768_5 done: RUN r768_5 wall=32.74 user=2787.26 sys=145.08 verified=1 reserve=0 D=1427001495 build 9.4s
+17:35:47 r768_6 done: RUN r768_6 wall=25.77 user=2675.14 sys=139.60 verified=1 reserve=0 D=85088555 build 1.2s
+17:36:32 r768_7 done: RUN r768_7 wall=45.42 user=5515.03 sys=241.21 verified=1 reserve=0 D=3290562571 build 2.4s
+17:37:02 r768_8 done: RUN r768_8 wall=30.33 user=3437.59 sys=169.05 verified=1 reserve=0 D=3290562571 build 2.4s
+17:37:33 r768_9 done: RUN r768_9 wall=30.48 user=3440.43 sys=173.55 verified=1 reserve=0 D=3290562571 build 2.4s
+17:38:20 r768_10 done: RUN r768_10 wall=46.77 user=4685.57 sys=207.50 verified=1 reserve=0 D=1427001495 build 9.4s
+17:38:51 r768_11 done: RUN r768_11 wall=30.90 user=3521.99 sys=172.04 verified=1 reserve=0 D=3290562571 build 2.4s
+17:39:23 r768_12 done: RUN r768_12 wall=32.74 user=3630.57 sys=173.52 verified=1 reserve=0 D=378771631 build 3.3s
+17:39:23 ALL_DONE

@@ -66,7 +66,7 @@ Everything builds and runs *inside the project tree*; nothing is written to
 
 5. Modular polynomials (phi_files/)
 -----------------------------------
-  Computing H_D mod p needs modular polynomials.  We bundle a 46 MB subset (the
+  Computing H_D mod p needs modular polynomials.  We bundle a 50 MB subset (the
   files in phi_files_manifest.txt): for EVERY class-invariant family f, the
   enumeration polynomials Phi_{l,f} for primes l <= 71 and the invariant->j
   polynomial Psi_f.  The classical polynomials Phi_l (phi_j_* files) fall under
@@ -76,7 +76,14 @@ Everything builds and runs *inside the project tree*; nothing is written to
   f-value from the starting j-invariant (see Enge-Sutherland, "Class invariants
   by the CRT method", Lemma on Psi_f roots), plus phi_j_2 for 2-volcano
   orientation.  l <= 71 covers every level and enumeration prime observed across
-  extensive traces (128-384-bit p, |D| up to 10^10).
+  extensive traces (128-384-bit p, |D| up to 10^10).  For the Weber functions f
+  and f^2, whose polynomials are a few kilobytes each, and for eight double eta
+  quotients whose polynomials stay below 210 KB (w2w3e1, w2w3e2, w2w5e1, w2w5e2,
+  w2w7e1, w2w7e2, w2w13e1, w3w3e1), the bundle goes to l = 109: the short-ECPP
+  prover works with |D| up to 10^12, where a class group now and then needs a
+  generator of norm above 71.  About one discriminant in a hundred still asks
+  for a file that is not here (an Atkin function, or l > 109); the prover names
+  the file and takes the next winner.
 
   This is sufficient for oneshotECPP in that range: if a particular discriminant needs
   a modular polynomial that is not bundled, classpoly reports it and oneshotECPP simply

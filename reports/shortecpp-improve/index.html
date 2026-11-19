@@ -1,0 +1,1217 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>shortECPP revisited: prover changes, search model, stopping-rule scheduler</title>
+<style>
+:root { --fg:#1a1a1a; --bg:#fefefe; --rule:#ccc; --th:#f0ede4; --code:#f4f2ea; --hl:#fdf6d8; --hlb:#c9a227; --bd:#bbb; --mut:#555; }
+@media (prefers-color-scheme: dark) {
+  :root { --fg:#e6e3da; --bg:#16171a; --rule:#444; --th:#26282d; --code:#24262b; --hl:#2a2718; --hlb:#c9a227; --bd:#4a4c52; --mut:#a8a59c; }
+  a { color:#8fb8ff; }
+}
+body { font: 16px/1.55 Georgia, serif; max-width: 62em; margin: 2em auto; padding: 0 1em; color: var(--fg); background: var(--bg); }
+h1 { font-size: 1.6em; } h2 { font-size: 1.25em; margin-top: 1.8em; border-bottom: 1px solid var(--rule); }
+h3 { font-size: 1.05em; margin-top: 1.4em; }
+table { border-collapse: collapse; margin: 1em 0; font-size: 0.92em; }
+th, td { border: 1px solid var(--bd); padding: 0.3em 0.6em; text-align: right; vertical-align: top; }
+th { background: var(--th); } td:first-child, th:first-child { text-align: left; }
+td.l, th.l { text-align: left; }
+code { background: var(--code); padding: 0.1em 0.3em; font-size: 0.92em; }
+.hl { background: var(--hl); padding: 0.8em 1em; border-left: 4px solid var(--hlb); }
+.hl ul { margin: 0.4em 0 0 0; }
+div.wide { overflow-x: auto; }
+.mut { color: var(--mut); font-size: 0.92em; }
+</style></head><body>
+
+<h1>shortECPP revisited: prover changes, ECM engine benchmark, and a model of the search</h1>
+<p class="mut">2026-11-14, sections 9 to 11 added 2026-11-15 &middot; branch <code>shortecpp-improve</code> &middot; follows the review of the
+"Short ECPP prover: recommended improvements" note.  Hardware: one <code>c8a.48xlarge</code>
+spot box (AMD EPYC 9R45, Zen&nbsp;5, 192 cores, no SMT) and the 16-core driver box, which was
+shared with another job all day, so local timings are CPU times and may be up to twice the idle figures.</p>
+
+<div class="hl"><b>Summary.</b>
+<ul>
+<li><b>Prover.</b> Supply and round handling are reworked and tested: the scan's factor base is capped
+from the first scan and its square roots are cached, the strip uses a 2<sup>26</sup> prime product,
+classification no longer runs Miller&ndash;Rabin in Python on every prime tail, and a round stops at its
+first winner.  At 1030 bits a scan to 6&middot;10<sup>10</sup> (99,338 discriminants) costs 4.5 core-hours;
+in August the scan to 2&middot;10<sup>10</sup> (85,954) cost about 210.</li>
+<li><b>Engine.</b> Re-tuning GMP and gmp-ecm for Zen&nbsp;5 gains at most 3% with all cores busy.
+avx-ecm's stage 1 is 1.8 times faster than gmp-ecm's (1.35&ndash;1.5 times per whole curve), but only
+in its non-IFMA build: the IFMA build of the standalone repository computes wrong residues.</li>
+<li><b>Model.</b> A model of one level with no fitted parameter reproduces the 1030-bit campaign log
+tier by tier.  It says the schedule, not the engine, is where the time goes: a per-candidate stopping
+rule that gives most orders no ECM and takes the best few much deeper costs several times less per
+winner than fixed tiers with admission caps.</li>
+<li><b>Experiment.</b> That rule, run with real gmp-ecm on 249,648 orders of nextprime(2<sup>768</sup>),
+found <b>17 winners for 26.9 core-hours of ECM</b> (1.6 per winner) plus about
+10 core-hours of supply.  The model had predicted 24.2 winners for 31.8
+core-hours.  On the same prime and box, the prover with its old scheduler needed 59 core-hours of search to reach its first winner; the August campaign's 765-bit prime took 148.</li>
+<li><b>Construction.</b> With winners this cheap, building the curve cost more than finding it, almost all
+of it root-finding on the full-degree class polynomial (section 6).  The class-group decomposition of
+<a href="https://arxiv.org/abs/1009.1082">arXiv:1009.1082</a> (Algorithm 1) is now implemented in
+<code>classpoly</code> and <code>cm_method</code> (section 7): the 17 winners at 768 bits build in a
+median of <b>11.7&nbsp;s</b> each on 192 cores, and the four timed before take
+145&nbsp;s and 2.6 core-hours in total where they took
+2,072&nbsp;s and 49.</li>
+<li><b>yafu's ECM.</b> The ECM in current yafu, built with AVX-512 IFMA, is correct and costs 4 to 5 times
+less per curve than gmp-ecm on 1030-bit inputs with all cores busy, at the same B2 and with at least the
+same success rate (section 8).  It is not yet used by the prover.</li>
+<li><b>Scheduler (section 9, 15 November).</b> The stopping rule is in the prover.  Thirteen fresh 768-bit
+primes were proved on the 16-core driver box in <b>202&nbsp;s on average (median
+112&nbsp;s)</b>, with 1.5 thread-hours of search for the top level; the old
+scheduler needed 59 and 148 core-hours of search on the 192-core box for two primes of this size.  The
+model's win rate holds up: the wins it expected from the work done, at the first win, average
+0.66 over 12 runs, where an exact model gives 1 &plusmn; 0.29.  The 1030-bit prime 10<sup>310</sup> + 733 took <b>1.41 hours on the same 16 cores</b>
+(43.9 thread-hours); the August campaign spent about 812 core-hours on it.
+</li>
+<li><b>On 192 cores (section 10, 15 November).</b> 26 primes of 768 bits take
+<b>44&nbsp;s each on average (median 36&nbsp;s)</b> and
+1.56 core-hours, three of 1030 bits <b>671&nbsp;s on average</b> and
+27.2 core-hours; the campaign prime 10<sup>310</sup> + 733 took 167&nbsp;s.  Search
+cost and wall time agree with the simulation, and over the 26 primes the wins the model expected at the
+first win average 0.86, where an exact model gives 1 &plusmn; 0.20.</li>
+<li><b>yafu as the ECM engine (section 11, 15 November).</b> The prover runs yafu with
+<code>engine=yafu</code>.  Its success per curve was measured as finely as gmp-ecm's (6 million curves):
+at equal B1 a yafu curve succeeds as often or up to 30% more often, and costs 3.3 to 5.2 times less.  On
+the 16-core driver box the thirteen 768-bit primes take <b>41&nbsp;s each on average (median
+34&nbsp;s)</b> where gmp-ecm took 202 (112), and
+10<sup>310</sup> + 733 takes 60 minutes on a slow draw where gmp-ecm took 85 on a fast
+one.  In simulation a level on 192 cores costs 0.77 core-hours instead of 1.81 at 768 bits and 12.6 instead
+of 41.3 at 1030 bits.</li>
+
+<li><b>The table of ShortPrimalityProofs (section 12, 16 and 17 November).</b> On one 192-core box with yafu,
+<b>every entry from 10<sup>10</sup> to 10<sup>400</sup> is proved faster than recorded, by a factor
+2.5 to 748 in CPU time</b>; the seventeen entries from 10<sup>160</sup> to
+10<sup>320</sup> take 17 minutes and 42 core-hours in all, where the table
+records 4,180 core-hours, and the eight from 10<sup>330</sup> to 10<sup>400</sup> take
+6.0 hours and 1,019 core-hours, where it records 51 hours and
+8,290.  The runs exposed three defects, now repaired: yafu abandons a number
+at its first factor, levels below 500 bits ran with the parameters of large ones, and a missing modular
+polynomial cost a minute of retries.  The stopping rule now runs from 280 bits.</li>
+<li><b>Five new entries, 10<sup>410</sup> to 10<sup>450</sup> (sections 12.7 and 12.9).</b> The least primes
+above 10<sup>420</sup>, 10<sup>430</sup>, 10<sup>440</sup> and 10<sup>450</sup> (1396 to 1495 bits) were proved on
+18 November, one 192-core box each, in 2.0, 16.4, 8.5 and 11.9 hours: 6,845 core-hours in all.
+Before them, nextprime(10<sup>410</sup>) = 10<sup>410</sup>&nbsp;+&nbsp;67: 1362 bits,
+five levels, 7.8 hours on 192 cores and 953 core-hours: 4.8 hours of
+search and 3.0 of construction, nearly all of that for one root of a polynomial of prime degree
+470,279.  A first run stalled, because this prime has a quarter of the usual number of small
+discriminants; the scan now gets its orders from a wider bound or from a higher cap on the primes of a
+discriminant, whichever is cheaper.</li>
+<li><b>Not done.</b> A build still spends most of its time in root-finding at the prime part of the class
+number: with yafu it is a third of a 768-bit level on 192 cores, and it was three of the eight hours of
+10<sup>410</sup>.  Its cost is predictable from the class number; the scheduler uses that when a winner is
+in hand, not yet when a candidate comes in.  A scan chunk at 1400 bits and more is three to five hours of a
+hundred threads and is lost whole when a spot box is taken away (section 12.10).</li>
+
+</ul></div>
+
+<h2>1. What changed in the prover</h2>
+<p>All of this is in <code>ecpp/shortECPP.py</code>, <code>ecpp/dscan.c</code> and
+<code>ecpp/smoothtest.c</code>.  The scheduler (tiers, admission caps, ranking, widen rule) is
+<b>unchanged</b> by them: these are the changes that needed no model.  (Section 9 replaces the scheduler for
+levels of 500 bits and more.)</p>
+<div class="wide"><table>
+<tr><th>Change</th><th class="l">What it does</th><th class="l">Measured effect</th></tr>
+<tr><td>Factor-base cap from the first scan</td>
+<td class="l"><code>fb_cap(B)</code> = B/1000, clamped to [10<sup>6</sup>, 10<sup>8</sup>]; the cap grows with B.
+New <code>dscan fbmin=</code>: with the previous cap given, a discriminant below <code>Bmin</code> is emitted
+exactly when its largest prime exceeds that cap, so successive scans tile [0,&nbsp;B) at the latest cap
+with no repeats.  <code>Bmax</code> default raised to 2&middot;10<sup>11</sup>.</td>
+<td class="l">1030 bits, B = 2&middot;10<sup>10</sup>: 61,315 solvable D for 1.9 core-h
+(cap 5&middot;10<sup>7</sup>), against 85,954 for about 210 core-h uncapped in the August campaign.
+B = 6&middot;10<sup>10</sup>: 99,338 D for 4.5 core-h.  768 bits, B = 2&middot;10<sup>11</sup>,
+cap 10<sup>8</sup>, idle 192-core box: 319,371 D in 257&nbsp;s (9.1 core-h).</td></tr>
+<tr><td>Root cache</td>
+<td class="l"><code>dscan roots=&lt;file&gt;</code> keeps the factor-base square roots on disk, keyed by p.
+A cached prefix is reused only after every root in it has been squared and compared; a damaged file
+falls back to its longest good prefix.</td>
+<td class="l">A widening pays Tonelli only for the primes the larger cap adds
+(1.5 M roots at 1030 bits &asymp; 1,550 core-s otherwise repeated per widening).</td></tr>
+<tr><td>Strip bound 2<sup>26</sup></td>
+<td class="l">The strip only has to be exact up to n&sup2;.  The prime product now stops at
+2<sup>26</sup> (12&nbsp;MB) instead of 2<sup>32</sup> (775&nbsp;MB).</td>
+<td class="l">27,000 orders at 1030 bits: 6.4&nbsp;s against 62.2&nbsp;s on 12 threads, identical
+n&sup2;-smooth parts.  249,648 orders at 768 bits: 11.9&nbsp;s on 192 cores.  The primes it leaves
+(27&ndash;32 bits) go at the first ECM tier.</td></tr>
+<tr><td>Classification</td>
+<td class="l"><code>smoothtest parts n2=&lt;bound&gt; prp=1</code> returns the n&sup2;-smooth part and a base-2
+Fermat verdict on the tail; after ECM the verdict is read from gmp-ecm's own report.  The Python
+process pool and the single-core <code>n2_parts</code> are gone.  Only a probable-prime tail below
+&radic;p, which could be a q, still gets the 24-round Miller&ndash;Rabin test in the interpreter.</td>
+<td class="l">The campaign's classify phase (95&ndash;136&nbsp;s per widening at 1030 bits) was not the process
+pool, as the earlier note and my review both said: it was that Miller&ndash;Rabin test, run on every prime
+tail (about 1,500 per 27,000 orders, 60&nbsp;ms each).  I found this only when the baseline run in section 5
+showed 53&nbsp;s of "strip" for 38,582 orders that <code>smoothtest</code> alone handles in 2&nbsp;s; that run
+predates the fix.  With it, the phase is gone.</td></tr>
+<tr><td>Results as they complete</td>
+<td class="l">Each round is a set of futures; results are processed as processes finish, and the first
+winner kills the rest of the round.  Tails that did not finish keep their effort key, so a failed
+build resumes the same tier.</td>
+<td class="l">532-bit test: the winning round stopped after 106 of 1,665 tails.  In the campaign the
+last round was 2,107&ndash;2,392&nbsp;s of a 16,500&nbsp;s proof at 1030 bits; on average half of it is saved.</td></tr>
+<tr><td>Several tails per gmp-ecm process</td>
+<td class="l">At tiers where a tail needs a fraction of a second, a process takes up to 32 tails
+(never so many that cores idle).</td>
+<td class="l">Insurance, not a measured gain: see the launch test in section 3.</td></tr>
+</table></div>
+<p>Validation: <code>test_dscan.py</code> gained a section (capped scan against brute force, tiling
+across a growing cap, root cache cold / extended / warm / damaged) and <code>test_smooth.py</code>
+checks the two new columns against PARI; both pass.  The modified prover produced verified
+revised-format certificates for nextprime(10<sup>100</sup>), nextprime(10<sup>120</sup>) and
+nextprime(10<sup>160</sup>) on the driver box and, on the spot box, for nextprime(2<sup>768</sup>) (section 5).</p>
+
+<h2>2. Where supply stands now</h2>
+<p>With the cap, the scan costs about 0.1 core-seconds per solvable discriminant at
+B&nbsp;=&nbsp;2&middot;10<sup>10</sup> and 0.25 at the margin near 6&middot;10<sup>10</sup>: the count of
+solvable D grows like &radic;B while tests grow like B, so supply is cheap but its price rises with
+the pool.  The count is flat in the cap: on the 1030-bit dump, a cap of B/4000 keeps 81% of what B/400
+finds, with a ninth of the roots.</p>
+<table>
+<tr><th>1030 bits, D below</th><th>cap 5&middot;10<sup>7</sup></th><th>2&middot;10<sup>7</sup></th><th>10<sup>7</sup></th><th>5&middot;10<sup>6</sup></th><th>10<sup>6</sup></th><th>2&middot;10<sup>5</sup></th></tr>
+<tr><td>2&middot;10<sup>10</sup></td><td>61,315</td><td>56,756</td><td>53,240</td><td>49,394</td><td>40,202</td><td>29,494</td></tr>
+<tr><td>6&middot;10<sup>10</sup></td><td>99,338</td><td>91,546</td><td>85,402</td><td>78,898</td><td>62,675</td><td>44,154</td></tr>
+<tr><td>square roots needed</td><td>1.41 M</td><td>0.59 M</td><td>0.31 M</td><td>0.16 M</td><td>36,000</td><td>8,200</td></tr>
+</table>
+
+<h2>3. ECM engine benchmark</h2>
+<p>Built on the box: GMP 6.3.0 twice (as configured by default, and with
+<code>--build=zen3-pc-linux-gnu</code>), gmp-ecm 7.0.6 against each, a third gmp-ecm with its own
+<code>make ecm-params</code> tuning, Ubuntu's gmp-ecm 7.0.5 package (the campaign binary), and
+<code>bbuhrow/avx-ecm</code> (commit 118e015, March 2021).  Inputs are products of two primes of half
+the size, so every curve runs to the end.</p>
+
+<h3>3.1 Re-tuning gmp-ecm is not worth doing</h3>
+<p>GMP 6.3's <code>configure</code> does not recognise Zen&nbsp;5 and silently selects the generic
+<code>x86_64/k8</code> code; forcing the Zen&nbsp;3 code paths gives 2% on a 17-limb multiplication and
+12% on a squaring.  On an otherwise idle box the Zen build with tuned gmp-ecm parameters is 7% faster
+in stage 1 and 12% in stage 2 at 1030 bits.  With every core busy, which is how the prover runs, the
+difference is 3% or nothing:</p>
+<table>
+<tr><th>1030 bits, all 192 cores busy</th><th>B1 = 50,000</th><th>250,000</th><th>10<sup>6</sup></th></tr>
+<tr><td>gmp-ecm 7.0.5 (Ubuntu), core-s per curve</td><td>0.263</td><td>1.215</td><td>4.95</td></tr>
+<tr><td>gmp-ecm 7.0.6, Zen&nbsp;3 GMP, tuned</td><td>0.273</td><td>1.178</td><td>4.81</td></tr>
+<tr><td>the same curve on an idle box (7.0.5)</td><td>0.201</td><td>0.908</td><td>3.66</td></tr>
+</table>
+<p>Every engine is about 1.33 times slower per core when all cores are busy than when the box is idle,
+so idle single-process timings overstate throughput by that factor.</p>
+
+<h3>3.2 avx-ecm: stage 1 is 1.8 times faster, but only its non-IFMA build is correct</h3>
+<p>The standalone avx-ecm repository has two AVX-512 code paths.  The IFMA path (built with
+<code>ICELAKE=1</code>) is wrong on this machine at every optimisation level I tried: it never found a
+10-digit factor that the other path finds at once, and none of its saved stage-1 residues agreed with an
+independent computation modulo a known factor (<code>data/chk_avx.py</code>: 0 of 3; the non-IFMA
+build: 6 of 6).  The repository's own to-do list still says "IFMA and benchmarking".  The non-IFMA
+build (<code>SKYLAKEX=1</code>) is correct, and gmp-ecm's <code>-resume</code> accepts its residues and finds
+factors in stage 2.</p>
+<table>
+<tr><th>1030 bits, all cores busy, core-s per curve</th><th>B1 = 50,000</th><th>250,000</th><th>10<sup>6</sup></th></tr>
+<tr><td>gmp-ecm stage 1</td><td>0.165</td><td>0.832</td><td>3.32</td></tr>
+<tr><td>avx-ecm stage 1, non-IFMA (correct)</td><td>0.092</td><td>0.462</td><td>1.88</td></tr>
+<tr><td>avx-ecm stage 1, IFMA (wrong results; timing only)</td><td>0.052</td><td>0.262</td><td>1.05</td></tr>
+<tr><td>gmp-ecm stage 2 on avx-ecm residues</td><td>0.103</td><td>0.360</td><td>1.53</td></tr>
+<tr><td>whole curve: gmp-ecm alone</td><td>0.263</td><td>1.215</td><td>4.95</td></tr>
+<tr><td>whole curve: avx-ecm (non-IFMA) + gmp-ecm stage 2</td><td>0.195 (1.35&times;)</td><td>0.822 (1.48&times;)</td><td>3.41 (1.45&times;)</td></tr>
+<tr><td>whole curve if a correct IFMA stage 1 ran at the IFMA timing</td><td>0.155 (1.7&times;)</td><td>0.622 (2.0&times;)</td><td>2.58 (1.9&times;)</td></tr>
+</table>
+<p>avx-ecm rounds the modulus up to a multiple of 208 bits, so the stage-1 ratio depends on the size:
+on an idle box it is 1.73 at 768 bits (832), 2.0 at 1030 (1040) and 1.6 at 1263 (1456).  It also sieves
+primes to 10<sup>8</sup> at start-up (0.1&nbsp;s on one core, 0.8&nbsp;s with 32 threads), which matters
+at the shallow tiers.  The maintained descendant of this code is inside
+<code>yafu</code> (<code>USE_AVX512IFMA=1</code>, last commit 2026-11-13); I cloned it on the box, but the
+session's permission classifier blocked building it, so the last row is a projection, not a measurement.</p>
+
+<h3>3.3 The shallow tier is not launch-bound</h3>
+<p>24,000 calls of <code>ecm -q -c 12 2000</code> on 1030-bit inputs through a 192-thread Python pool
+ran at 716 calls a second and 93% utilisation; eight tails per process and a process pool made no
+difference (92% and 94%).  So one interpreter can launch far more than the 335 calls a second seen in
+the campaign's 1030-bit round, where utilisation was about 44%.  The difference in the campaign is
+unexplained (the prover passes a timeout, which puts <code>communicate()</code> on a slower path, and
+its heap is much larger); the tier is 2% of the run either way.</p>
+
+<h2>4. A model of the search</h2>
+<p><code>ecpp/shortsim.py</code>.  After the strip, an order's tail T wins exactly when
+T&nbsp;=&nbsp;(primes ECM removes)&nbsp;&middot;&nbsp;q with q a prime in the candidate's <i>coverage</i>:
+the set of q for which some divisor m of the n&sup2;-smooth part s gives L&nbsp;&lt;&nbsp;mq&nbsp;&lt;&nbsp;r(m)L.
+On the real 1030-bit orders the coverage measures log<sub>2</sub>&nbsp;s bits almost exactly (mean 21.4
+bits; 18.0 under the revised format's limits).  The model has three ingredients and no fitted
+parameter:</p>
+<ol>
+<li>Prime factors of T between the strip bound and 2<sup>160</sup> form a Poisson process with intensity
+db/b in the bit size b; what is left after them is a 2<sup>160</sup>-rough number, prime with the density
+Buchstab's function gives.</li>
+<li>A prime of b bits survives c curves at a tier with probability (1&nbsp;&minus;&nbsp;&pi;(b))<sup>c</sup>,
+with &pi; measured for gmp-ecm on the box (section 8, <code>data/pi_calib.json</code>) where the measurement has at least 8 successes, and otherwise the two-stage Dickman function for orders near 2<sup>b</sup>/24, rescaled to join the measured cells.</li>
+<li>Sums of prime sizes are then compound-Poisson laws, computed exactly on a 1-bit grid by FFT.  This
+gives, for a tail of t bits known to be composite after j tiers, the probability of every outcome of
+tier j+1: nothing found, a smaller composite tail, or a prime tail (a win if it lies in the coverage).</li>
+</ol>
+
+<h3>4.1 It reproduces the campaign log</h3>
+<p>The first pass of the August 1030-bit run, emulated on the real orders of the same prime with the
+campaign's tiers, ranking and caps (mean of 8 Monte Carlo runs; the log is one run):</p>
+<table><tr><th>Tier (B1, curves)</th><th>tails run: model</th><th>log</th><th>tails split: model</th><th>log</th><th>expected winners</th><th>core-h in the log</th></tr>
+<tr><td>2,000, 12</td><td>25,422</td><td>25,411</td><td>7,856</td><td>7,792</td><td>0.000</td><td>4</td></tr>
+<tr><td>11,000, 20</td><td>24,745</td><td>24,761</td><td>6,088</td><td>6,271</td><td>0.000</td><td>14</td></tr>
+<tr><td>50,000, 32</td><td>12,000</td><td>12,000</td><td>2,320</td><td>2,326</td><td>0.001</td><td>36</td></tr>
+<tr><td>250,000, 48</td><td>4,000</td><td>4,000</td><td>760</td><td>683</td><td>0.021</td><td>74</td></tr>
+<tr><td>1,000,000, 72</td><td>1,200</td><td>1,200</td><td>192</td><td>189</td><td>0.179</td><td>112</td></tr>
+<tr><td>3,000,000, 96</td><td>400</td><td>400</td><td>51</td><td>59</td><td>0.470</td><td>128</td></tr>
+</table>
+<p>Share of tails that are prime straight after the strip: model 5.8&ndash;6.1%, data 5.7%.  Expected
+winners per such pass: 0.67, at 367 core-hours of ECM; the campaign found two winners in three passes plus the two deep
+rounds.</p>
+
+<h3>4.2 What it says about the schedule</h3>
+<p>If fresh orders can always be bought at a fixed price, the best policy is a stopping rule per
+candidate: run the next sweep on a composite tail exactly when its expected value is positive.  The
+model computes it by dynamic programming over (sweep, tail size) for each coverage class, with the value
+of a win found by bisection.  Cost per winner at 1030 bits, in core-hours of supply plus ECM, at the
+campaign's effective cost per curve:</p>
+<table><tr><th>Schedule</th><th>supply at 8.8 core-s per order</th><th>supply at 1.0 core-s per order</th><th>supply at 0.3 core-s per order</th></tr>
+<tr><td>Campaign tiers and caps (the reference)</td><td>487 <span class="mut">(40,221 orders, 34.8 core-s of ECM each)</span></td><td>400 <span class="mut">(40,221 orders, 34.8 core-s of ECM each)</span></td><td>392 <span class="mut">(40,221 orders, 34.8 core-s of ECM each)</span></td></tr>
+<tr><td>Campaign tiers, best stopping rule</td><td>285 <span class="mut">(64,286 orders, 7.1 core-s of ECM each)</span></td><td>97 <span class="mut">(164,969 orders, 1.1 core-s of ECM each)</span></td><td>56 <span class="mut">(286,869 orders, 0.4 core-s of ECM each)</span></td></tr>
+<tr><td>Same B1, in sweeps of 12&ndash;20 curves</td><td>262 <span class="mut">(63,884 orders, 6.0 core-s of ECM each)</span></td><td>85 <span class="mut">(136,061 orders, 1.3 core-s of ECM each)</span></td><td>52 <span class="mut">(239,066 orders, 0.5 core-s of ECM each)</span></td></tr>
+<tr><td>More sweeps at 10<sup>6</sup> and 3&middot;10<sup>6</sup></td><td>165 <span class="mut">(36,140 orders, 7.6 core-s of ECM each)</span></td><td>60 <span class="mut">(85,840 orders, 1.5 core-s of ECM each)</span></td><td>39 <span class="mut">(158,756 orders, 0.6 core-s of ECM each)</span></td></tr>
+<tr><td>Adding B1 = 10<sup>7</sup> and 3&middot;10<sup>7</sup> (cost and &pi; extrapolated)</td><td>118 <span class="mut">(22,096 orders, 10.5 core-s of ECM each)</span></td><td>51 <span class="mut">(60,449 orders, 2.0 core-s of ECM each)</span></td><td>35 <span class="mut">(121,371 orders, 0.7 core-s of ECM each)</span></td></tr>
+</table>
+<p class="mut">8.8 core-s per order is what supply cost in the August 1030-bit run; 1.0 and 0.3 bracket what it costs now (scan 0.1&ndash;0.25, strip under 0.01, plus overheads).  In brackets: orders bought per winner and ECM spent per order.</p>
+<p>Two things produce the gain, and both go against a ladder with fixed admission caps:</p>
+<ul>
+<li><b>Selection.</b> The win probability is proportional to the coverage and falls by about 3% per bit
+of tail above &radic;p, so a candidate with a 100-bit smooth part and 50 bits of coverage is worth tens of
+typical ones.  With cheap supply the best policy gives most orders no ECM at all (at 1.0 core-s per order, 30% of fresh orders get the B1&nbsp;=&nbsp;2,000 sweep, 11% reach 11,000, 2.7% reach 50,000 and 0.6% reach 250,000),
+where the reference runs B1&nbsp;=&nbsp;50,000 on 45% of the pool and 250,000 on 15%.</li>
+<li><b>Depth.</b> On the few candidates that survive, it keeps going well past where the reference
+stops; in the third row of the table 36% of the winners come from the 10<sup>6</sup> sweeps and 57% from 3&middot;10<sup>6</sup>.  This is the same effect as the campaign logs show directly: 11 of the 15
+top-level winners on the 192-core boxes came from the B1&nbsp;=&nbsp;10<sup>6</sup> tier in 2.6 hours of
+wall time, 3 from 250,000 in 6.2 hours.</li>
+</ul>
+
+<h2>5. Experiment: the policy on real orders at 768 bits</h2>
+<p>The model's stopping rule was computed for the real orders of p = nextprime(2<sup>768</sup>)
+(scan to 2&middot;10<sup>11</sup> with the cap at 10<sup>8</sup>, revised-format coverage, supply priced
+at 0.3 core-seconds per order, sweeps up to B1&nbsp;=&nbsp;3&middot;10<sup>7</sup> on offer) and then
+executed with gmp-ecm 7.0.5 on the 192-core box by <code>data/policy_run.py</code>: each composite tail
+runs the next sweep exactly when the table says so for its coverage class and current size, a tail that
+becomes prime is tested against the format's window, and nothing else is consulted.  The prediction was
+written down before the run (<code>data/exp768_policy.json</code>).</p>
+<table><tr><th>B1</th><th>sweeps</th><th>tails run: predicted</th><th>observed</th><th>winners: predicted</th><th>re-predicted with measured &pi;</th><th>observed</th><th>ECM core-s: predicted</th><th>observed</th></tr>
+<tr><td>2,000</td><td>1</td><td>106,055</td><td>106,338</td><td>0.00</td><td>0.00</td><td>0</td><td>10,445</td><td>12,068</td></tr>
+<tr><td>11,000</td><td>1</td><td>20,888</td><td>19,491</td><td>0.09</td><td>0.05</td><td>0</td><td>14,003</td><td>12,645</td></tr>
+<tr><td>50,000</td><td>2</td><td>9,245</td><td>8,074</td><td>1.35</td><td>1.00</td><td>1</td><td>17,205</td><td>14,212</td></tr>
+<tr><td>250,000</td><td>4</td><td>4,057</td><td>3,427</td><td>6.56</td><td>5.38</td><td>2</td><td>21,518</td><td>17,455</td></tr>
+<tr><td>1,000,000</td><td>6</td><td>1,125</td><td>901</td><td>10.08</td><td>8.56</td><td>9</td><td>20,509</td><td>15,269</td></tr>
+<tr><td>3,000,000</td><td>8</td><td>626</td><td>535</td><td>6.11</td><td>5.04</td><td>5</td><td>30,980</td><td>25,088</td></tr>
+<tr><th>Total</th><th></th><th>141,996</th><th>138,766</th><th>24.2</th><th>20.0</th><th>17</th><th>114,660 (31.8 core-h)</th><th>96,737 (26.9 core-h)</th></tr>
+</table>
+<p>The prediction in the fifth column used the theoretical &pi;, because the measurement of &pi;
+finished after the run.  17 winners against 24.2 is about 1.5 standard deviations
+low for a Poisson count.  Re-predicted with the measured &pi;, the same policy is expected to find 20.9 winners, within one standard deviation of 17.  The model still sends 15&ndash;20% more tails to the deep
+sweeps than actually arrived, so some optimism is real, but it is right about the structure: 14 of the
+17 winners came from the 10<sup>6</sup> and 3&middot;10<sup>6</sup> sweeps on a few hundred tails, and the
+policy never asked for B1&nbsp;&ge;&nbsp;10<sup>7</sup> at this size.</p>
+<p>Cost of a top-level winner at 768 bits, all in: 9.1 core-hours of scan and under 1 of strip for the
+whole pool, 26.9 of ECM, so about <b>2.2 core-hours per winner</b>; the run took 759
+seconds of wall time, about a fifth of it single-threaded Python in my driver.  For comparison:</p>
+<ul>
+<li>The August campaign's 765-bit prime (10<sup>230</sup>+753) took 148 core-hours and 83,506 orders for
+its one winner; 698 and 731 bits took 183 and 41.</li>
+<li>The model's expectation for the reference scheduler's order of work on these same orders, at today's
+supply cost, is 33&ndash;37 core-hours of ECM before the first winner: it spends 25&ndash;60 core-hours on
+B1&nbsp;&le;&nbsp;250,000 across the pool before it reaches the sweeps where the winners are.</li>
+<li>Run straight after the experiment for comparison: the modified prover with its old scheduler, from scratch on the same prime and box, reached its first winner after 1,110&nbsp;s (59 core-hours, 53.5 of them ECM; 63,182 orders) and completed a verified chain in 1,224&nbsp;s.  It spent 43 core-hours on B1&nbsp;&le;&nbsp;50,000 across the pool before the second 250,000 sweep found the winner, and the new early stop ended that round after 2.8&nbsp;s.  This is one draw, and somewhat worse than the model's expectation.</li>
+</ul>
+<p>The winners have |D| between 5.2&middot;10<sup>9</sup> and 1.7&middot;10<sup>11</sup>: with a pool this
+wide, winners are spread over the whole scan range and curve construction, not the search, becomes the
+expensive part of a level.  A complete revised-format certificate for nextprime(2<sup>768</sup>) was built on the box from the winner with the smallest |D|, D&nbsp;=&nbsp;&minus;5,201,738,755: the chain took 112&nbsp;s, 107 of them the top-level curve; it passes <code>vshort2.verify</code> and the PARI cross-check, and the baseline run above, which found the same winner, produced the identical certificate (<code>data/p768_cert.txt</code>).</p>
+
+
+<h2>6. Curve construction is now the bottleneck</h2>
+<p>A wide pool spreads winners over the whole scan range, so their discriminants are large: the 17
+winners of section 5 have class numbers from 11,364 to 489,056.  <code>cm_method</code> on four of
+them, alone on the 192-core box, p = nextprime(2<sup>768</sup>):</p>
+<table>
+<tr><th>D</th><th>h(D)</th><th>invariant, degree</th><th>class polynomial mod p</th><th>root of it</th><th>total</th><th>core-s</th></tr>
+<tr><td>&minus;5,201,738,755</td><td>11,364</td><td>159, 11,364</td><td>0.5 s</td><td>109.7 s</td><td>110 s</td><td>6,490</td></tr>
+<tr><td>&minus;18,960,475,695</td><td>74,912</td><td>535, 37,456</td><td>4.9 s</td><td>245.8 s</td><td>251 s</td><td>16,192</td></tr>
+<tr><td>&minus;43,980,816,779</td><td>58,520</td><td>171, 58,520</td><td>3.4 s</td><td>364.4 s</td><td>368 s</td><td>18,396</td></tr>
+<tr><td>&minus;115,333,393,863</td><td>149,392</td><td>26, 149,392</td><td>524.7 s</td><td>816.4 s</td><td>1,342 s</td><td>135,161</td></tr>
+</table>
+<p>Three things follow.</p>
+<ul>
+<li><b>Construction now costs more than the search.</b> The cheapest build, 110&nbsp;s on the box, is 5.9
+core-hours of box time (1.8 of actual CPU); a winner costs about 2.2 to find.</li>
+<li><b>It is almost all root-finding.</b> With a good class invariant the polynomial itself arrives in
+seconds from parallel <code>classpoly</code>; the root of the full-degree polynomial by equal-degree
+splitting takes 61&ndash;99.6% of the time, and keeps only 40&ndash;65 of the 192 cores busy.</li>
+<li><b>The invariant matters as much as h.</b> The fourth discriminant only admits invariant 26 and
+its polynomial takes a hundred times longer than the others.</li>
+</ul>
+<p>This is the case for the decomposition of
+<a href="https://arxiv.org/abs/1009.1082">Sutherland, <i>Accelerating the CM method</i></a>: with a
+subgroup of order n and m = h/n cosets, one finds a root of a polynomial V of degree m, forms from it a
+polynomial of degree n, and finds a root of that, so the degrees in the root-finding drop from h to m and
+n.  How much that buys depends on the divisors of h.  For the first row h = 2<sup>2</sup>&middot;3&middot;947, so
+the best split is degrees 947 and 12 in place of 11,364; for the third, 266 and 220 in place of 58,520.
+Of the 17 winners, 12 have a split with both degrees at most 600, and with winners this cheap one can
+choose among them.
+The vendored <code>classpoly_v1.0.3</code> already has the consuming half for word-size primes
+(<code>ff_classpoly_root</code>, the F/G file format, <code>tower_split</code>), but at the time of these
+measurements nothing in the tree produced a decomposed polynomial, and <code>cm_method</code> always took the
+full-degree route.  Section 7 describes the implementation that followed.</p>
+
+
+<h2>7. The class-group decomposition, implemented</h2>
+<p>For a subgroup G of the class group with n elements and m cosets, <code>classpoly</code> now computes,
+in place of the class polynomial H, a polynomial V of degree m whose roots are the m coset values
+y<sub>i</sub> (minus the sum of the roots in the coset) and n&minus;1 interpolants W<sub>k</sub> with m
+coefficients each.  <code>cm_method</code> finds a root y of V, forms
+U(X) = X<sup>n</sup> + yX<sup>n&minus;1</sup> + &Sigma; (W<sub>k</sub>(y)/V&prime;(y)) X<sup>k</sup>, which is a
+factor of H mod p, and finds a root of U.  Two root-findings of degrees m and n replace one of degree mn,
+and V and the W<sub>k</sub> have smaller coefficients than H, so the CRT uses fewer primes.  The output is in
+the F/G file format that the vendored <code>classpoly</code> already reads for word-size primes.  It is
+requested with <code>CLASSPOLY_TOWER=1</code>; <code>cm_method</code> uses it by default
+(<code>tower=0</code> turns it off).</p>
+<p>The same 17 winners of section 5 and the same prime, each built alone on the 192-core box with
+<code>cm_method jobs=192</code>.  The last two columns are the full-degree timings of section 6.</p>
+<table><tr><th>D</th><th>degree</th><th>invariant</th><th>m &times; n</th><th>CRT, s</th><th>roots, s</th><th>wall, s</th><th>core-s</th><th>before: wall, s</th><th>core-s</th></tr><tr><td>&minus;5,201,738,755</td><td>11,364</td><td>A<sub>59</sub></td><td>12 &times; 947</td><td>0.4</td><td>7.4</td><td><b>7.8</b></td><td>106</td><td>110</td><td>6,490</td></tr><tr><td>&minus;18,960,475,695</td><td>37,456</td><td>w<sub>5,7</sub></td><td>16 &times; 2341</td><td>1.2</td><td>20.2</td><td><b>21.4</b></td><td>373</td><td>251</td><td>16,192</td></tr><tr><td>&minus;24,483,261,047</td><td>117,668</td><td>f</td><td>92 &times; 1279</td><td>3.6</td><td>12.2</td><td><b>15.9</b></td><td>678</td><td></td><td></td></tr><tr><td>&minus;26,558,327,551</td><td>84,592</td><td>f</td><td>272 &times; 311</td><td>2.0</td><td>4.8</td><td><b>7.0</b></td><td>253</td><td></td><td></td></tr><tr><td>&minus;27,115,302,883</td><td>15,912</td><td>A<sub>59</sub></td><td>136 &times; 117</td><td>1.9</td><td>1.7</td><td><b>3.7</b></td><td>244</td><td></td><td></td></tr><tr><td>&minus;30,694,863,135</td><td>120,080</td><td>w<sub>2,7</sub></td><td>316 &times; 380</td><td>5.6</td><td>6.0</td><td><b>11.7</b></td><td>932</td><td></td><td></td></tr><tr><td>&minus;43,980,816,779</td><td>58,520</td><td>A<sub>71</sub></td><td>280 &times; 209</td><td>2.0</td><td>3.9</td><td><b>6.0</b></td><td>260</td><td>368</td><td>18,396</td></tr><tr><td>&minus;62,721,263,535</td><td>85,376</td><td>w<sub>5,7</sub></td><td>232 &times; 368</td><td>6.7</td><td>5.0</td><td><b>16.9</b> *</td><td>956</td><td></td><td></td></tr><tr><td>&minus;76,050,642,003</td><td>21,888</td><td>w<sub>3,7</sub></td><td>144 &times; 152</td><td>3.6</td><td>2.2</td><td><b>5.8</b></td><td>502</td><td></td><td></td></tr><tr><td>&minus;115,333,393,863</td><td>149,392</td><td>w<sub>2,13</sub></td><td>16 &times; 9337</td><td>14.2</td><td>95.3</td><td><b>109.7</b></td><td>8,471</td><td>1342</td><td>135,161</td></tr><tr><td>&minus;123,856,576,567</td><td>160,008</td><td>f</td><td>452 &times; 354</td><td>7.8</td><td>6.9</td><td><b>14.8</b></td><td>1,216</td><td></td><td></td></tr><tr><td>&minus;124,169,733,811</td><td>42,188</td><td>A<sub>29</sub></td><td>199 &times; 212</td><td>3.6</td><td>3.2</td><td><b>6.9</b></td><td>542</td><td></td><td></td></tr><tr><td>&minus;126,996,060,003</td><td>67,200</td><td>A<sub>47</sub></td><td>240 &times; 280</td><td>5.8</td><td>4.3</td><td><b>10.1</b></td><td>892</td><td></td><td></td></tr><tr><td>&minus;127,843,394,223</td><td>257,112</td><td>w<sub>2,7</sub></td><td>72 &times; 3571</td><td>13.7</td><td>30.4</td><td><b>44.4</b></td><td>2,624</td><td></td><td></td></tr><tr><td>&minus;150,887,559,671</td><td>489,056</td><td>f</td><td>496 &times; 986</td><td>19.6</td><td>12.7</td><td><b>32.7</b></td><td>3,161</td><td></td><td></td></tr><tr><td>&minus;154,094,250,923</td><td>92,000</td><td>A<sub>71</sub></td><td>250 &times; 368</td><td>5.4</td><td>5.3</td><td><b>10.8</b></td><td>741</td><td></td><td></td></tr><tr><td>&minus;169,383,168,327</td><td>277,800</td><td>w<sub>2,13</sub></td><td>463 &times; 600</td><td>25.0</td><td>8.0</td><td><b>33.2</b></td><td>4,337</td><td></td><td></td></tr></table>
+<p>An asterisk marks a build whose first attempt failed and was repeated with a larger height bound (see
+below); its time includes both attempts.  All 17 builds take 359&nbsp;s of wall
+time and 7.3 core-hours together, a median of 11.7&nbsp;s and an average of
+0.43 core-hours each, against about 1.6 core-hours of ECM to find a winner.  The four that
+were timed before went from 2,072&nbsp;s and 49 core-hours to
+145&nbsp;s and 2.6.  The whole chain for nextprime(2<sup>768</sup>) was then
+rebuilt by the prover from the journalled winners: 10.0&nbsp;s, of which 7.9 are the top-level build, where
+section 5 had 111.6 and 107.2, and the certificate passes both verifiers
+(<code>data/p768_tower_cert.txt</code>).</p>
+<p>What had to be added to the paper's algorithm, and what it turned up:</p>
+<ul>
+<li><b>A wider family of subgroups.</b> The enumeration of the roots mod p does not control the direction
+in which it walks each generator, so only some subgroups have orbits that can be read off from positions.
+The paper's implementation uses G = &lang;a<sub>1</sub>, &hellip;, a<sub>d&minus;1</sub>,
+a<sub>d</sub><sup>e</sup>&rang;.  That is not enough here: for D = &minus;5,201,738,755 the presentation has
+relative orders (2, 1894, 3), and the split 12 &times; 947 is not of that form.  I use
+G = &lang;a<sub>i</sub><sup>c<sub>i</sub></sup>&rang; with c<sub>i</sub> dividing the relative order
+n<sub>i</sub>, under the condition that whenever c<sub>i</sub> &lt; n<sub>i</sub> the power relation
+a<sub>i</sub><sup>n<sub>i</sub></sup> = &prod;<sub>j&lt;i</sub> a<sub>j</sub><sup>r<sub>ij</sub></sup> has
+c<sub>j</sub> dividing r<sub>ij</sub>.  Then G has order &prod; n<sub>i</sub>/c<sub>i</sub>, the positions with
+all residues e<sub>i</sub> mod c<sub>i</sub> fixed lie in one coset and are as many as G has elements, so
+they are a coset, whatever the directions.  This relies on each generator being walked in one direction
+throughout, which the gcd steps of the enumeration ensure.  The argument is in the comments of
+<code>compute_classpoly.c</code>; it is mine, not the paper's.  (15 November: confirmed as sound; section 9.5
+adds a second family for the subgroups this one misses.)</li>
+<li><b>No trace computation for the Weber functions.</b> For an invariant f whose class polynomial is only
+determined mod p up to f &rarr; &minus;f (Weber f, and the eta quotients that are square roots),
+<code>classpoly</code> first computes the trace of the class polynomial by a CRT of its own.  With 192
+workers each of them repeats it: at h = 117,668 that was 23 to 58&nbsp;s per worker before the main loop
+began.  The decomposition has a way round it.  Each coefficient of V and of the W<sub>k</sub> has a parity
+under f &rarr; &minus;f, and the trace T is odd; storing every odd coefficient multiplied by T, together with
+T<sup>2</sup>, makes all stored numbers independent of the sign.  The consumer divides by a square root of
+T<sup>2</sup> mod p and gets the decomposition of H(X) or of H(&minus;X), which give the same j-invariants.
+For D = &minus;24,483,261,047 this took the build from 97&nbsp;s and 14,700 core-seconds to the figures in
+the table.  (<code>CLASSPOLY_TOWER=2</code>; the file then carries a line <code>S=</code> and is not a plain
+F/G file.)</li>
+<li><b>The height bound is heuristic, and it can be too small.</b> For j the bound of the paper is
+rigorous.  For other invariants the code scales the bounds on |j| by the height factor, as the paper
+suggests, and that is right on average over the class group but not coset by coset.  Over Z, for
+D = &minus;18,960,475,695 with w<sub>5,7</sub> ramified, the true height with 16 cosets is 71,992 bits against
+a bound of 69,890 (3.0% over); with 8 cosets it is 65,463 against 66,412.  A decomposition computed with too
+few primes is wrong, and nothing in the CRT says so.  The defences are: 5% added to the bound for
+invariants other than j; every failure on the decomposition path (V or U not splitting, V&prime;(y) = 0, no
+candidate j with the right trace) triggers one retry with 20% added and then the plain class polynomial;
+and a polynomial that does not split is now given up after one failed split rather than thirty.
+1 of the 17 builds needed the retry.  A proper bound for the eta quotients, from
+the sizes of the four eta values involved, would remove the guesswork.</li>
+<li><b>Root-finding is what remains.</b> It is 230&nbsp;s of the 359&nbsp;s
+above.  Below degree 4096 it was single-threaded; the first splitting step now runs with about lg(degree)
+random shifts at once, one per core, and intersects the results, which brought the root-finding of these
+17 builds from 316&nbsp;s to 230&nbsp;s.  Above degree 4096
+<code>fproot</code> multiplies in parallel, and that gains little: a root of degree 4682 took 60&nbsp;s with
+47 cores busy, where the single-threaded rate at lower degrees predicts 68.  The two slowest builds are
+those whose class number has a large prime factor (9337 and 3571), where no balanced split exists.</li>
+<li><b>Choosing the subgroup.</b> <code>classpoly</code> lists the admissible subgroups, computes the height
+bound of each from the table of reduced forms, and takes the one with the least estimated wall time for
+CRT plus the two root-findings, from three constants measured on this box.  Balanced splits win when the
+CRT is cheap; a split with few cosets, which has the smallest height, wins when it is not.  For these
+17 discriminants the height bound of the chosen decomposition is 1.5 to 5.0 times smaller than the
+plain one (median 2.45); 8 of them use the sign-free variant and 4 are square roots
+(<code>data/tower_candidates.log</code>).</li>
+<li><b>Checks.</b> 908 decompositions over Z, with j and more than 20 other invariants, with square roots
+of class polynomials and with subgroups in and outside the paper's form, were compared with the plain class
+polynomial in PARI: modulo three splitting primes each, V has m distinct roots and the product of the U
+equals H.  All agree.  Among 3,494 decompositions of discriminants below 2,000 one has a repeated coset
+value (D = &minus;1603 with A<sub>71</sub>), which <code>classpoly</code> detects, reverting to the plain
+polynomial.  <code>ecpp/test_tower.py</code> runs a selection of these, the explicit-CRT and multi-job
+paths, the sign-free variant, and the retry and fallback paths with deliberately damaged files.</li>
+<li><b>Found on the way.</b> The plain height bound is about twice the true height whenever the level is
+ramified and the square root of the class polynomial is computed (median 0.47 over 23 discriminants), so
+that path does twice the CRT work it needs; I have not changed it.  <code>qform_table_free</code> left a
+dangling pointer that crashed a second call of <code>compute_classpoly</code>, and <code>fproot</code>'s
+schoolbook remainder mishandled a dividend of lower degree than the divisor; both are fixed.</li>
+</ul>
+
+
+<h2>8. yafu's AVX-512 IFMA ECM</h2>
+<p>yafu 3.1.9 (commit 4d88b0b) built with <code>USE_AVX512IFMA=1</code> on the Zen&nbsp;5 box.  Its ECM is
+not the standalone avx-ecm of section 3, whose IFMA build computes wrong residues: it uses twisted Edwards
+curves and an FFT stage 2.  It was run the way the prover runs gmp-ecm: one single-threaded process per
+core with all 192 cores busy, 1030-bit inputs, and here 8 curves per process, which is its vector width.
+Stage 2 was set to gmp-ecm's B2 (<code>-avxecm_stg2 1</code>) so that a curve means the same thing for
+both.  Times include process start-up.</p>
+<table><tr><th>B1</th><th>gmp-ecm 7.0.5, core-s per curve</th><th>yafu, core-s per curve</th><th>ratio</th></tr><tr><td>50,000</td><td>0.274</td><td>0.059</td><td>4.7</td></tr><tr><td>250,000</td><td>1.206</td><td>0.298</td><td>4.0</td></tr><tr><td>1,000,000</td><td>4.938</td><td>0.946</td><td>5.2</td></tr></table>
+<p>Success, on numbers N = f&middot;g of 1030 bits with f a random prime of the stated size: how many of 96
+had f found by one batch of 8 curves.</p>
+<table><tr><th>B1</th><th>factor, bits</th><th>gmp-ecm found</th><th>yafu found</th></tr><tr><td>50,000</td><td>54</td><td>71 of 96</td><td>74 of 96</td></tr><tr><td>50,000</td><td>62</td><td>41 of 96</td><td>49 of 96</td></tr><tr><td>50,000</td><td>70</td><td>20 of 96</td><td>19 of 96</td></tr><tr><td>250,000</td><td>62</td><td>68 of 96</td><td>82 of 96</td></tr><tr><td>250,000</td><td>74</td><td>23 of 96</td><td>37 of 96</td></tr><tr><td>250,000</td><td>86</td><td>10 of 96</td><td>10 of 96</td></tr><tr><td>1,000,000</td><td>70</td><td>63 of 96</td><td>71 of 96</td></tr><tr><td>1,000,000</td><td>82</td><td>29 of 96</td><td>34 of 96</td></tr><tr><td>1,000,000</td><td>94</td><td>8 of 96</td><td>12 of 96</td></tr></table>
+<p>In total gmp-ecm found 333 and yafu 388 of 864, and of all the
+factors yafu reported 0 failed to divide the input.  So at these sizes yafu's curves are at least
+as good as gmp-ecm's and cost 4 to 5 times less.  Across input size and B1, under the same conditions, in
+core-seconds per curve:</p>
+<table><tr><th>input, bits</th><th>B1</th><th>gmp-ecm</th><th>yafu, B2 as gmp-ecm</th><th>ratio</th><th>yafu, B2 from memory limit</th></tr><tr><td>768</td><td>2,000</td><td>0.0175</td><td>0.0052</td><td>3.4</td><td>0.0060</td></tr><tr><td>768</td><td>11,000</td><td>0.0385</td><td>0.0106</td><td>3.6</td><td>0.0146</td></tr><tr><td>768</td><td>50,000</td><td>0.1605</td><td>0.0347</td><td>4.6</td><td>0.0400</td></tr><tr><td>768</td><td>250,000</td><td>0.7285</td><td>0.1842</td><td>4.0</td><td>0.1958</td></tr><tr><td>768</td><td>1,000,000</td><td>2.9621</td><td>0.5880</td><td>5.0</td><td>0.7497</td></tr><tr><td>1030</td><td>2,000</td><td>0.0126</td><td>0.0060</td><td>2.1</td><td>0.0070</td></tr><tr><td>1030</td><td>11,000</td><td>0.0637</td><td>0.0148</td><td>4.3</td><td>0.0175</td></tr><tr><td>1030</td><td>50,000</td><td>0.2680</td><td>0.0599</td><td>4.5</td><td>0.0786</td></tr><tr><td>1030</td><td>250,000</td><td>1.2224</td><td>0.3023</td><td>4.0</td><td>0.3152</td></tr><tr><td>1030</td><td>1,000,000</td><td>5.0041</td><td>0.9499</td><td>5.3</td><td>1.1862</td></tr><tr><td>1030</td><td>3,000,000</td><td>13.8028</td><td>2.6893</td><td>5.1</td><td>2.9379</td></tr><tr><td>1330</td><td>2,000</td><td>0.0242</td><td>0.0077</td><td>3.1</td><td>0.0094</td></tr><tr><td>1330</td><td>11,000</td><td>0.1256</td><td>0.0232</td><td>5.4</td><td>0.0268</td></tr><tr><td>1330</td><td>50,000</td><td>0.5435</td><td>0.0952</td><td>5.7</td><td>0.1191</td></tr><tr><td>1330</td><td>250,000</td><td>2.5626</td><td>0.4652</td><td>5.5</td><td>0.5819</td></tr><tr><td>1330</td><td>1,000,000</td><td>10.5625</td><td>1.5057</td><td>7.0</td><td>1.8432</td></tr></table>
+<p>The advantage grows with the input size, to 5&ndash;7 times at 1330 bits, and is smallest at
+B1&nbsp;=&nbsp;2,000, where a process of 8 curves lasts a twentieth of a second (yafu itself starts in
+11&nbsp;ms).  yafu's default stage 2, which takes B2 from a memory limit, costs 5&ndash;30% more per curve
+than the gmp-ecm B2 used above.</p>
+<p>What this section does not show, and section 11 adds: a calibration of yafu's success rate as fine as
+the one of section 4 for gmp-ecm, which the stopping rule needs; the cost at the shallow tiers when curves
+come in batches of 8; and its use by the prover.  yafu is not in this repository; the build line and the
+two drivers are in <code>data/yafu_test.py</code> and <code>data/yafu_cost.py</code>.</p>
+
+
+<h2>9. The stopping rule in the prover</h2>
+<p>Levels of 500 bits and more are now run by a new scheduler, <code>ecpp/shortsched.py</code>; smaller
+levels, and everything with <code>sched=old</code>, keep the tiered rounds.  The level is treated as a
+bandit problem: every order is an arm, a pull is a few ECM curves, fresh arms can be bought from the scan,
+and the level ends at the first win.</p>
+
+<h3>9.1 The rule</h3>
+<ul>
+<li><b>State of a candidate.</b> Coverage class, sweeps done, tail size in bits, as in section 4.  The class
+needs no divisor enumeration: the divisors m of the smooth part s cover every &delta; in (0, log<sub>2</sub> s),
+so the class is log<sub>2</sub> s rounded.  (Take the primes of s in descending order: the powers of the
+largest tile (0, e<sub>1</sub> log p<sub>1</sub>), and each further prime extends every tile boundary to the
+right by its own power.  The profiles of the 249,648 orders of section 5 are exact initial segments.)</li>
+<li><b>Break-even reward r.</b> For every state, the least value of a win, in core-seconds, at which the
+next sweep pays under the best continuation.  It comes from the dynamic programme of section 4 solved on a grid
+of rewards, 2 to 6&nbsp;s per level (<code>shortsim.IndexTable</code>), and it does not depend on what
+orders cost.  Its reciprocal is the state's index, so work is done in increasing order of r.</li>
+<li><b>The stopping rule.</b> From the same table and the orders seen so far comes the value of a fresh
+order as a function of the reward; the reward R at which that value equals the marginal price of the next
+scan chunk is what a win is worth.  A candidate is worked only while r &le; R.  R rises as the scan widens,
+and a candidate parked earlier comes back when R reaches it.</li>
+<li><b>Supply.</b> The scan runs in chunks that double B, on the share of the cores that its price has in
+the cost of a fresh order, and a chunk starts when the work below R is about to run out.  Nothing is
+assumed about the price: it is measured chunk by chunk.</li>
+<li><b>Many cores.</b> A sweep is cut into units of a few seconds, and the sweeps of one B1 may be in
+flight together when their r allows it; a larger B1 waits for the smaller ones to report.  Without this the
+eventual winner's deep sweeps run one after the other, for minutes, while every other core works through
+candidates that the sequential rule would not have touched.</li>
+<li><b>Costs.</b> gmp-ecm's cost per curve is calibrated at the start of a run (two curves at
+B1&nbsp;=&nbsp;50,000 on every thread at once).  In the runs below, measured against modelled cost is
+within about 10% from B1&nbsp;=&nbsp;11,000 to 10<sup>6</sup> and 15% high at B1&nbsp;=&nbsp;2,000 (process
+launches) when the box is otherwise idle, and within 25% in the runs that shared it with simulations.</li>
+</ul>
+<p>How R depends on the price, for the orders of section 5 (c8a costs):</p>
+<table><tr><th>price of an order, core-s</th><th>R, core-s</th><th>ECM per order, core-s</th><th>orders per win</th></tr>
+<tr><td>0.01</td><td>2,863</td><td>0.030</td><td>70,863</td></tr>
+<tr><td>0.03</td><td>3,886</td><td>0.078</td><td>36,073</td></tr>
+<tr><td>0.1</td><td>5,652</td><td>0.197</td><td>19,027</td></tr>
+<tr><td>0.3</td><td>8,408</td><td>0.509</td><td>10,392</td></tr>
+<tr><td>1.0</td><td>13,639</td><td>1.419</td><td>5,639</td></tr>
+</table>
+<p>R grows like the cube root of the price.  Section 5 priced an order at 0.3 core-seconds throughout; the
+measured marginal price starts near 0.01 and is between 0.03 and 0.1 when the first winner usually comes.
+The cheap early orders are why the first winner costs less than the 1.6 core-hours per winner of
+section 5.</p>
+
+<h3>9.2 Simulation</h3>
+<p><code>shortsched.py sim</code> drives the same scheduler code in virtual time: orders are drawn from the
+real 768-bit pool, their hidden primes from the model, the scan from its measured cost.  It tests the
+queueing, not the model.  Machine cost is wall time times threads; 300 simulated levels per row, 1,300 at
+192 threads.</p>
+<table><tr><th>768 bits, threads</th><th>wall to the first win, s</th><th>machine cost, core-h</th><th>work done, core-h</th><th>orders bought</th></tr>
+<tr><td>4</td><td>1,580</td><td>1.76</td><td>1.56</td><td>38,030</td></tr>
+<tr><td>32</td><td>184</td><td>1.63</td><td>1.50</td><td>31,428</td></tr>
+<tr><td>192</td><td>32</td><td>1.70</td><td>1.55</td><td>32,400</td></tr>
+<tr><td>768</td><td>12</td><td>2.65</td><td>2.34</td><td>43,157</td></tr>
+</table>
+<p>The cost per level is flat up to 192 cores; at 768 cores a 768-bit level is too short to keep them
+usefully busy.  The spread between batches of 300 levels at 192 threads is 1.56 to 1.94 core-hours, so
+differences of 10% in this table mean nothing.  At 1030 bits on 192 threads, with the revised-format pool of
+section 4, 24 simulated levels average 685&nbsp;s and 36.5 core-hours of machine time (scan 9.4, ECM 23.5,
+idle 3.6); the August campaign spent 812 core-hours on its 1030-bit prime.</p>
+
+<h3>9.3 Thirteen 768-bit primes, real</h3>
+<p>nextprime(2<sup>768</sup>) (run 0) and nextprime(2<sup>768</sup> + k&middot;2<sup>640</sup>) for k = 1 to 12,
+each proved from scratch on the 16-core driver box with 32 threads, revised format.  Thread-seconds are
+wall time times threads in use; one thread here does about 1/1.3 of a c8a core's ECM work.</p>
+<div class="wide"><table><tr><th>run</th><th>solvable D below 6&middot;10<sup>7</sup></th><th>orders bought</th><th>scan, thread-s</th><th>ECM, thread-s</th><th>search, s</th><th>wins the model expected</th><th>top-level D</th><th>build, s</th><th>whole chain, s</th></tr><tr><td>0</td><td>6,303</td><td>99,262</td><td>7,422</td><td>15,435</td><td>715</td><td>&ndash;</td><td>&minus;26,558,327,551</td><td>13.7</td><td>735</td></tr><tr><td>1</td><td>6,271</td><td>29,696</td><td>524</td><td>2,055</td><td>89</td><td>0.94</td><td>&minus;920,270,164</td><td>2.0</td><td>102</td></tr><tr><td>2</td><td>2,422</td><td>27,422</td><td>2,253</td><td>7,154</td><td>346</td><td>0.70</td><td>&minus;11,931,276,263</td><td>22.5</td><td>377</td></tr><tr><td>3</td><td>2,768</td><td>6,822</td><td>308</td><td>889</td><td>40</td><td>0.03</td><td>&minus;221,131,823</td><td>4.7</td><td>64</td></tr><tr><td>4</td><td>14,357</td><td>60,830</td><td>864</td><td>2,850</td><td>124</td><td>1.20</td><td>&minus;8,482,552</td><td>14.8</td><td>156</td></tr><tr><td>5</td><td>14,408</td><td>84,920</td><td>1,258</td><td>4,606</td><td>200</td><td>1.33</td><td>&minus;180,500,772</td><td>2.3</td><td>216</td></tr><tr><td>6</td><td>6,343</td><td>22,656</td><td>509</td><td>1,318</td><td>59</td><td>0.23</td><td>&minus;140,236,055</td><td>26.4</td><td>92</td></tr><tr><td>7</td><td>2,428</td><td>48,986</td><td>4,780</td><td>9,224</td><td>446</td><td>1.74</td><td>&minus;15,533,152,871</td><td>10.1</td><td>463</td></tr><tr><td>8</td><td>3,980</td><td>14,494</td><td>427</td><td>1,356</td><td>60</td><td>0.28</td><td>&minus;259,018,471</td><td>3.9</td><td>75</td></tr><tr><td>9</td><td>3,903</td><td>7,116</td><td>134</td><td>319</td><td>14</td><td>0.00</td><td>&minus;18,798,211</td><td>0.7</td><td>22</td></tr><tr><td>10</td><td>15,865</td><td>66,070</td><td>565</td><td>1,874</td><td>81</td><td>0.48</td><td>&minus;505,501,496</td><td>23.5</td><td>112</td></tr><tr><td>11</td><td>4,619</td><td>24,200</td><td>867</td><td>2,953</td><td>136</td><td>0.59</td><td>&minus;1,785,181,479</td><td>5.3</td><td>149</td></tr><tr><td>12</td><td>5,680</td><td>23,456</td><td>325</td><td>1,034</td><td>44</td><td>0.34</td><td>&minus;455,015,048</td><td>15.0</td><td>68</td></tr></table></div>
+<ul>
+<li><b>Time.</b> All 13 certificates pass both verifiers.  The whole chain takes
+<b>202&nbsp;s on average, median 112&nbsp;s</b> (range
+22 to 735).  The search for the top level costs 1.5
+thread-hours on average, median 0.7.</li>
+<li><b>Against the old scheduler.</b> On the c8a the old scheduler needed 59 core-hours of search for
+nextprime(2<sup>768</sup>), and 148 in August for the 765-bit campaign prime.  Run 0 is the same prime: 6.3
+thread-hours, and it is the unluckiest of the thirteen (the simulation puts it at the 95th percentile).
+Section 10 has the rule on the c8a.</li>
+<li><b>Is the model's win rate right?</b> The log adds up the wins the model expects from the sweeps
+actually run.  At a level's first win that sum is exponentially distributed with mean 1 if the model is
+right.  Over the 12 runs that recorded it the mean is 0.66, where an exact model
+gives 1 &plusmn; 0.29: no sign of the optimism of section 5 (17 winners where 20.0 were expected),
+if anything the reverse.  Run 0 predates the bookkeeping.  Section 10.3 has 26 primes, and finds that
+this 0.65 belongs to these thirteen primes rather than to the model.</li>
+<li><b>Supply differs by prime.</b> The first chunk finds between 2,422 and 15,865 solvable
+discriminants below 6&middot;10<sup>7</sup>, a factor 6.5 between primes of the same size, and the price of
+an order differs accordingly.  nextprime(2<sup>768</sup>), on which sections 5 to 8 rest, is an average
+one.</li>
+</ul>
+<h3>9.4 1030 bits, real</h3>
+<p>nextprime(10<sup>310</sup>) = 10<sup>310</sup> + 733, the 1030-bit prime of the August campaign, proved
+from scratch on the driver box with 32 threads, revised format (<code>data/rule1030_local/</code>).</p>
+<table><tr><th>10<sup>310</sup> + 733</th><th>August campaign, 192 cores</th><th>now, 16 cores (32 threads)</th></tr>
+<tr><td>whole chain, wall</td><td>5.0 h of search alone</td><td><b>1.41 h</b> (5,081 s)</td></tr>
+<tr><td>CPU</td><td>about 812 core-hours</td><td><b>43.9 thread-hours</b></td></tr>
+<tr><td>top-level search</td><td>148,960 orders over the chain</td><td>181,428 orders; scan 13.4 + ECM 29.8 thread-hours; 4,964 s</td></tr>
+<tr><td>top-level curve</td><td>D = &minus;83,632,771, h = 2,907</td><td>D = &minus;155,888,345,711, class polynomial of degree 251,808 for A<sub>47</sub>; built in 105 s</td></tr>
+</table>
+<ul>
+<li><b>Against the model.</b> The model expected 0.66 wins from the work done when the win came.
+At this run's cost factor of 1.35 the search is 32 core-hours of a c8a; the
+simulation of 9.2 gives 32.9 on average.  One run is one draw from an exponential law, so the agreement is
+luck as much as confirmation; what it does show is that nothing is off by a factor.</li>
+<li><b>Costs.</b> Measured against modelled ECM cost is within 6% for every B1 from 11,000 to
+3&middot;10<sup>7</sup>, including 10<sup>7</sup> and 3&middot;10<sup>7</sup>, whose costs were extrapolated.
+Their success rates are still the theoretical ones.</li>
+<li><b>Waste.</b> The last scan chunk, to B = 2&middot;10<sup>11</sup>, cost 5.9 thread-hours and arrived five
+minutes before the win: 14% of the search bought orders that were hardly touched.  Chunks that grow by less
+than a factor 2 late in a level would trim that.</li>
+<li><b>The build</b> has a class polynomial about 90 times larger than the campaign's, because the rule
+buys orders from a far wider scan.  The decomposition makes that affordable: the plain height bound is
+2.2 million bits, the decomposed one 0.4 to 0.5 million, and of the 105&nbsp;s nearly all
+is CRT on 32 threads.  The next level, 489 bits, is below the rule's threshold and took 3.7&nbsp;s with the
+old rounds.</li>
+</ul>
+
+
+<h3>9.5 What the runs turned up on the build side</h3>
+<ul>
+<li><b>A second family of subgroups for the decomposition.</b> The boxes of section 7 miss subgroups when
+a generator's order exceeds its relative order.  Run 6: relative orders (2, 2, 1061, 2)
+with a<sub>3</sub><sup>1061</sup> = a<sub>2</sub>; the subgroup of order 1061 is generated by
+a<sub>3</sub><sup>2</sup> and is no box, so the build used 4 &times; 2122 where 8 &times; 1061 exists.  What the
+enumeration needs is that the cosets can be read off from positions whatever direction each generator was
+walked in.  That holds when the lattice L<sub>G</sub> of exponent vectors lying in G is mapped to itself by
+every change of sign of a coordinate, and those lattices are exactly
+{x : x<sub>i</sub> = d<sub>i</sub>y<sub>i</sub>, y mod 2 &isin; S} for a vector d dividing the columns of the
+relation matrix and a subspace S of F<sub>2</sub><sup>k</sup> containing the reduced relation rows.  The
+coset of a position is its residues mod d together with the class of (e div d) mod 2 modulo S.  Neither
+family contains the other (the comment in <code>compute_classpoly.c</code> has an example each way), so
+both are enumerated.  Over Z, 532 lattice decompositions on 78 discriminants agree with the plain class
+polynomial in PARI (<code>data/tower_sweep_lattice.log</code>).  Of 29 real winners the choice changes for
+one, run 6: 26.4&nbsp;s &rarr; 12.2&nbsp;s.</li>
+<li><b>Hits that cannot work on the H<sub>D</sub> curve.</b> If an odd prime &#8467; divides both the cofactor m
+and v, then &#8467; divides &pi;&nbsp;&minus;&nbsp;1 in the maximal order, the curve has full &#8467;-torsion, and
+no cofactor multiple has exact order o.  <code>build_level</code> tried 80 points on each such hit before
+going to the volcano floor; it now goes there directly.  Run 4: 14.8&nbsp;s &rarr; 2.9&nbsp;s.</li>
+<li><b>Restart on a wrong curve.</b> If the curves with the computed j have neither N nor the twist's
+number of points, which a too-small height bound that slipped past <code>cm_method</code>'s checks would
+cause, the prover now recomputes j from the plain class polynomial instead of dropping the winner.  It has
+not fired.</li>
+<li><b>What is left in a build.</b> Root-finding at the prime part of the class number: 11&nbsp;s at degree
+1061 and 23&nbsp;s at degree 2011 on this box, almost all of it the 768 modular squarings of one powering,
+each three multiplications of integers of 1.5 to 3 megabits in GMP.</li>
+</ul>
+
+<h3>9.6 Height bounds</h3>
+<p>The bound for invariants other than j stays heuristic, with the checks downstream and the restart as the
+safety net.  Stopping the CRT when lifted coefficients stop changing does not fit the explicit CRT mod p as
+it stands: its weights depend on the whole set of primes, so stopping early means starting again.  The data
+on the bound, from the 1,452 decompositions computed over Z in the sweeps:</p>
+<table><tr><th>true height / bound used</th><th>decompositions</th><th>median</th><th>90th percentile</th><th>99th</th><th>largest</th></tr>
+<tr><td>j (rigorous bound)</td><td>125</td><td>0.98</td><td>0.99</td><td>0.99</td><td>0.993</td></tr>
+<tr><td>other invariants (scaled bound plus 5%)</td><td>1,327</td><td>0.77</td><td>0.90</td><td>0.97</td><td>1.008</td></tr>
+</table>
+<p>For the other invariants the error is a wide spread, not an offset: the bound is typically a quarter too
+large, 48 of the 1,327 exceed it without the 5%, and one exceeds it with (the safety margin of 256 bits
+covered that one).  Among real builds at 768 bits one in 17 needed the retry (section 7).  A failure costs a second CRT with 20% more primes plus the root-finding that exposed it, a little
+over twice the CRT; at a failure rate of a few percent that balances the 5% paid every time, so the slack
+stays where it is.  The larger prize is the quarter itself, which needs a sharper estimate, not a different
+slack.</p>
+
+
+<h2>10. The rule on 192 cores</h2>
+<p>One <code>c8a.48xlarge</code> (192 cores), <code>threads=192</code>, gmp-ecm 7.0.5, revised format, every prime
+proved from scratch, one after the other (<code>data/rule_c8a/</code>).  Three sets: the thirteen 768-bit primes
+of section 9.3 (k = 0 to 12), thirteen more of the same form (nextprime(2<sup>768</sup> + k&middot;2<sup>640</sup>),
+k = 13 to 25), and three 1030-bit primes, nextprime(10<sup>310</sup> + k&middot;10<sup>300</sup>) for k = 0, 1, 2,
+of which k = 0 is the campaign prime 10<sup>310</sup> + 733.  All 29 certificates pass both
+verifiers.  The 29 proofs took 53 minutes and 122 core-hours of CPU in
+all; the box was up for 57 minutes.</p>
+
+<h3>10.1 768 bits</h3>
+<table><tr><th>768 bits</th><th>16-core box, 32 threads (9.3)</th><th>192 cores, the same 13 primes</th><th>192 cores, 13 more primes</th><th>192 cores, all 26</th></tr><tr><td>whole chain, s: mean (median)</td><td><b>202</b> (112)</td><td><b>34</b> (27)</td><td><b>54</b> (40)</td><td><b>44</b> (36)</td></tr><tr><td>slowest chain, s</td><td>735</td><td>120</td><td>117</td><td>120</td></tr><tr><td>top-level search, s: mean (median)</td><td>181 (89)</td><td>20 (16)</td><td>36 (24)</td><td>28 (19)</td></tr><tr><td>search work, core-h: mean (median)</td><td>1.52 (0.72)</td><td>1.06 (0.95)</td><td>1.85 (1.19)</td><td>1.46 (1.05)</td></tr><tr><td>of which scan</td><td>0.43</td><td>0.32</td><td>0.52</td><td>0.42</td></tr><tr><td>orders bought, mean</td><td>39,687</td><td>31,650</td><td>50,571</td><td>41,111</td></tr><tr><td>build of the top-level curve, s: mean (max)</td><td>11.1 (26)</td><td>5.2 (32)</td><td>9.9 (90)</td><td>7.5 (90)</td></tr><tr><td>wins the model expected at the win, mean</td><td>0.66</td><td>0.65</td><td>1.07</td><td>0.86</td></tr></table>
+<ul>
+<li><b>Time.</b> A 768-bit prime takes <b>44&nbsp;s on average, median
+36&nbsp;s</b> (range 12 to 120), of which the top-level
+search is 28&nbsp;s.  The simulation of 9.2 said 32&nbsp;s for the search.</li>
+<li><b>Cost.</b> The search does 1.46 core-hours of work per prime and occupies the machine for
+1.50 (wall time times 192): the cores are 97% busy.  The simulation said 1.6
+to 1.9 core-hours of machine time.  Everything included, a prime costs 1.56 core-hours of CPU.
+With the old scheduler the search alone took 59 core-hours for prime 0 on this box.</li>
+<li><b>Same primes, two machines.</b> The thirteen primes of 9.3 needed 1.52 thread-hours of
+search on the driver box and 1.06 core-hours here.  The two are independent draws (the curves are
+random), a thread there does about three quarters of a core's work here, and the driver box's mean is
+carried by one run of 6.3 thread-hours; the medians are 0.7 and 0.95.  The thirteen new primes cost more,
+1.85 core-hours on average: with a cost per level that is close to exponentially distributed, a
+mean over thirteen has a standard error of about 30%.</li>
+<li><b>Builds.</b> The top-level curve takes 7.5&nbsp;s on average; the slowest,
+90&nbsp;s, is a class polynomial of degree 17,722 = 2 &times; 8,861, where all but a
+second is root-finding at the prime degree 8,861 (prime 16 below: 9&nbsp;s of search, 89&nbsp;s of build).</li>
+</ul>
+<div class="wide"><table><tr><th>prime</th><th>orders bought</th><th>scan, core-s</th><th>ECM, core-s</th><th>search, s</th><th>wins the model expected</th><th>top-level D</th><th>build, s</th><th>whole chain, s</th><th>CPU, core-h</th></tr><tr><td>0</td><td>33,154</td><td>1,354</td><td>3,980</td><td>29.7</td><td>1.25</td><td>&minus;3,290,562,571</td><td>2.5</td><td>40.1</td><td>1.59</td></tr><tr><td>1</td><td>20,626</td><td>577</td><td>1,305</td><td>9.5</td><td>0.31</td><td>&minus;76,373,380</td><td>1.3</td><td>20.0</td><td>0.61</td></tr><tr><td>2</td><td>39,548</td><td>4,214</td><td>10,089</td><td>80.6</td><td>1.84</td><td>&minus;18,216,731,771</td><td>32.5</td><td>120.1</td><td>4.17</td></tr><tr><td>3</td><td>10,000</td><td>460</td><td>880</td><td>6.9</td><td>0.04</td><td>&minus;221,131,823</td><td>2.7</td><td>18.4</td><td>0.46</td></tr><tr><td>4</td><td>33,360</td><td>657</td><td>851</td><td>6.2</td><td>0.11</td><td>&minus;8,482,552</td><td>3.0</td><td>16.2</td><td>0.37</td></tr><tr><td>5</td><td>84,920</td><td>1,471</td><td>3,002</td><td>21.6</td><td>1.19</td><td>&minus;180,500,772</td><td>2.5</td><td>33.5</td><td>1.15</td></tr><tr><td>6</td><td>32,862</td><td>1,226</td><td>2,566</td><td>19.0</td><td>0.72</td><td>&minus;140,236,055</td><td>11.4</td><td>39.8</td><td>1.11</td></tr><tr><td>7</td><td>23,508</td><td>1,266</td><td>3,314</td><td>25.2</td><td>0.86</td><td>&minus;1,206,469,111</td><td>2.5</td><td>36.3</td><td>1.37</td></tr><tr><td>8</td><td>10,148</td><td>368</td><td>656</td><td>5.0</td><td>0.00</td><td>&minus;4,576,411</td><td>0.4</td><td>12.4</td><td>0.30</td></tr><tr><td>9</td><td>9,602</td><td>390</td><td>830</td><td>6.3</td><td>0.06</td><td>&minus;18,798,211</td><td>0.7</td><td>15.0</td><td>0.41</td></tr><tr><td>10</td><td>66,070</td><td>1,121</td><td>2,294</td><td>16.4</td><td>0.55</td><td>&minus;317,212,347</td><td>2.3</td><td>27.0</td><td>0.85</td></tr><tr><td>11</td><td>24,200</td><td>1,042</td><td>3,533</td><td>26.8</td><td>1.01</td><td>&minus;1,785,181,479</td><td>4.0</td><td>38.6</td><td>1.44</td></tr><tr><td>12</td><td>23,456</td><td>613</td><td>1,580</td><td>11.6</td><td>0.47</td><td>&minus;62,006,344</td><td>2.0</td><td>20.9</td><td>0.64</td></tr><tr><td>13</td><td>32,882</td><td>1,214</td><td>3,885</td><td>28.7</td><td>1.05</td><td>&minus;18,634,395</td><td>0.6</td><td>37.7</td><td>1.55</td></tr><tr><td>14</td><td>28,256</td><td>1,023</td><td>3,255</td><td>24.2</td><td>0.42</td><td>&minus;3,613,914,116</td><td>6.9</td><td>40.2</td><td>1.36</td></tr><tr><td>15</td><td>65,744</td><td>3,365</td><td>8,709</td><td>65.7</td><td>2.01</td><td>&minus;7,906,514,692</td><td>2.9</td><td>75.9</td><td>3.34</td></tr><tr><td>16</td><td>21,288</td><td>654</td><td>1,222</td><td>9.0</td><td>0.08</td><td>&minus;408,118,703</td><td>89.5</td><td>108.2</td><td>2.23</td></tr><tr><td>17</td><td>48,388</td><td>910</td><td>1,765</td><td>12.7</td><td>0.45</td><td>&minus;290,849,348</td><td>1.5</td><td>22.5</td><td>0.71</td></tr><tr><td>18</td><td>32,840</td><td>3,816</td><td>10,014</td><td>80.6</td><td>2.02</td><td>&minus;29,582,330,767</td><td>9.4</td><td>99.4</td><td>4.22</td></tr><tr><td>19</td><td>62,632</td><td>3,321</td><td>7,867</td><td>59.4</td><td>1.50</td><td>&minus;11,106,300,916</td><td>5.2</td><td>72.3</td><td>3.04</td></tr><tr><td>20</td><td>30,700</td><td>634</td><td>766</td><td>5.5</td><td>0.02</td><td>&minus;58,915,128</td><td>1.9</td><td>15.9</td><td>0.36</td></tr><tr><td>21</td><td>106,610</td><td>2,882</td><td>7,435</td><td>54.6</td><td>1.56</td><td>&minus;2,517,001,547</td><td>4.2</td><td>67.5</td><td>2.79</td></tr><tr><td>22</td><td>23,854</td><td>535</td><td>841</td><td>6.1</td><td>0.10</td><td>&minus;10,804,840</td><td>1.1</td><td>16.7</td><td>0.43</td></tr><tr><td>23</td><td>25,068</td><td>573</td><td>854</td><td>6.2</td><td>0.03</td><td>&minus;14,345,272</td><td>1.6</td><td>15.2</td><td>0.37</td></tr><tr><td>24</td><td>18,340</td><td>530</td><td>1,167</td><td>8.5</td><td>0.14</td><td>&minus;27,611,743</td><td>0.8</td><td>17.2</td><td>0.49</td></tr><tr><td>25</td><td>160,824</td><td>5,086</td><td>14,352</td><td>105.7</td><td>4.57</td><td>&minus;10,932,498,547</td><td>2.8</td><td>116.7</td><td>5.32</td></tr></table></div>
+
+<h3>10.2 1030 bits</h3>
+<div class="wide"><table><tr><th>prime</th><th>orders bought</th><th>scan, core-s</th><th>ECM, core-s</th><th>search, s</th><th>wins the model expected</th><th>top-level D</th><th>build, s</th><th>whole chain, s</th><th>CPU, core-h</th></tr><tr><td>0</td><td>64,720</td><td>6,254</td><td>18,086</td><td>132.5</td><td>0.10</td><td>&minus;10,023,569,747</td><td>18.4</td><td>167.4</td><td>7.05</td></tr><tr><td>1</td><td>166,296</td><td>45,550</td><td>108,948</td><td>836.2</td><td>1.01</td><td>&minus;140,861,442,439</td><td>305.4</td><td>1156.7</td><td>47.08</td></tr><tr><td>2</td><td>222,264</td><td>22,820</td><td>65,686</td><td>482.5</td><td>0.69</td><td>&minus;38,597,025,143</td><td>195.2</td><td>690.3</td><td>27.48</td></tr></table></div>
+<ul>
+<li><b>Time.</b> The three chains take 167, 1,157, 690&nbsp;s, <b>671&nbsp;s on average</b>,
+and 7.0, 47.1, 27.5 core-hours of CPU.  Prime 0 is the campaign prime: 5.0 hours of search and about 812
+core-hours in August, 167&nbsp;s and 7.0 core-hours now.  That run was lucky (the
+model expected 0.10 wins when the win came); the other two are ordinary draws.</li>
+<li><b>Against the simulation.</b> The search does 6.8, 42.9, 24.6 core-hours of work, 24.8 on
+average, where the simulation gives 32.9 (24 levels, section 9.2) and 37.9 (144 levels, section 11.4); the
+scan is 28% of it.  The wins the model expected at the win average 0.60.  Three
+draws do not distinguish 25 from 38.</li>
+<li><b>ECM cost.</b> Measured against modelled cost is 0.82 to 0.88 for B1
+from 11,000 to 3&middot;10<sup>6</sup> (by B1: 2,000: 1.12, 11,000: 0.87, 50,000: 0.88, 250,000: 0.82, 1,000,000: 0.83, 3,000,000: 0.82, 10,000,000: 0.94, 30,000,000: 0.89).  The benchmark at the start of a run has
+all 192 cores on ECM at once and overstates the cost of a curve during the search by about 15%; at
+B1&nbsp;=&nbsp;2,000 process launches push the other way.</li>
+<li><b>The build is the next bottleneck here.</b> The three top-level curves take 18, 305, 195&nbsp;s to
+build, 26% of the three chains.  The two slow ones have class polynomials of degree
+156,664 = 8 &times; 19,583 and 196,038 = 18 &times; 10,891: the decomposed polynomials take 13&nbsp;s and
+8&nbsp;s, the root of the factor of prime degree 290&nbsp;s and 185&nbsp;s, on about 50 of the 192 cores.
+A 1030-bit search that takes 8 to 14 minutes should not accept a winner that needs 5 minutes of
+root-finding without looking at the next one.</li>
+</ul>
+
+<h3>10.3 Is the model's win rate right?</h3>
+<p>At a level's first win the wins the model expected from the work done should be exponentially distributed
+with mean 1.  Over the 26 primes here the mean is <b>0.86</b>, where an exact model gives
+1 &plusmn; 0.20 (the thirteen primes of section 9.3 give 0.65, the thirteen new ones
+1.07), and the largest distance between the empirical distribution and the exponential one is
+0.22 (Kolmogorov&ndash;Smirnov, 5% point 0.27).  So the model's overall win rate is right to
+within what 26 primes can show.</p>
+<p>Two things qualify that.</p>
+<ul>
+<li><b>Runs on the same prime are not independent draws.</b> The thirteen primes of 9.3 have now been proved
+three times: on the driver box, here, and with yafu in section 11.  For 9 of them the same
+discriminant won at least twice, for 3 all three times, and the three means of the expected wins
+are 0.65, 0.65 and 0.62.  The first winner is largely a property of the prime's pool of
+orders, not of the random curves, so repeating a prime adds little, and the 0.65 of section 9.3 is those
+thirteen primes.</li>
+<li><b>Easy winners.</b> 8 of the 26 primes won before the model expected 0.12 wins, where the
+exponential law gives 2.9, and four won after it expected more than 1.8, where the law gives 4.3.
+The early ones are orders whose medium primes are all within reach of the first sweeps; the same order then
+wins on every machine.  The model may underrate these, which would make the rule a little too patient with
+the rest.  It is the one place where the data pull away from the model, and with 26 primes it is a hint,
+not a finding.</li>
+</ul>
+<p>The last thirteen runs also record which sweep completed the win:</p>
+<table><tr><th>B1 of the sweep</th><th>11,000</th><th>50,000</th><th>250,000</th><th>1,000,000</th><th>3,000,000</th><th>all</th></tr><tr><td>first wins, of 13</td><td>0</td><td>0</td><td>7</td><td>4</td><td>2</td><td>13</td></tr><tr><td>wins the model expected from the sweeps run</td><td>0.1</td><td>0.9</td><td>4.5</td><td>6.6</td><td>1.9</td><td>13.9</td></tr></table>
+<p>Winners come from the sweeps at B1&nbsp;=&nbsp;250,000 to 3&middot;10<sup>6</sup>, as the model says, on
+candidates that the shallow sweeps left with the right kind of tail.  The simulation gives the same picture
+(of 400 simulated first wins: 2, 28, 157, 162 and 51 at B1 = 11,000 to 3&middot;10<sup>6</sup>).</p>
+
+<h3>10.4 What a build costs</h3>
+<p>The 29 top-level builds on this box, those with a prime of 150 or more in the order n of the subgroup or
+longer than 8&nbsp;s (the other 17 take at most 6.9&nbsp;s):</p>
+<table><tr><th>bits</th><th>D</th><th>degree = m &times; n</th><th>largest prime in n</th><th>class polynomial, s</th><th>roots, s</th><th>build, s</th><th>search, s</th></tr><tr><td>769</td><td>&minus;29,582,330,767</td><td>78,672 = 264 &times; 298</td><td>149</td><td>3.9</td><td>4.6</td><td>9.4</td><td>80.6</td></tr><tr><td>769</td><td>&minus;7,906,514,692</td><td>21,376 = 128 &times; 167</td><td>167</td><td>0.6</td><td>2.1</td><td>2.9</td><td>65.7</td></tr><tr><td>769</td><td>&minus;11,106,300,916</td><td>31,140 = 180 &times; 173</td><td>173</td><td>1.7</td><td>2.6</td><td>5.2</td><td>59.4</td></tr><tr><td>769</td><td>&minus;3,290,562,571</td><td>12,172 = 68 &times; 179</td><td>179</td><td>0.5</td><td>1.8</td><td>2.5</td><td>29.7</td></tr><tr><td>769</td><td>&minus;14,345,272</td><td>716 = 4 &times; 179</td><td>179</td><td>0.1</td><td>1.4</td><td>1.6</td><td>6.2</td></tr><tr><td>769</td><td>&minus;2,517,001,547</td><td>11,472 = 48 &times; 239</td><td>239</td><td>0.5</td><td>2.1</td><td>4.2</td><td>54.6</td></tr><tr><td>769</td><td>&minus;140,236,055</td><td>8,488 = 8 &times; 1,061</td><td>1,061</td><td>0.2</td><td>8.8</td><td>11.4</td><td>19.0</td></tr><tr><td>769</td><td>&minus;18,216,731,771</td><td>30,776 = 8 &times; 3,847</td><td>3,847</td><td>1.4</td><td>31.0</td><td>32.5</td><td>80.6</td></tr><tr><td>769</td><td>&minus;408,118,703</td><td>17,722 = 2 &times; 8,861</td><td>8,861</td><td>0.3</td><td>88.0</td><td>89.5</td><td>9.0</td></tr><tr><td>1030</td><td>&minus;10,023,569,747</td><td>20,214 = 18 &times; 1,123</td><td>1,123</td><td>1.7</td><td>16.5</td><td>18.4</td><td>132.5</td></tr><tr><td>1030</td><td>&minus;38,597,025,143</td><td>196,038 = 18 &times; 10,891</td><td>10,891</td><td>7.9</td><td>184.8</td><td>195.2</td><td>482.5</td></tr><tr><td>1030</td><td>&minus;140,861,442,439</td><td>156,664 = 8 &times; 19,583</td><td>19,583</td><td>13.0</td><td>289.7</td><td>305.4</td><td>836.2</td></tr></table>
+<p>With the decomposition in place a build is the root of one polynomial whose degree is the largest prime
+factor of the class number, and its time is proportional to that prime: 8 to 10&nbsp;ms per unit
+of degree at 768 bits and 15 to 17 at 1030 bits, on about 50 of the 192 cores.  The class
+number of a winner is known in milliseconds, so the cost of its build is known before it starts.  At 768
+bits three winners in 26 have a prime above 1,000 in the class number and one of them takes ten times
+longer to build than it took to find; at 1030 bits, where the scan reaches |D| near 10<sup>11</sup>, all
+three do.  Passing on such a winner helps at 768 bits; at 1030 bits and beyond the root-finding itself has
+to become faster.</p>
+
+<h3>10.5 Scan chunks</h3>
+<p>Section 9.4 suggested that scan chunks which double B waste orders late in a level.  In simulation
+(768 bits, 192 threads, 600 levels each) a growth factor of 1.5 gives 1.72 core-hours of machine time per
+level against 1.81 for 2, within the noise of 4%, and 1.25 gives 1.95, because the cores wait for orders more
+often (utilisation 79% against 91%).  The doubling stays.</p>
+
+
+<h2>11. yafu as the ECM engine</h2>
+<p>yafu 3.1.9's ECM (section 8) is now an engine of the prover: <code>engine=yafu yafu=&lt;binary&gt;</code>
+runs the stopping-rule levels with it, gmp-ecm keeps the levels below 500 bits.  What had to be measured
+and built:</p>
+
+<h3>11.1 Success per curve</h3>
+<p>As in section 4 for gmp-ecm: for every B1 and factor size, 96 random primes f, numbers N = f&middot;g with g
+a fixed 192-bit prime, curves until f appears or a cap is reached (<code>data/yafu_pi_calib.py</code>).
+yafu runs 8 curves at a time and reports which of the 8 found the factor, so the estimate is hits over curves
+run.  182 cells, 6,658,456 curves, 306 thread-hours on the driver box.  A selection,
+against gmp-ecm's table at the same B1 and factor size:</p>
+<table><tr><th>B1</th><th>factor, bits</th><th>yafu: hits / curves</th><th>yafu, per curve</th><th>gmp-ecm, per curve</th><th>ratio</th></tr><tr><td>2,000</td><td>42</td><td>152 / 1,176</td><td>0.1293</td><td>0.0928</td><td>1.39</td></tr><tr><td>2,000</td><td>54</td><td>103 / 6,528</td><td>0.0158</td><td>0.0112</td><td>1.41</td></tr><tr><td>2,000</td><td>62</td><td>97 / 37,000</td><td>0.0026</td><td>0.0020</td><td>1.29</td></tr><tr><td>11,000</td><td>50</td><td>137 / 1,168</td><td>0.1173</td><td>0.1154</td><td>1.02</td></tr><tr><td>11,000</td><td>66</td><td>100 / 10,232</td><td>0.0098</td><td>0.0109</td><td>0.90</td></tr><tr><td>11,000</td><td>74</td><td>96 / 32,984</td><td>0.0029</td><td>0.0020</td><td>1.46</td></tr><tr><td>50,000</td><td>58</td><td>141 / 1,144</td><td>0.1233</td><td>0.1020</td><td>1.21</td></tr><tr><td>50,000</td><td>78</td><td>99 / 12,800</td><td>0.0077</td><td>0.0064</td><td>1.21</td></tr><tr><td>50,000</td><td>86</td><td>93 / 35,224</td><td>0.0026</td><td>0.0022</td><td>1.21</td></tr><tr><td>250,000</td><td>66</td><td>133 / 1,224</td><td>0.1087</td><td>0.1091</td><td>1.00</td></tr><tr><td>250,000</td><td>86</td><td>101 / 7,336</td><td>0.0138</td><td>0.0109</td><td>1.27</td></tr><tr><td>250,000</td><td>102</td><td>34 / 25,056</td><td>0.0014</td><td>0.0012</td><td>1.09</td></tr><tr><td>1,000,000</td><td>74</td><td>127 / 1,384</td><td>0.0918</td><td>0.1019</td><td>0.90</td></tr><tr><td>1,000,000</td><td>98</td><td>55 / 7,504</td><td>0.0073</td><td>0.0086</td><td>0.86</td></tr><tr><td>1,000,000</td><td>110</td><td>22 / 9,632</td><td>0.0023</td><td>0.0042</td><td>0.54</td></tr><tr><td>3,000,000</td><td>82</td><td>131 / 1,424</td><td>0.0920</td><td>0.0777</td><td>1.18</td></tr><tr><td>3,000,000</td><td>98</td><td>49 / 3,072</td><td>0.0160</td><td>0.0178</td><td>0.90</td></tr><tr><td>10,000,000</td><td>86</td><td>74 / 768</td><td>0.0964</td><td>&ndash;</td><td>&ndash;</td></tr><tr><td>10,000,000</td><td>110</td><td>115 / 11,000</td><td>0.0105</td><td>&ndash;</td><td>&ndash;</td></tr><tr><td>10,000,000</td><td>126</td><td>33 / 15,376</td><td>0.0021</td><td>&ndash;</td><td>&ndash;</td></tr><tr><td>30,000,000</td><td>90</td><td>98 / 768</td><td>0.1276</td><td>&ndash;</td><td>&ndash;</td></tr><tr><td>30,000,000</td><td>118</td><td>72 / 6,176</td><td>0.0117</td><td>&ndash;</td><td>&ndash;</td></tr><tr><td>30,000,000</td><td>134</td><td>12 / 6,824</td><td>0.0018</td><td>&ndash;</td><td>&ndash;</td></tr></table>
+<p>Per B1, the ratio of yafu's success per curve to gmp-ecm's over the factor sizes where both tables have
+8 hits or more and the probability is below 0.3: 2,000: 1.29, 11,000: 1.19, 50,000: 1.17, 250,000: 1.16, 1,000,000: 1.03, 3,000,000: 1.04.  A yafu curve finds a factor about 30% more often than a gmp-ecm curve at B1 = 2,000, 15 to 20% more often
+from 11,000 to 250,000 and equally often from 10<sup>6</sup>, at the stage-2 bounds each program chooses.
+Against the two-stage smoothness probability of a number 24 times smaller than the factor (the curve
+families' torsion), yafu's measured rates are within 15% at every B1 and size with enough hits; gmp-ecm's
+default curves fall about 20% short of it at small B1.  gmp-ecm's table has no measured cells at
+B1&nbsp;=&nbsp;10<sup>7</sup> and 3&middot;10<sup>7</sup>; yafu's has ten each.
+</p>
+
+<h3>11.2 Cost per curve</h3>
+<p>Core-seconds per curve on a 1030-bit number, c8a under full load, with yafu called the way the prover
+calls it (a list of numbers per process, 16 or 24 curves each, so that start-up is amortised):</p>
+<table><tr><th>B1</th><th>gmp-ecm, core-s per curve</th><th>yafu</th><th>ratio</th><th>B2, gmp-ecm</th><th>B2, yafu</th></tr><tr><td>2,000</td><td>0.0134</td><td>0.0036</td><td>3.7</td><td>147,396</td><td>132,359</td></tr><tr><td>11,000</td><td>0.064</td><td>0.0148</td><td>4.3</td><td>1,873,422</td><td>1,446,869</td></tr><tr><td>50,000</td><td>0.263</td><td>0.0599</td><td>4.4</td><td>12,746,592</td><td>14,241,149</td></tr><tr><td>250,000</td><td>1.215</td><td>0.302</td><td>4.0</td><td>128,992,510</td><td>156,787,994</td></tr><tr><td>1,000,000</td><td>4.95</td><td>0.95</td><td>5.2</td><td>1,045,563,762</td><td>966,061,634</td></tr><tr><td>3,000,000</td><td>13.5</td><td>2.69</td><td>5.0</td><td>5,706,890,290</td><td>4,542,893,354</td></tr><tr><td>10,000,000</td><td>40</td><td>9.9</td><td>4.0</td><td>35,133,391,030</td><td>25,952,321,849</td></tr><tr><td>30,000,000</td><td>120</td><td>36</td><td>3.3</td><td>144,289,975,846</td><td>127,773,807,524</td></tr></table>
+<p>With size, on the driver box with all 32 threads busy (<code>data/yafu_cost2_local.json</code>), seconds
+per curve:</p>
+<table><tr><th>number, bits</th><th>B1 = 2,000</th><th>B1 = 11,000</th><th>B1 = 50,000</th><th>B1 = 250,000</th><th>B1 = 1,000,000</th></tr><tr><td>260</td><td>0.0011</td><td>0.0027</td><td>0.0096</td><td>0.0456</td><td>0.1741</td></tr><tr><td>364</td><td>0.0013</td><td>0.0038</td><td>0.0145</td><td>0.0687</td><td>0.2567</td></tr><tr><td>520</td><td>0.0016</td><td>0.0060</td><td>0.0227</td><td>0.1115</td><td>0.4141</td></tr><tr><td>676</td><td>0.0022</td><td>0.0086</td><td>0.0326</td><td>0.1607</td><td>0.5934</td></tr><tr><td>780</td><td>0.0026</td><td>0.0104</td><td>0.0406</td><td>0.2281</td><td>0.7417</td></tr><tr><td>884</td><td>0.0030</td><td>0.0127</td><td>0.0497</td><td>0.2447</td><td>0.9001</td></tr><tr><td>1030</td><td>0.0036</td><td>0.0150</td><td>0.0599</td><td>0.2926</td><td>1.0871</td></tr><tr><td>1196</td><td>0.0049</td><td>0.0209</td><td>0.0836</td><td>0.4005</td><td>1.4921</td></tr><tr><td>1352</td><td>0.0058</td><td>0.0253</td><td>0.0996</td><td>0.4749</td><td>1.7595</td></tr></table>
+<ul>
+<li>From 260 to 1030 bits the cost grows like bits<sup>1.36</sup> (bits<sup>1.28</sup> at B1 = 11,000 and
+bits<sup>0.97</sup> at 2,000, where the set-up per number counts); gmp-ecm's grows like bits<sup>1.5</sup>.
+Above 1040 bits yafu is 12 to 16% above that law: its arithmetic changes at 20 words of 52 bits.</li>
+<li>A thread of the driver box does as much yafu work as a c8a core up to B1 = 250,000 and 14 to 19% less
+at 10<sup>6</sup> and beyond; for gmp-ecm the factor is 1.35 throughout.  So yafu gains more on the small
+box than on the large one.</li>
+<li>Stage 2 uses 350 to 450 MB per process from B1 = 10<sup>6</sup>.  Raising yafu's limit from 256 MB to
+1 GB makes a curve at B1 = 10<sup>7</sup> 8% cheaper with a larger B2; it is left at the default, with which
+the calibration was done.</li>
+</ul>
+
+<h3>11.3 In the prover</h3>
+<ul>
+<li><b>Batches of 8.</b> The scheduler has a curve quantum: every unit is a multiple of 8 curves and the
+ladder is B1 = 2,000 &times; 16, 11,000 &times; 24, then sweeps of 16 curves (2, 3, 5, 6, 6 and 4 of them at
+50,000 to 3&middot;10<sup>7</sup>).  Sweeps of 8 instead of 16 make no difference in simulation.</li>
+<li><b>Engine profile.</b> Cost table, growth with size, stage-2 bounds and success table are per engine
+(<code>shortsim.ENGINES</code>); the break-even table is built from the engine's own numbers, and the cost
+per curve is calibrated at the start of a run as for gmp-ecm.</li>
+<li><b>Calling yafu.</b> One process per unit, expressions <code>ecm(n, curves)</code> on standard input,
+<code>-avxecm_stg2 1</code> (B2 depends on B1 only), logs off, and <code>-aprcl_p 1</code>: by default yafu
+proves a prime cofactor prime with APR-CL, two seconds at 1000 bits, every time a tail turns out to be
+prime.  Its curves are seeded from the clock, the process id and the system's random source, so processes
+running at once use different curves.  The parts it reports are checked to multiply back to the input.</li>
+<li><b>Self-test.</b> A yafu binary is used only if it finds a planted factor at start-up; otherwise the
+prover says so and runs gmp-ecm.</li>
+</ul>
+<h3>11.4 Simulation</h3>
+<p>The scheduler in virtual time as in 9.2, c8a costs, each engine with its own tables; machine cost is wall
+time times threads.</p>
+<table><tr><th>level, threads</th><th>engine</th><th>wall to the first win, s</th><th>machine cost, core-h</th><th>work: scan + ECM, core-h</th><th>orders bought</th><th>levels simulated</th></tr>
+<tr><td>768 bits, 32</td><td>gmp-ecm</td><td>164</td><td>1.45</td><td>0.37 + 0.97</td><td>30,281</td><td>300</td></tr>
+<tr><td></td><td>yafu</td><td>59</td><td><b>0.52</b></td><td>0.15 + 0.33</td><td>17,581</td><td>300</td></tr>
+<tr><td>768 bits, 192</td><td>gmp-ecm</td><td>34</td><td>1.81</td><td>0.44 + 1.21</td><td>33,510</td><td>600</td></tr>
+<tr><td></td><td>yafu</td><td>14</td><td><b>0.77</b></td><td>0.21 + 0.48</td><td>22,594</td><td>600</td></tr>
+<tr><td>1030 bits, 192</td><td>gmp-ecm</td><td>773</td><td>41.3</td><td>11.5 + 26.4</td><td>112,825</td><td>144</td></tr>
+<tr><td></td><td>yafu</td><td>236</td><td><b>12.6</b></td><td>3.8 + 7.6</td><td>64,841</td><td>144</td></tr>
+<tr><td>1030 bits, 32</td><td>yafu</td><td>1,171</td><td>10.4</td><td>3.3 + 6.2</td><td>59,272</td><td>48</td></tr>
+</table>
+
+<p>A level costs 2.3 to 2.8 times less at 768 bits and 3.3 times less at 1030 bits.  A curve is 4 to 5 times
+cheaper; the rule answers by running more curves on each order and buying fewer orders (a third to a half
+fewer), so the ECM bill and the scan bill both fall, by 2.5 to 3.5 and by 2 to 3.  The 1030-bit rows are
+144 levels and supersede the 24 of section 9.2 (36.5 core-hours there, 41.3 here); the two batches of yafu
+levels behind its row gave 9.6 and 14.1, so these means are good to about 10%.  Summaries in
+<code>data/yafu_sims.txt</code>.
+</p>
+
+<h3>11.5 Real: the driver box</h3>
+<p>The thirteen 768-bit primes of section 9.3 again, on the same 16-core box with 32 threads, with yafu
+(<code>data/yafu_local/</code>).  The gmp-ecm columns are the runs of 9.3; the two engines draw different
+random curves, so the comparison is between averages, not prime by prime.</p>
+<div class="wide"><table><tr><th rowspan="2">prime</th><th colspan="4">gmp-ecm (section 9.3)</th><th colspan="6">yafu</th></tr><tr><th>orders</th><th>search, thread-s</th><th>search, s</th><th>chain, s</th><th>orders</th><th>search, thread-s</th><th>search, s</th><th>wins the model expected</th><th>build, s</th><th>chain, s</th></tr><tr><td>0</td><td>99,262</td><td>22,857</td><td>715</td><td>735</td><td>23,060</td><td>2,267</td><td>83</td><td>1.51</td><td>3.1</td><td>92</td></tr><tr><td>1</td><td>29,696</td><td>2,579</td><td>89</td><td>102</td><td>11,456</td><td>273</td><td>7</td><td>0.04</td><td>1.2</td><td>15</td></tr><tr><td>2</td><td>27,422</td><td>9,407</td><td>346</td><td>377</td><td>12,878</td><td>2,041</td><td>72</td><td>1.11</td><td>0.6</td><td>79</td></tr><tr><td>3</td><td>6,822</td><td>1,197</td><td>40</td><td>64</td><td>6,822</td><td>469</td><td>14</td><td>0.21</td><td>2.6</td><td>25</td></tr><tr><td>4</td><td>60,830</td><td>3,714</td><td>124</td><td>156</td><td>33,360</td><td>759</td><td>26</td><td>1.22</td><td>7.1</td><td>43</td></tr><tr><td>5</td><td>84,920</td><td>5,864</td><td>200</td><td>216</td><td>33,140</td><td>635</td><td>20</td><td>0.82</td><td>1.2</td><td>29</td></tr><tr><td>6</td><td>22,656</td><td>1,827</td><td>59</td><td>92</td><td>22,656</td><td>1,722</td><td>56</td><td>1.08</td><td>12.9</td><td>79</td></tr><tr><td>7</td><td>48,986</td><td>14,004</td><td>446</td><td>463</td><td>7,790</td><td>661</td><td>23</td><td>0.41</td><td>4.5</td><td>34</td></tr><tr><td>8</td><td>14,494</td><td>1,783</td><td>60</td><td>75</td><td>5,608</td><td>261</td><td>9</td><td>0.09</td><td>0.4</td><td>14</td></tr><tr><td>9</td><td>7,116</td><td>453</td><td>14</td><td>22</td><td>5,338</td><td>192</td><td>5</td><td>0.01</td><td>0.6</td><td>13</td></tr><tr><td>10</td><td>66,070</td><td>2,439</td><td>81</td><td>112</td><td>20,006</td><td>178</td><td>5</td><td>0.05</td><td>2.8</td><td>16</td></tr><tr><td>11</td><td>24,200</td><td>3,820</td><td>136</td><td>149</td><td>11,736</td><td>941</td><td>34</td><td>0.63</td><td>2.7</td><td>43</td></tr><tr><td>12</td><td>23,456</td><td>1,359</td><td>44</td><td>68</td><td>17,506</td><td>677</td><td>23</td><td>0.85</td><td>13.3</td><td>46</td></tr></table></div>
+<ul>
+<li><b>768 bits.</b> All 13 certificates pass both verifiers.  The whole chain takes
+<b>41&nbsp;s on average, median 34&nbsp;s</b> (range 13 to
+92), where gmp-ecm took 202 and 112.  The top-level search does
+0.24 thread-hours of work on average (median 0.18) against 1.52
+(0.72), and the scan is now 28% of it.  The gmp-ecm mean is carried by run 0 (6.3 thread-hours); on the medians the search costs 4 times less and
+the chain takes a third of the time.  Sixteen cores with yafu now prove a 768-bit prime about as fast as
+192 cores did with gmp-ecm (section 10.1: 44&nbsp;s).
+</li>
+<li><b>Model.</b> The wins the model expected at the win average 0.62 over the 13 runs (these
+are the primes of section 10.3 that give 0.65 with gmp-ecm).  First wins by B1 of the sweep: 250,000: 8, 1,000,000: 5;
+the model expected 50,000: 0.3, 250,000: 3.1, 1,000,000: 3.4, 3,000,000: 1.3.  Measured against modelled cost of a
+curve, by B1: 2,000: 0.98, 11,000: 0.91, 50,000: 0.90, 250,000: 0.80, 1,000,000: 0.90, 3,000,000: 0.88, 10,000,000: 1.00, 30,000,000: 0.75.</li>
+<li><b>1030 bits.</b> nextprime(10<sup>310</sup>) with yafu on the same box: <b>3,581&nbsp;s</b>
+(60 minutes) for the whole chain and 25.5 thread-hours of CPU, verified by both
+verifiers; with gmp-ecm it took 5,081&nbsp;s and 43.9 (section 9.4).  The search took 3,546&nbsp;s:
+133,514 orders, scan 8.4 + ECM 19.5 thread-hours.  This was a slow draw and
+the gmp-ecm run a fast one: the model expected 1.26 wins when the win came here and 0.66 there, so
+per expected win the search cost 22 thread-hours with yafu and 66 with gmp-ecm, the factor 3 of the
+simulation.  The winner is D = &minus;83,632,771, the discriminant the August campaign ended with after five
+hours; it sits in the first scan chunk and was completed by a sweep at B1 = 3&middot;10<sup>6</sup>.  Its
+class number is 2,907 and the curve is built in 4&nbsp;s.</li>
+<li><b>Above the rule.</b> In that run 27% of the ECM time went to work above the rule, given to cores that
+had nothing below it while a scan chunk was running; the simulation has 1% there.  One reason is that in
+most runs a curve costs 10 to 20% less during the search than the benchmark at the start says, so the scan
+gets too small a share of the cores.  Sizing the scan so that the next chunk arrives when the work below
+the rule runs out, from the backlog actually observed, is the fix to try.</li>
+<li><b>Sharing.</b> Other jobs ran on the box during part of these runs (the second rule level of the
+1030-bit chain shows curves at twice their cost), so the times are upper bounds.</li>
+</ul>
+
+<h3>11.6 On the 192-core box</h3>
+<p>Run on 16 November: section 12.  The simulation of 11.4 had said 0.77 core-hours for a 768-bit level
+there; the thirteen primes took 0.42 on average.</p>
+
+
+
+<h2>12. The table of ShortPrimalityProofs on 192 cores, with yafu</h2>
+<p>16 November, one <code>c8a.48xlarge</code> (192 cores) for 95 minutes, <code>engine=yafu</code>, revised
+format, every certificate checked by <code>vshort2.py</code> and by PARI.  Three passes: the code of
+section 11 as it stood; then with the three defects that pass showed repaired (12.2); then, for the
+entries up to 10<sup>220</sup> and the 768-bit primes, with a faster rule table (12.2).  The numbers below
+are from the latest pass that ran each prime.  17 November, the same type of machine: the entries from
+10<sup>330</sup> to 10<sup>400</sup> (12.6) and the least prime above 10<sup>410</sup> (12.7).</p>
+
+<h3>12.1 Every entry from 10<sup>10</sup> to 10<sup>400</sup></h3>
+<p>The recorded times are those of the repository's README: CPU seconds of <code>short.gp</code> up to
+10<sup>150</sup>, and of the August prover from 10<sup>160</sup>, with its wall time and core count.  "Now"
+is the wall time of <code>shortECPP.py c=&hellip; threads=192 v2=1 engine=yafu</code> and the CPU time of
+its whole process tree.</p>
+<table><tr><th>prime after</th><th>bits</th><th>levels</th><th>recorded CPU</th><th>recorded wall, cores</th><th>now: wall on 192</th><th>now: CPU</th><th>CPU, recorded / now</th></tr><tr><td>10<sup>10</sup></td><td>34</td><td>1</td><td>< 1 s</td><td>&ndash;</td><td>0.1 s</td><td>0.1 s</td><td>17&times;</td></tr><tr><td>10<sup>20</sup></td><td>67</td><td>2</td><td>~1 s</td><td>&ndash;</td><td>0.1 s</td><td>0.1 s</td><td>11&times;</td></tr><tr><td>10<sup>30</sup></td><td>100</td><td>2</td><td>~1 s</td><td>&ndash;</td><td>0.1 s</td><td>0.1 s</td><td>9&times;</td></tr><tr><td>10<sup>40</sup></td><td>133</td><td>2</td><td>~2 s</td><td>&ndash;</td><td>0.2 s</td><td>0.2 s</td><td>9&times;</td></tr><tr><td>10<sup>50</sup></td><td>167</td><td>3</td><td>~3 s</td><td>&ndash;</td><td>0.3 s</td><td>0.3 s</td><td>9&times;</td></tr><tr><td>10<sup>60</sup></td><td>200</td><td>3</td><td>~3 s</td><td>&ndash;</td><td>0.5 s</td><td>0.5 s</td><td>6&times;</td></tr><tr><td>10<sup>70</sup></td><td>233</td><td>3</td><td>45 s</td><td>&ndash;</td><td>0.7 s</td><td>1.2 s</td><td>39&times;</td></tr><tr><td>10<sup>80</sup></td><td>266</td><td>3</td><td>180 s</td><td>&ndash;</td><td>1.0 s</td><td>2.9 s</td><td>61&times;</td></tr><tr><td>10<sup>90</sup></td><td>299</td><td>3</td><td>350 s</td><td>&ndash;</td><td>0.9 s</td><td>10 s</td><td>35&times;</td></tr><tr><td>10<sup>100</sup></td><td>333</td><td>3</td><td>800 s</td><td>&ndash;</td><td>1.1 s</td><td>12 s</td><td>66&times;</td></tr><tr><td>10<sup>110</sup></td><td>366</td><td>4</td><td>1.8 core-h</td><td>&ndash;</td><td>1.1 s</td><td>17 s</td><td>382&times;</td></tr><tr><td>10<sup>120</sup></td><td>399</td><td>4</td><td>1,900 s</td><td>&ndash;</td><td>1.4 s</td><td>20 s</td><td>93&times;</td></tr><tr><td>10<sup>130</sup></td><td>432</td><td>4</td><td>1,800 s</td><td>&ndash;</td><td>2.7 s</td><td>79 s</td><td>23&times;</td></tr><tr><td>10<sup>140</sup></td><td>466</td><td>4</td><td>3.8 core-h</td><td>&ndash;</td><td>4.9 s</td><td>100 s</td><td>137&times;</td></tr><tr><td>10<sup>150</sup></td><td>499</td><td>4</td><td>3.2 core-h</td><td>&ndash;</td><td>3.6 s</td><td>112 s</td><td>102&times;</td></tr><tr><td>10<sup>160</sup></td><td>532</td><td>4</td><td>3,500 s</td><td>360 s on 10</td><td>6.0 s</td><td>298 s</td><td>12&times;</td></tr><tr><td>10<sup>170</sup></td><td>565</td><td>4</td><td>25.0 core-h</td><td>4.2 h on 6</td><td>3.7 s</td><td>191 s</td><td>472&times;</td></tr><tr><td>10<sup>180</sup></td><td>598</td><td>4</td><td>1.4 core-h</td><td>540 s on 10</td><td>3.7 s</td><td>223 s</td><td>23&times;</td></tr><tr><td>10<sup>190</sup></td><td>632</td><td>4</td><td>4.2 core-h</td><td>1,560 s on 10</td><td>6.1 s</td><td>413 s</td><td>37&times;</td></tr><tr><td>10<sup>200</sup></td><td>665</td><td>4</td><td>38.0 core-h</td><td>3.8 h on 10</td><td>4.8 s</td><td>382 s</td><td>358&times;</td></tr><tr><td>10<sup>210</sup></td><td>698</td><td>4</td><td>130.0 core-h</td><td>13.0 h on 10</td><td>14.5 s</td><td>1,987 s</td><td>236&times;</td></tr><tr><td>10<sup>220</sup></td><td>731</td><td>4</td><td>21.0 core-h</td><td>4,680 s on 16</td><td>9.8 s</td><td>730 s</td><td>104&times;</td></tr><tr><td>10<sup>230</sup></td><td>765</td><td>4</td><td>59.0 core-h</td><td>3.7 h on 16</td><td>38.4 s</td><td>1.3 core-h</td><td>45&times;</td></tr><tr><td>10<sup>240</sup></td><td>798</td><td>4</td><td>310.0 core-h</td><td>5,760 s on 192</td><td>40.4 s</td><td>1.6 core-h</td><td>188&times;</td></tr><tr><td>10<sup>250</sup></td><td>831</td><td>4</td><td>290.0 core-h</td><td>5,400 s on 192</td><td>62.0 s</td><td>2.5 core-h</td><td>117&times;</td></tr><tr><td>10<sup>260</sup></td><td>864</td><td>4</td><td>170.0 core-h</td><td>3,240 s on 192</td><td>27.5 s</td><td>3,266 s</td><td>187&times;</td></tr><tr><td>10<sup>270</sup></td><td>897</td><td>4</td><td>520.0 core-h</td><td>2.7 h on 192</td><td>86.7 s</td><td>3.8 core-h</td><td>137&times;</td></tr><tr><td>10<sup>280</sup></td><td>931</td><td>5</td><td>500.0 core-h</td><td>2.6 h on 192</td><td>24.6 s</td><td>2,406 s</td><td>748&times;</td></tr><tr><td>10<sup>290</sup></td><td>964</td><td>5</td><td>380.0 core-h</td><td>2.0 h on 192</td><td>102 s</td><td>4.6 core-h</td><td>83&times;</td></tr><tr><td>10<sup>300</sup></td><td>997</td><td>4</td><td>380.0 core-h</td><td>2.0 h on 192</td><td>130 s</td><td>3.4 core-h</td><td>112&times;</td></tr><tr><td>10<sup>310</sup></td><td>1030</td><td>5</td><td>960.0 core-h</td><td>5.0 h on 192</td><td>268 s</td><td>12.3 core-h</td><td>78&times;</td></tr><tr><td>10<sup>320</sup></td><td>1064</td><td>5</td><td>390.0 core-h</td><td>2.4 h on 192</td><td>205 s</td><td>9.6 core-h</td><td>41&times;</td></tr><tr><td>10<sup>330</sup></td><td>1097</td><td>5</td><td>1080.0 core-h</td><td>7.0 h on 192</td><td>444 s</td><td>21.5 core-h</td><td>50&times;</td></tr><tr><td>10<sup>340</sup></td><td>1130</td><td>5</td><td>420.0 core-h</td><td>2.7 h on 192</td><td>2,651 s</td><td>131.9 core-h</td><td>3&times;</td></tr><tr><td>10<sup>350</sup></td><td>1163</td><td>5</td><td>900.0 core-h</td><td>5.6 h on 192</td><td>2.0 h</td><td>355.8 core-h</td><td>3&times;</td></tr><tr><td>10<sup>360</sup></td><td>1196</td><td>5</td><td>990.0 core-h</td><td>6.0 h on 192</td><td>2,563 s</td><td>104.5 core-h</td><td>9&times;</td></tr><tr><td>10<sup>370</sup></td><td>1230</td><td>5</td><td>1650.0 core-h</td><td>10.5 h on 192</td><td>2,479 s</td><td>115.4 core-h</td><td>14&times;</td></tr><tr><td>10<sup>380</sup></td><td>1263</td><td>4</td><td>70.0 core-h</td><td>3,960 s on 192</td><td>533 s</td><td>25.7 core-h</td><td>3&times;</td></tr><tr><td>10<sup>390</sup></td><td>1296</td><td>5</td><td>840.0 core-h</td><td>5.3 h on 192</td><td>309 s</td><td>14.1 core-h</td><td>60&times;</td></tr><tr><td>10<sup>400</sup></td><td>1329</td><td>5</td><td>2340.0 core-h</td><td>12.8 h on 192</td><td>5,234 s</td><td>250.7 core-h</td><td>9&times;</td></tr></table>
+<p>The fifteen entries up to 10<sup>150</sup> take 19 s of wall time and 356 CPU-seconds in all (recorded: 36,486 CPU-seconds); the seventeen from 10<sup>160</sup> to 10<sup>320</sup> take 17 minutes and 42 core-hours (recorded: 4,180 core-hours); the eight from 10<sup>330</sup> to 10<sup>400</sup> take 6.0 hours and 1,019 core-hours (recorded: 8,290 core-hours; section 12.6).  Up to 10<sup>320</sup> the smallest gains are at the two ends: below 10<sup>70</sup> the recorded times are
+already a second or three (the prover now hands the chain to the SEA search only below 64 to 94 bits, where
+it used to at 135), and at 10<sup>160</sup> the August run was a lucky one.  No prime up to
+10<sup>320</sup> takes five minutes on this machine; 10<sup>310</sup>&nbsp;+&nbsp;733, the largest of the
+first campaign, takes four and a half.  From 10<sup>330</sup> the gain is 2.5 to 60 times in CPU, smallest
+where the August run was a lucky one (10<sup>380</sup>, 70 core-hours) or this one was not (10<sup>340</sup> and
+10<sup>350</sup>, section 12.6).</p>
+
+<h3>12.2 What the first pass showed</h3>
+<ul>
+<li><b>yafu stops at the first factor.</b> <code>ecm(n, curves)</code> drops an input after the batch of 8
+curves in which a factor appears, whatever is left of the curves asked for and even if the cofactor is
+composite (gmp-ecm goes on with the cofactor).  The scheduler was crediting whole sweeps.  It matters most
+at the first sweep, where most tails lose a small prime: at 299 bits the first sweep delivered 3 winners
+where the model expected 14.  Crediting the curves actually run and offering the rest again is not enough:
+the model's state "j sweeps done, tail of t bits" means a tail that survived those sweeps in full, and a
+tail that has just lost a 25-bit prime is not a fresh tail of its new size.  The runner now runs the
+remaining curves on the cofactor in a further process, until the sweep is complete.</li>
+<li><b>Levels below 500 bits.</b> They were run by the old tiered rounds with the parameters of large
+levels: in four of the 32 chains of the first pass the second level cost more than the first
+(up to 140&nbsp;s at 449 bits).  Section 12.3.</li>
+<li><b>Missing modular polynomials.</b> The repository carries &Phi;<sub>&#8467;</sub> for &#8467;&nbsp;&le;&nbsp;71
+and the spot box had only those.  A discriminant whose class group needs a larger &#8467; (here
+&Phi;<sub>101</sub> for the Weber function) made <code>classpoly</code> abort without a message, and the
+prover retried it six times, ten seconds each with 64 jobs, before going back to the search: four chains of
+32 lost one to three minutes that way.  The message is now printed whatever the verbosity, the prover
+gives up on such a discriminant at once and names the file, and the later passes ran with the full set
+(2.2&nbsp;GB).  Since 17 November the repository carries the Weber polynomials (f, f<sup>2</sup>) and eight
+double eta families with small files up to &#8467;&nbsp;=&nbsp;109: of 3,000 random fundamental
+discriminants between 10<sup>7</sup> and 10<sup>10</sup>, 99 asked for a missing file before and 31 do now,
+20 of them for an Atkin function.</li>
+<li><b>The rule table.</b> Its dynamic programme ran in threads and gained nothing from them (thousands
+of short numpy calls: the threads hand the interpreter lock around).  It took 4&nbsp;s per level, half of
+a chain at 10<sup>160</sup> to 10<sup>200</sup>.  In worker processes it takes 0.6&nbsp;s, with identical
+tables.  The workers are child interpreters fed over pipes; a fork server re-imports the caller's main
+script, and one of my check scripts reran itself eight times that way.</li>
+</ul>
+<p>Effect on the thirteen 768-bit primes of sections 9.3 and 10.1 (same machine):</p>
+<table>
+<tr><th></th><th>chain, mean</th><th>median</th><th>search wall</th><th>search work</th><th>CPU per prime</th></tr>
+<tr><td>gmp-ecm (section 10)</td><td>33.7 s</td><td>27.0 s</td><td>20.4 s</td><td>1.06 core-h</td><td>1.11 core-h</td></tr>
+<tr><td>yafu, first pass</td><td>25.3 s</td><td>16.8 s</td><td>8.8 s</td><td>0.42 core-h</td><td>0.55 core-h</td></tr>
+<tr><td>yafu, third pass</td><td>21.0 s</td><td>14.2 s</td><td>9.1 s</td><td>0.42 core-h</td><td>0.52 core-h</td></tr>
+</table>
+<p>The third pass's mean contains one build of 90&nbsp;s (class number 2&nbsp;&times;&nbsp;6,379), without
+which it is 14&nbsp;s; the first pass's contains a minute of retries on a missing polynomial.  The three
+1030-bit primes of section 10.2 took 268, 392 and 46&nbsp;s with yafu (second pass) against 167, 1,157 and
+690&nbsp;s with gmp-ecm, and 32.6 core-hours in all against 81.6.  Over the 32 primes of 500 bits and more
+run with completed sweeps, the wins the model expected at the first win average 0.91 (an exact model:
+1&nbsp;&plusmn;&nbsp;0.18), and 3 of them won before 0.12 expected wins, where an exponential law gives 3.6:
+the surplus of easy winners of section 10.3 does not show here.</p>
+
+<h3>12.3 Small levels</h3>
+<p>A level's first scan, strip bound and thread count now follow its size (<code>level_params</code>):
+a scan to 10<sup>5</sup> and a 2<sup>16</sup> strip on one thread below 200 bits, up to the old 3&middot;10<sup>7</sup>,
+2<sup>26</sup> and all threads from 500.  The stopping rule runs from 280 bits.  For that the model's bound
+D between medium primes and the rough cofactor follows the size (a third of it, 160 bits from 485 up),
+the ladder stops where its curves would reach D (B1&nbsp;&le;&nbsp;50,000 below 320 bits), the reward grid
+scales with the size, and a shared ECM process stops growing at 0.05 expected wins: at 300 bits the best
+few candidates are each a fair chance, and what runs alongside the unit that wins is wasted.</p>
+<p>Check at 299 bits, the level of 10<sup>90</sup>: all 2,860 live orders of a scan to 8&middot;10<sup>6</sup>
+worked through the whole ladder give 94 winners; the model says 97, and sweep by sweep 14.1, 38.5, 31.2
+and 15.0 where 9, 33, 37 and 15 were found (<code>data/small_model_check.log</code>; ten runs of the check
+gave 90 to 104 winners, and 8 to 16 in the first sweep).  Among the 400 candidates the rule ranks best the
+first sweep found 5 winners for 6.9 expected.  The other check, expected wins at the first win, cannot be used at this
+size: the first eight units handed out carry three expected wins between them, so the count at the first
+win averages 3 whatever the model.</p>
+
+<h3>12.4 What a build costs, before it is built</h3>
+<p>Root-finding takes 0.0145&nbsp;&middot;&nbsp;x<sup>0.93</sup>&nbsp;&middot;&nbsp;(bits/768)<sup>2.74</sup>
+seconds on this machine, x being the larger part of the most balanced factorisation of the class number:
+31 builds of 500 to 1064 bits fit within a factor 1.25, from the class number alone
+(<code>data/build_fit.py</code>).  PARI gives 20,000 class numbers in 3 to 7 seconds.  By size, over the 122
+builds of the four c8a data sets:</p>
+<table>
+<tr><th>level, bits</th><th>builds</th><th>median</th><th>mean</th><th>longest</th></tr>
+<tr><td>500&ndash;700</td><td>27</td><td>0.6 s</td><td>0.8 s</td><td>2.2 s</td></tr>
+<tr><td>700&ndash;800</td><td>72</td><td>2.7 s</td><td>5.7 s</td><td>89.8 s</td></tr>
+<tr><td>800&ndash;1000</td><td>12</td><td>6.0 s</td><td>15.0 s</td><td>61.2 s</td></tr>
+<tr><td>1000&ndash;1100</td><td>11</td><td>13.1 s</td><td>53.4 s</td><td>305.4 s</td></tr>
+</table>
+<p>With yafu the search for a 768-bit level takes 9&nbsp;s on 192 cores, so the build is over a third of
+search plus build.  The cost also grows with the discriminant: x averages 150 for |D| near 10<sup>7</sup>,
+950 near 10<sup>9</sup>, 6,500 near 10<sup>11</sup> and 17,600 near 10<sup>12</sup>, which at 1030 bits are
+builds of 3&nbsp;s, 19&nbsp;s, 114&nbsp;s and 290&nbsp;s.  A candidate's value is its chance of winning less
+what its build costs, and the second term is known at intake.  The scheduler does not use it at intake
+yet.  At the win it now does: a winner whose estimated build exceeds the expected wait for another winner
+(R core-seconds on all the threads) plus a typical build is kept in reserve while the search goes on, for
+at most the time its own build would have taken (<code>RuleDriver.should_build</code>).  On 192 cores at
+768 bits that wait is 8&nbsp;s, so the 90-second builds would be passed; on the 32 threads of the driver box
+it is a minute and nothing is passed.  The step is tested on simulated levels and in unit tests; no run on
+192 cores has exercised it yet.</p>
+
+<h3>12.5 The scan's share of the cores</h3>
+<p>On 192 cores with yafu, 40 to 100% of the ECM core-seconds of a level are handed out "above the rule",
+to cores that have no work below it while a scan chunk is running.  I tried giving the scan enough cores for
+its chunk to arrive as the work below the rule runs out.  In simulation (768 bits, 192 threads) that costs
+0.78 core-hours and 17.4&nbsp;s per level against 0.65 and 13.7&nbsp;s: a faster scan buys the next chunk,
+twice as dear, sooner, while the work above the rule is mostly work brought forward, since the rule's
+reward rises with every chunk.  The change is not in.</p>
+
+<h3>12.6 The entries from 10<sup>330</sup> to 10<sup>400</sup></h3>
+<p>17 November, one <code>c8a.48xlarge</code>.  The eight entries that the August campaign added take
+6.0 hours one after the other and 1,019 core-hours (recorded: 51
+hours and 8,290 core-hours).  The top level of each, and of the five primes beyond the table
+(12.7, 12.9; a run that was resumed counts with the time credited to it, see 12.9):</p>
+<table><tr><th>prime after</th><th>bits</th><th>chain</th><th>CPU, core-h</th><th>orders</th><th>scan to, cap</th><th>scan, core-h</th><th>ECM, core-h</th><th>expected wins at the win</th><th>won at B1</th><th>|D| of the winner</th><th>its build</th></tr><tr><td>10<sup>330</sup></td><td>1097</td><td>444 s</td><td>22</td><td>78,760</td><td>10<sup>11</sup>, 10<sup>8</sup></td><td>7</td><td>14</td><td>0.61</td><td>10<sup>6</sup></td><td>6.2&middot;10<sup>10</sup></td><td>13 s</td></tr><tr><td>10<sup>340</sup></td><td>1130</td><td>44 min</td><td>132</td><td>503,102</td><td>4.1&middot;10<sup>11</sup>, 10<sup>8</sup></td><td>35</td><td>85</td><td>3.58</td><td>10<sup>7</sup></td><td>3.8&middot;10<sup>11</sup></td><td>77 s</td></tr><tr><td>10<sup>350</sup></td><td>1163</td><td>2.0 h</td><td>356</td><td>561,004</td><td>2&middot;10<sup>12</sup>, 10<sup>8</sup></td><td>120</td><td>200</td><td>4.41</td><td>3&middot;10<sup>7</sup></td><td>1.2&middot;10<sup>12</sup></td><td>231 s</td></tr><tr><td>10<sup>360</sup></td><td>1196</td><td>43 min</td><td>104</td><td>541,276</td><td>2.6&middot;10<sup>11</sup>, 10<sup>8</sup></td><td>29</td><td>64</td><td>1.79</td><td>10<sup>7</sup></td><td>1.4&middot;10<sup>11</sup></td><td>11 min</td></tr><tr><td>10<sup>370</sup></td><td>1230</td><td>41 min</td><td>115</td><td>424,446</td><td>5.1&middot;10<sup>11</sup>, 10<sup>8</sup></td><td>45</td><td>71</td><td>0.92</td><td>10<sup>7</sup></td><td>3.4&middot;10<sup>11</sup></td><td>198 s</td></tr><tr><td>10<sup>380</sup></td><td>1263</td><td>533 s</td><td>26</td><td>132,292</td><td>6.4&middot;10<sup>10</sup>, 6.4&middot;10<sup>7</sup></td><td>7</td><td>17</td><td>0.20</td><td>3&middot;10<sup>6</sup></td><td>9.3&middot;10<sup>9</sup></td><td>15 s</td></tr><tr><td>10<sup>390</sup></td><td>1296</td><td>309 s</td><td>14</td><td>67,938</td><td>3.2&middot;10<sup>10</sup>, 3.2&middot;10<sup>7</sup></td><td>3</td><td>9</td><td>0.05</td><td>10<sup>6</sup></td><td>3.1&middot;10<sup>10</sup></td><td>23 s</td></tr><tr><td>10<sup>400</sup></td><td>1329</td><td>87 min</td><td>251</td><td>677,496</td><td>10<sup>12</sup>, 10<sup>8</sup></td><td>100</td><td>146</td><td>0.66</td><td>3&middot;10<sup>6</sup></td><td>8.2&middot;10<sup>11</sup></td><td>275 s</td></tr><tr><td>10<sup>410</sup></td><td>1362</td><td>7.8 h</td><td>953</td><td>362,752</td><td>4.1&middot;10<sup>12</sup>, 4.1&middot;10<sup>9</sup></td><td>286</td><td>430</td><td>0.73</td><td>3&middot;10<sup>7</sup></td><td>1.4&middot;10<sup>12</sup></td><td>3.0 h</td></tr><tr><td>10<sup>420</sup></td><td>1396</td><td>119 min</td><td>359</td><td>569,354</td><td>10<sup>12</sup>, 2.6&middot;10<sup>8</sup></td><td>135</td><td>220</td><td>0.64</td><td>3&middot;10<sup>7</sup></td><td>1.7&middot;10<sup>9</sup></td><td>12 s</td></tr><tr><td>10<sup>430</sup></td><td>1429</td><td>16.4 h</td><td>2,797</td><td>1,391,964</td><td>8.2&middot;10<sup>12</sup>, 4.1&middot;10<sup>9</sup></td><td>1222</td><td>1509</td><td>1.10</td><td>10<sup>7</sup></td><td>7.9&middot;10<sup>12</sup></td><td>37 min</td></tr><tr><td>10<sup>440</sup></td><td>1462</td><td>8.5 h</td><td>1,537</td><td>1,042,798</td><td>4.1&middot;10<sup>12</sup>, 10<sup>9</sup></td><td>536</td><td>828</td><td>0.43</td><td>3&middot;10<sup>7</sup></td><td>2.5&middot;10<sup>12</sup></td><td>422 s</td></tr><tr><td>10<sup>450</sup></td><td>1495</td><td>11.9 h</td><td>2,151</td><td>1,809,774</td><td>8.2&middot;10<sup>12</sup>, 4.1&middot;10<sup>9</sup></td><td>1002</td><td>1152</td><td>0.71</td><td>3&middot;10<sup>7</sup></td><td>3.6&middot;10<sup>11</sup></td><td>310 s</td></tr></table>
+<p>At these sizes the cost of a level is the draw: 10<sup>390</sup> takes five minutes and 10<sup>350</sup>
+two hours.  The wins the model expected at the first win average 1.22 over the thirteen
+primes, where an exact model gives 1&nbsp;&plusmn;&nbsp;0.28 (1.44 over the first nine; 0.72 over the last
+five, which ran after the supply and the calibration changed).  10<sup>340</sup> and 10<sup>350</sup>, run one after the
+other, came in at 3.6 and 4.4, which looked like a break of the model above 1100 bits, and before the rest
+of the set said otherwise I checked the engine: yafu finds planted factors of 50, 62 and 78 bits as often
+in numbers of 1130 and 1330 bits as in numbers of 780 and 1030, labels prime cofactors correctly, and uses
+the stage 2 bound the table assumes (<code>data/yafu_bigN.py</code>).  The candidates that lose a factor to
+a sweep are a second check, on far more events than the wins, and every search line of the log now prints
+it: found over expected is 1.05 at B1&nbsp;=&nbsp;2,000 and rises to about 1.5 from 10<sup>6</sup> (the
+expectation ignores that the candidates sent deep were selected for it).</p>
+
+<h3>12.7 nextprime(10<sup>410</sup>) = 10<sup>410</sup> + 67</h3>
+<p>The table ends at 10<sup>400</sup>.  The certificate is <code>certs/short2/nextprime1e410.csv</code>: 1362
+bits, five levels, 28,153&nbsp;s on 192 cores, 953 core-hours, checked by
+<code>vshort2.py</code> and PARI.</p>
+<p><b>A first run stalled.</b> After three hours it had 356,128 orders, 0.52 expected wins, 2,829 candidates
+through the whole ladder, and a scan at 8.2&middot;10<sup>12</sup>, close to its bound of 10<sup>13</sup>,
+whose last chunk had cost 5.7 core-seconds an order; I stopped it.  This prime has 5,692 solvable
+discriminants below 10<sup>9</sup> where 10<sup>400</sup>&nbsp;+&nbsp;69 has 20,888: the supply price differs
+between primes of one size by more than the model's win rate does.</p>
+<p><b>Two ways to more orders.</b> The scan has two bounds, B on |D| and the cap on the prime factors of D
+(the factor base).  Only B used to move, the cap following as B/1000 and stopping at 10<sup>8</sup>.  But a
+discriminant that was passed over for a prime above the cap is as good as any other of its size, and there
+are many: at B&nbsp;=&nbsp;4&middot;10<sup>12</sup> a cap of 10<sup>8</sup> admits a little over half of the
+discriminants.  <code>RuleDriver.next_chunk</code> now prices both moves from what the scans have measured and takes
+the cheaper per order.  Widening takes B to 2B at the present cap: orders grow like &radic;B, work like B.
+Raising takes the cap to four times its value over the range already scanned: the orders gained are the
+orders in hand times the gain in the density of cap-smooth discriminants, at the measured cost per
+discriminant tested plus one square root modulo p for every prime added, and the prediction is corrected
+by the outcome of the last raise.  This was Drew's suggestion.  <code>dscan</code> does a raise without
+repeating anything: with <code>Bmin</code>&nbsp;=&nbsp;B and <code>fbmin</code> at the old cap it lists only the
+products that contain a new prime, and skips the prefixes of old primes that leave no room for one
+(<code>test_dscan.py</code> checks that an earlier scan and a raise together are the full scan at the new
+cap).  The cap's ceiling is a quarter of the machine's memory for the square roots, 2&middot;10<sup>10</sup>
+on this box at 1362 bits.  At 1000 bits the price per order is what it was (<code>data/yafu_c8a_6</code>).
+For this prime the cap went up six times, from 10<sup>6</sup> to 4.1&middot;10<sup>9</sup>, each time the
+predicted price of a raise was below that of a wider bound (by 3 to 20%).  At
+B&nbsp;=&nbsp;4.1&middot;10<sup>12</sup> the scan had 327,326 orders with its cap at 10<sup>9</sup> where the first
+run, with its cap at 10<sup>8</sup>, had 263,290.  The whole supply of 362,752 orders cost 1.03 million
+core-seconds where the first run paid 1.16 million for 356,128, that is 13% less per order, and the next
+orders were priced at 5.9 core-seconds each where the first run's next doubling would have cost about
+7.7.</p>
+<p><b>The run.</b> Search 4.8 hours: 362,752 orders, 286 core-hours of scan
+and 430 of ECM, 0.73 expected wins at the win, which came from a sweep at
+B1&nbsp;=&nbsp;3&middot;10<sup>7</sup>.  Levels of 1300 bits and more now have 192 curves at that B1 on offer
+where they had 64.  B1&nbsp;=&nbsp;10<sup>8</sup> was timed and left out: 4.4 times the cost of
+3&middot;10<sup>7</sup> for about twice the success on factors of 120 to 160 bits.  Construction
+3.0 hours: the winner is D&nbsp;=&nbsp;&minus;1,400,983,335,911 with class number
+4&nbsp;&times;&nbsp;470,279; the decomposed class polynomial took 1,490&nbsp;s of CRT, and the root of its
+factor of prime degree 470,279 took 9,376&nbsp;s on about 20 of the 192 cores, where the law of 12.4 said
+13,137&nbsp;s.  The reserve step of 12.4 let that build go ahead, rightly: another winner was an expected
+six hours away.  The step has still not held a winner back in any real run (25 runs of 768-bit primes drew
+no costly one).</p>
+
+<h3>12.8 yafu's success at the deep sweeps</h3>
+<p>The first calibration (11.1) has 768 curves a cell at B1&nbsp;=&nbsp;10<sup>7</sup> and
+3&middot;10<sup>7</sup> and few hits beyond 110 bits.  A second one adds 598,344 curves on factors of 102 to
+174 bits at B1&nbsp;=&nbsp;3&middot;10<sup>6</sup>, 10<sup>7</sup> and 3&middot;10<sup>7</sup>
+(<code>data/yafu_pi_calib_deep.py</code>): 445, 694 and 526 hits where the table then in use expected 512,
+885 and 555, that is 0.87, 0.78 and 0.95 of them.  The reason is in how the table was read: cells with 8
+hits or more were kept, and the ratio to theory of the last one was carried to every larger size.  That
+selects on the outcome, since the last cell to qualify is one that came out high: beyond 110 bits the rate
+in use was 1.44 times theory at B1&nbsp;=&nbsp;5&middot;10<sup>4</sup> and 1.49 times at
+2.5&middot;10<sup>5</sup>.  The two calibrations are now pooled (<code>data/fold_yafu_calib.py</code>), and a
+cell's ratio to theory is pooled with its neighbours until the pool holds 100 hits, cells without a hit
+included.  Read this way, yafu's success from 100 bits up is 0.88 to 1.13 times the two-stage Dickman
+curve with gain 24 at the three deep values of B1, and 0.94 and 1.11 times at 5&middot;10<sup>4</sup> and
+2.5&middot;10<sup>5</sup>.  The gmp-ecm table is read the same way; its largest change is at
+B1&nbsp;=&nbsp;10<sup>6</sup> beyond 110 bits, where one cell of 14 hits between two of 8 and 7 had set the
+rate at twice what the pool gives.  Sections 3 to 11 of this page are computed with the tables as now
+read.</p>
+
+<h3>12.9 Checkpoints, and four larger primes</h3>
+<p>A level of 1400 bits is a search of many hours on a machine that can be taken away at two minutes'
+notice, and until now only the winners in hand survived that.  Levels of 900 bits and more write their
+search state every ten minutes: the scan's two bounds and its measurements, the loop's counters, and every
+live candidate with its tail and its place on the ladder, about 150 bytes each.  <code>resume=1</code> takes
+the search up from it; what is lost is the units in flight and the factor base's square roots, which the
+next scan computes again.  Tested by killing a 768-bit level after its third checkpoint and resuming it
+(the queue by B1 continued where it had stopped), and in simulation (<code>test_sched.py</code>).  A build
+is not checkpointed: a winner survives, its class polynomial and root start again.</p>
+<p>18 November: the least primes above 10<sup>420</sup>, 10<sup>430</sup>, 10<sup>440</sup> and
+10<sup>450</sup> are proved, one 192-core box each, launched together at 00:23 UTC
+(<code>certs/short2/nextprime1e420.csv</code> &hellip; <code>nextprime1e450.csv</code>, logs in
+<code>data/yafu_big/</code>, rows of the table in 12.6):</p>
+<table>
+<tr><th>prime</th><th>bits</th><th>machine</th><th>done after</th><th>credited: wall, core-h</th><th>legs</th><th>winner's class number</th><th>build</th></tr>
+<tr><td>10<sup>420</sup> + 1261</td><td>1396</td><td>c7a (Zen 4)</td><td>2.0 h</td><td>2.0 h, 359</td><td>1</td><td>4,304 = 2<sup>4</sup>&middot;269</td><td>12 s</td></tr>
+<tr><td>10<sup>430</sup> + 1587</td><td>1429</td><td>c7a, two boxes</td><td>17.2 h</td><td>16.4 h, 2,797</td><td>4</td><td>2,293,212 = 2<sup>2</sup>&middot;3&middot;41&middot;59&middot;79</td><td>37 min</td></tr>
+<tr><td>10<sup>440</sup> + 709</td><td>1462</td><td>c8a, then c7a</td><td>8.9 h</td><td>8.5 h, 1,537</td><td>3</td><td>215,100 = 2<sup>2</sup>&middot;3<sup>2</sup>&middot;5<sup>2</sup>&middot;239</td><td>7 min</td></tr>
+<tr><td>10<sup>450</sup> + 2269</td><td>1495</td><td>c8a (Zen 5)</td><td>11.9 h</td><td>11.9 h, 2,151</td><td>2</td><td>440,844 = 2<sup>2</sup>&middot;3&middot;17&middot;2161</td><td>5 min</td></tr>
+</table>
+<p>"Credited" is about what a run that was never cut off would have taken: the legs that ended normally as
+measured, a leg that was cut off up to the checkpoint the next leg started from.  38.9 hours and 6,845
+core-hours credited in all; 41 box-hours were paid for, about $90.  Only the two c8a boxes had capacity that
+night, so two and a half of the four runs were on <code>c7a.48xlarge</code>, whose Zen 4 cores run yafu's
+AVX-512 curves 1.45 to 1.6 times slower (0.15 to 0.18 s a curve at B1&nbsp;=&nbsp;5&middot;10<sup>4</sup> against
+0.10 to 0.12): the rule's machine benchmark takes that in.  All four winners came from deep sweeps
+(B1&nbsp;=&nbsp;10<sup>7</sup> once, 3&middot;10<sup>7</sup> three times), with 0.64, 1.10, 0.43 and 0.71 expected
+wins at the win.  The four class numbers are smooth, so the builds were short; the reserve step of 12.4 had
+nothing to hold back.</p>
+
+<h3>12.10 What the four runs turned up</h3>
+<ul>
+<li><b>Three interruptions, three resumes.</b> The box of 10<sup>440</sup> was taken away after 50 minutes,
+and the box of 10<sup>430</sup> twice within 40 minutes nine hours in.  Each time the search went on from a
+checkpoint 7 to 15 minutes after the interruption, on another box twice (from the copy kept off the
+boxes) and on the same box once, when AWS brought it back with its disk.  Lost each time: the units in
+flight, up to a quarter of an hour of ECM since the last checkpoint, and the scan chunk in flight.  The
+last is the costly part.  At B&nbsp;=&nbsp;8&middot;10<sup>12</sup> a chunk takes four to five hours of a hundred
+threads, and 10<sup>430</sup> lost two of them part-way, about two hours of scan in all, then waited five
+hours for the third while the rest of the machine had little work below the rule.  That prime is the
+slowest of the four for this reason as much as for its draw.</li>
+<li><b>dscan's serial pass.</b> Before it scans, <code>dscan</code> cuts its tree into units of about 2,000
+discriminants in one thread and keeps them all in memory with a residue modulo p each.  Their number goes
+like B, and the pass walked the children of every upper node one prime at a time.  For 10<sup>450</sup> at
+B&nbsp;=&nbsp;8.2&middot;10<sup>12</sup> that was 18 minutes, with the scan's hundred other threads waiting, and
+235&nbsp;GB of the machine's 384; the next doubling would not have fitted.  Two changes, made while the runs were going: the prover asks for units that
+grow with B (<code>sd</code>&nbsp;=&nbsp;B/2&middot;10<sup>8</sup> from B&nbsp;=&nbsp;4&middot;10<sup>11</sup>: about
+5&middot;10<sup>7</sup> units whatever B), and the pass finds the end of a unit by binary search in a prefix sum
+of 1/q over the factor base.  The same scans then had all their threads busy within four minutes of starting,
+most of that spent reading the cached square roots, and held 46 to 48&nbsp;GB, of which 24 are the roots.
+The discriminants found are the same (<code>test_dscan.py</code>, and the old and the new binary compared on
+a widening, a cap-only scan and a full scan of a 1495-bit prime).</li>
+<li><b>Changing the code of a running search.</b> The three provers still running were restarted from a
+checkpoint to pick up the first change, by a script on each box that waits for the scan chunk in flight
+to arrive and for the checkpoint after it, so that no scan work was thrown away
+(<code>data/yafu_big/restart_after_ckpt.sh</code>).  The second change is in <code>dscan</code> alone, and a
+new binary put in place by a rename is picked up by the next chunk without a restart.</li>
+<li><b>The supply at these sizes.</b> The scans went to B&nbsp;=&nbsp;10<sup>12</sup> (10<sup>420</sup>),
+4&middot;10<sup>12</sup> (10<sup>440</sup>) and 8&middot;10<sup>12</sup> (10<sup>430</sup>, 10<sup>450</sup>), with the cap
+raised four to six times, up to 4&middot;10<sup>9</sup>.  The last chunk cost 1.4 to 5.2 core-seconds an order,
+and the scan was 38 to 47% of the search work.</li>
+</ul>
+
+
+<h2>13. What I would do next</h2>
+<ol>
+<li><b>Count the build in a candidate's value (section 12.4).</b> The build time of a winner is known from
+its class number within a factor 1.25, and it is a third of a 768-bit level on 192 cores, with a tail of
+one to five minutes.  Keeping a costly winner in reserve is in but unmeasured; the 768-bit set on a 192-core
+box would measure it in five minutes.  The fuller form: charge each candidate its build at intake (class numbers of a whole chunk take
+seconds), so that the rule works a candidate while its break-even reward plus the machine time of its build
+is below R; the value of a fresh order then has to count the builds of the orders too.</li>
+<li><b>The scan at 1400 bits and more (section 12.10).</b> A chunk is hours long and all or nothing: split
+it by ranges of the smallest prime, deliver the orders as the parts finish, and a box that is taken away
+costs one part.  While a chunk runs the other half of the machine has little work below the rule; whether
+the scan should have more of the cores at these sizes is open again (section 12.5 answered it at 768
+bits).</li>
+<li><b>Beyond 10<sup>450</sup>.</b> From 10<sup>410</sup> to 10<sup>450</sup> the rule's reward at the win went
+from 4.3 to 18 million core-seconds on a c8a: a factor of about 1.4 for every ten digits, and the supply of
+a prime moves it by a factor of two either way.  10<sup>500</sup> would be about 10,000 core-hours per
+expected win.</li>
+<li><b>Root-finding at prime degree (sections 9.5, 10.2 and 12.4).</b> A powering mod a polynomial of degree
+1,000 to 20,000 over a 768- or 1030-bit field is that many squarings as the field has bits, each done as
+three GMP multiplications of integers of 1 to 40 megabits; at degree 19,583 and 1030 bits it takes 290&nbsp;s
+on 192 cores, of which about 50 are busy; at degree 470,279 and 1362 bits it took 2.6 hours on about 20
+cores (section 12.7), a third of that proof.  Multiplying residue by residue modulo twenty-odd word-size primes with a number-theoretic
+transform should be several times faster on one core and uses as many cores as there are primes.</li>
+<li><b>Sharper height estimates for the decomposition (section 9.6).</b> The bound is a median 23% too
+large for invariants other than j.  Numerical values of the invariant at the forms would give the heights
+to a few bits; the plain bound in the ramified case is also about twice too large.</li>
+<li><b>Small things.</b> yafu takes 11 to 27&nbsp;ms to start, which is most of a unit at 300 bits; the
+measured ECM cost there is 1.3 to 2 times the model's.  For gmp-ecm, &pi; and the cost per curve at
+B1&nbsp;=&nbsp;10<sup>7</sup> and 3&middot;10<sup>7</sup> are still extrapolated; for yafu they are
+measured.  The gmp-ecm table, now read with pooled cells (section 12.8), has not been checked against
+real runs since.  The README needs the new arguments and the size-dependent defaults.</li>
+<li><b>For the paper.</b> The search is a bandit problem with a closed-form index: the cost per level is
+the fixed point of a stopping problem, the rule is an index policy, and both have a direct experimental
+check.</li>
+
+</ol>
+
+<h2>14. Files</h2>
+<ul>
+<li>Prover: <code>ecpp/shortECPP.py</code>, <code>ecpp/dscan.c</code> (<code>fbmin=</code>,
+<code>roots=</code>), <code>ecpp/smoothtest.c</code> (<code>n2=</code>, <code>prp=1</code>);
+tests <code>ecpp/test_dscan.py</code>, <code>ecpp/test_smooth.py</code>.</li>
+<li>Model: <code>ecpp/shortsim.py</code>.</li>
+<li>Engine benchmark: <code>data/build.sh</code>, <code>data/bench.py</code>, <code>data/bench2.py</code>
+(non-IFMA avx-ecm), <code>data/mb.c</code>, <code>data/chk_avx.py</code>; results
+<code>data/engine_results.json</code>, <code>data/engine_results_avx_noifma.json</code>, logs alongside.</li>
+<li>Calibration of &pi;: <code>data/pi_calib.py</code>, result <code>data/pi_calib.json</code>.</li>
+<li>Experiment: <code>data/prep768.sh</code>, <code>data/make_policy.py</code>,
+<code>data/policy_run.py</code>, <code>data/compare.py</code>, <code>data/make_journal.py</code>; inputs and outputs <code>data/exp768_orders.tgz</code> (tail sizes and smooth parts of the 249,648
+orders), <code>data/exp768_policy.json</code>, <code>data/exp768_policy_run.json</code>,
+<code>data/exp768_run.log</code>, <code>data/exp768_prep.log</code>, the 17 winners
+<code>data/exp768_winners.jsonl</code>, the certificate <code>data/p768_cert.txt</code>, the baseline run
+<code>data/p768_baseline.log</code> and the construction timings <code>data/p768_cm_timing.log</code>.</li>
+<li>Decomposition (section 7): <code>classpoly_v1.0.3/compute_classpoly.c</code>, <code>classpoly_crt.c</code>,
+<code>qform.c</code> (<code>qform_sum_jbounds_box</code>), <code>ecpp/cm_method.c</code>, <code>ecpp/fproot.c</code>;
+test <code>ecpp/test_tower.py</code>; timings <code>data/tower_cm_192.log</code> (final),
+<code>data/tower_cm_192_pass3.log</code> (before the parallel root step),
+<code>data/tower_cm_192_pass1_partial.log</code> (before the sign-free variant), subgroup lists
+<code>data/tower_candidates.log</code>, sweeps <code>data/tower_sweep_prefix.log</code>,
+<code>data/tower_sweep_box.log</code>, <code>data/tower_scan_small.log</code>, heights over Z
+<code>data/tower_heights.log</code>, the rebuilt 768-bit chain <code>data/p768_tower_cert.log</code>, and the
+scripts <code>data/tower_*.py</code>, <code>data/tower_*.sh</code>.</li>
+<li>Scheduler (section 9): <code>ecpp/shortsched.py</code>, <code>ecpp/shortsim.py</code>
+(<code>IndexTable</code>), <code>ecpp/shortECPP.py</code> (<code>RuleDriver</code>), success table
+<code>ecpp/ecm_pi.json</code>, test <code>ecpp/test_sched.py</code>; run logs <code>data/rule768_local/</code>
+and <code>data/rule1030_local/</code> (log, certificate), 
+and <code>data/rule_c8a/</code> (section 10: 29 logs and certificates, the run script, the primes) and their summary <code>data/rule_runs.py</code>, <code>data/rule_runs.json</code>; simulation
+summaries <code>data/rule_sims.txt</code>; lattice subgroups <code>data/tower_sweep.py</code>,
+<code>data/tower_sweep_lattice.log</code>.</li>
+<li>yafu as the engine (section 11): <code>ecpp/shortECPP.py</code> (<code>EcmRunner</code>,
+<code>parse_yafu</code>, <code>ecm_engine</code>), <code>ecpp/shortsim.py</code> (<code>ENGINES</code>),
+success table <code>ecpp/ecm_pi_yafu.json</code> from <code>data/yafu_pi_calib.py</code>
+(<code>data/yafu_pi_calib.json</code>, <code>.log</code>; <code>data/yafu_pi_merge.py</code>), costs
+<code>data/yafu_cost2.py</code>, <code>data/yafu_cost2_local.json</code>, simulations
+<code>data/yafu_sims.txt</code>, runs <code>data/yafu_local/</code> (14 logs and certificates).</li>
+<li>yafu (section 8): <code>data/yafu_test.py</code>, <code>data/yafu_cost.py</code>, results
+<code>data/yafu_test.json</code>, <code>data/yafu_cost.json</code>, logs <code>data/yafu_test.log</code>,
+<code>data/yafu_cost.log</code>, <code>data/yafu_build.log</code>
+.</li>
+<li>Section 12: <code>data/yafu_c8a_1/</code>, <code>data/yafu_c8a_2/</code>, <code>data/yafu_c8a_3/</code> (logs,
+certificates and run scripts of the three passes), <code>data/yafu_c8a_4/</code> (the 768-bit set with the
+reserve step), <code>data/yafu_c8a_5/</code> (10<sup>330</sup> to 10<sup>400</sup>, and the first run of
+10<sup>410</sup> as stopped), <code>data/yafu_c8a_6/</code> and <code>data/yafu_c8a_7/</code> (regression runs
+with the two-arm supply), <code>data/yafu_c8a_8/</code> (10<sup>410</sup>), <code>data/frontier_table.py</code>
+&rarr; <code>data/frontier.json</code>, the certificate <code>certs/short2/nextprime1e410.csv</code>,
+<code>data/yafu_pi_calib_deep.py</code> and its outputs, <code>data/fold_yafu_calib.py</code>,
+<code>data/yafu_bigN.py</code> and its log, <code>data/bench_table.py</code> &rarr;
+<code>data/bench_c8a.json</code>, <code>data/build_fit.py</code> &rarr; <code>data/build_fit.json</code>,
+<code>data/small_model_check.py</code> and its log, <code>data/rule_runs.py</code>.</li>
+<li>This page: <code>make_report.py</code> fills <code>index.template.html</code> and <code>sections.html</code>
+from <code>data/</code> and the model.  It needs the two pools of real orders as pickles, which are too large
+to commit: the 768-bit one is written by <code>data/make_policy.py</code> from
+<code>data/exp768_orders.tgz</code>; the 1030-bit one comes from
+<code>dscan p=nextprime(10^310) B=6e10 maxfb=5e7 dump</code>, a strip with the 2<sup>32</sup> product and
+<code>shortsim.load_candidates</code>.</li>
+</ul>
+</body></html>

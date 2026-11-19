@@ -31,10 +31,17 @@ typedef struct classpoly_inv_struct {
 	int ambiguous_H, ambiguous_sign;
 	mpz_t T;
 	int use_trace;
+	int signfree;					// set when the caller does not need the sign of an ambiguous_sign invariant fixed (the trace T is then not computed)
 	long Nrep[IQ_MAX_GENS];
 } classpoly_inv_t[1];
 
-int classpoly_inv_setup (classpoly_inv_t Hinv, classpoly_t H, int inv, classpoly_crt_t crt);
+// true when the roots mod p of this invariant's class polynomial are determined only up to a common sign that takes the trace to fix
+static inline int classpoly_inv_needs_trace (int inv, long enum_cnt)
+	{ return inv_sqrt_invariant (inv) && ! ((enum_cnt&1) && inv_units (inv)); }
+
+int classpoly_inv_setup_signfree (classpoly_inv_t Hinv, classpoly_t H, int inv, classpoly_crt_t crt, int signfree);
+static inline int classpoly_inv_setup (classpoly_inv_t Hinv, classpoly_t H, int inv, classpoly_crt_t crt)
+	{ return classpoly_inv_setup_signfree (Hinv, H, inv, crt, 0); }
 void classpoly_inv_clear (classpoly_inv_t Hinv);
 
 void _ff_classpoly_inv_from_j (ff_t *F, ff_t *J, classpoly_inv_t Hinv, classpoly_t H);

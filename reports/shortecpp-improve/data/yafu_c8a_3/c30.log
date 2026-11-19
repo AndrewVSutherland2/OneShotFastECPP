@@ -1,0 +1,16 @@
+[14:58:41] revised format: B = 1506, log2 rad <= 16, recursion floor B^2 = 2268036
+[14:58:41] proving p0 (100 bits), n2 = 10000
+[14:58:41]     WINNER D=-148 q 49 bits, o=m*q with m=3 (|D| h~12)
+[14:58:41]     WINNER D=-7403 q 46 bits, o=m*q with m=17 (|D| h~86)
+[14:58:41]     WINNER D=-11572 q 43 bits, o=m*q with m=268 (|D| h~107)
+[14:58:41]     WINNER D=-80728 q 47 bits, o=m*q with m=16 (|D| h~284)
+[14:58:41]   level 100 bits: dscan[0,100000) maxfb=1e+06 +383 D -> +490 orders (320 live) in 0.0s (strip 0.0s), 4 winners
+[14:58:41]     cm_method D=-148: H_D^inv(deg 2, inv 5): 0.010s   root: 0.000s   1 j-candidate(s)
+[14:58:41]   level 100 bits: built D=-148 h~12 in 0.0s; o has 58 bits, q 49 bits (total 0.1s, 490 cands, 0 ecm-s)
+[14:58:41] finishing below 68 bits with short2.gp (p has 49 bits)
+[14:58:41]   gp tail: 1 levels in 0.0s
+[14:58:41] chain complete: 2 levels, 0.1s; verifying...
+[14:58:41] vshort2.verify = True   PARI cross-check = True
+[14:58:41] certificate written to /home/ubuntu/rule/out4/c30.cert.txt (verified twice)
+RUN c30 wall=0.12 user=0.10 sys=0.01
+EXIT 0

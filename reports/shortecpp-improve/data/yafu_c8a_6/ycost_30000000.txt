@@ -1,0 +1,3 @@
+B1=30000000 wall=172.68 maxrss=442588KB
+ecm: FFT stage 2: B2 = 117419441684, D = 79170, dF = 8192 (8064 baby roots), 181 blocks, 42 NTT primes
+ecm: process took 172.5949 seconds.

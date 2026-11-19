@@ -14,9 +14,13 @@
       smoothtest pbuild  y=<Y> [threads=N] [save=<file>]
           Build P = prod_{q<=Y} q (optionally cache it to <file>).
 
-      smoothtest parts   (y=<Y> | load=<file>) [threads=N]
+      smoothtest parts   (y=<Y> | load=<file>) [threads=N] [n2=<bound>] [prp=1]
           Read decimal integers from stdin (whitespace-separated); print
           "N  smoothpart  cofactor" for each.  For unit testing vs PARI.
+          n2=<bound> appends the <bound>-smooth part of N (with multiplicity;
+          needs bound <= Y), prp=1 appends 1 if the cofactor passes a base-2
+          Fermat test and 0 otherwise (0 for cofactor 1) -- both computed in
+          parallel here so the caller has no per-candidate work left.
 
       smoothtest gate    (p=<dec> | pbits=<n> [seed=<s>]) [y=<Y> | load=<file>]
                          [threads=N]
@@ -86,17 +90,31 @@ static int check_winner (const mpz_t p, const mpz_t N, const mpz_t m,
     return 1;
 }
 
+// product of v[lo..hi) by a balanced recursion
+static void prod_range (mpz_t r, uint64_t *v, size_t lo, size_t hi)
+{
+    if ( hi - lo <= 8 ) { mpz_set_ui (r, 1); for ( size_t i = lo ; i < hi ; i++ ) mpz_mul_ui (r, r, v[i]); return; }
+    mpz_t a;  mpz_init (a);
+    size_t mid = lo + (hi - lo) / 2;
+    prod_range (a, v, lo, mid);  prod_range (r, v, mid, hi);
+    mpz_mul (r, r, a);
+    mpz_clear (a);
+}
+
 static int mode_parts (int argc, char **argv)
 {
-    uint64_t y = 0;  const char *load = NULL;  int nth = 0;
+    uint64_t y = 0, n2 = 0;  const char *load = NULL;  int nth = 0, prp = 0;
     for ( int i = 2 ; i < argc ; i++ ) {
         if ( ! strncmp (argv[i], "y=", 2) ) y = strtoull (argv[i]+2, 0, 10);
         else if ( ! strncmp (argv[i], "load=", 5) ) load = argv[i]+5;
         else if ( ! strncmp (argv[i], "threads=", 8) ) nth = atoi (argv[i]+8);
+        else if ( ! strncmp (argv[i], "n2=", 3) ) n2 = strtoull (argv[i]+3, 0, 10);
+        else if ( ! strncmp (argv[i], "prp=", 4) ) prp = atoi (argv[i]+4);
     }
     if ( ! y && ! load ) { fprintf (stderr, "parts: need y= or load=\n"); return 2; }
     smooth_base sb;
     if ( ! get_base (&sb, y, load, nth, 1) ) return 1;
+    if ( nth > 0 ) omp_set_num_threads (nth);
 
     // read all integers
     size_t cap = 1024, n = 0;
@@ -112,15 +130,63 @@ static int mode_parts (int argc, char **argv)
     double t0 = wall ();
     smooth_parts (&sb, (const mpz_t*)N, n, S, nth);
     double dt = wall () - t0;
+
+    // optional extra columns, one independent job per number
+    mpz_t *s2 = NULL;  uint8_t *flag = NULL;
+    double t1 = wall ();
+    if ( n2 ) {
+        // S is already the y-smooth part, so its n2-smooth part is what repeated
+        // gcds against the primorial of n2 pull out of it (n2 <= y assumed)
+        uint64_t *pr;  size_t np = (size_t) sieve_primes_range (0, n2, &pr, nth > 0 ? nth : omp_get_max_threads ());
+        mpz_t P2;  mpz_init (P2);  prod_range (P2, pr, 0, np);  free (pr);
+        s2 = malloc (n * sizeof(mpz_t));
+        #pragma omp parallel
+        {
+            mpz_t g, rest;  mpz_init (g);  mpz_init (rest);
+            #pragma omp for schedule(dynamic, 64)
+            for ( size_t i = 0 ; i < n ; i++ ) {
+                mpz_init_set_ui (s2[i], 1);
+                if ( mpz_cmp_ui (S[i], 1) <= 0 ) continue;
+                mpz_set (rest, S[i]);
+                mpz_mod (g, P2, rest);  mpz_gcd (g, g, rest);
+                while ( mpz_cmp_ui (g, 1) > 0 ) {
+                    mpz_mul (s2[i], s2[i], g);  mpz_divexact (rest, rest, g);
+                    mpz_gcd (g, g, rest);
+                }
+            }
+            mpz_clear (g);  mpz_clear (rest);
+        }
+        mpz_clear (P2);
+    }
+    if ( prp ) {
+        flag = calloc (n ? n : 1, 1);
+        #pragma omp parallel
+        {
+            mpz_t c, e, r, two;  mpz_init (c);  mpz_init (e);  mpz_init (r);  mpz_init_set_ui (two, 2);
+            #pragma omp for schedule(dynamic, 64)
+            for ( size_t i = 0 ; i < n ; i++ ) {
+                mpz_divexact (c, N[i], S[i]);
+                if ( mpz_cmp_ui (c, 2) <= 0 ) { flag[i] = (uint8_t)( mpz_cmp_ui (c, 2) == 0 ); continue; }
+                mpz_sub_ui (e, c, 1);  mpz_powm (r, two, e, c);
+                flag[i] = (uint8_t)( mpz_cmp_ui (r, 1) == 0 );
+            }
+            mpz_clear (c);  mpz_clear (e);  mpz_clear (r);  mpz_clear (two);
+        }
+    }
+    double dx = wall () - t1;
+
     mpz_t cof;  mpz_init (cof);
     for ( size_t i = 0 ; i < n ; i++ ) {
         mpz_divexact (cof, N[i], S[i]);
-        gmp_printf ("%Zd %Zd %Zd\n", N[i], S[i], cof);
+        gmp_printf ("%Zd %Zd %Zd", N[i], S[i], cof);
+        if ( s2 ) gmp_printf (" %Zd", s2[i]);
+        if ( flag ) printf (" %d", (int) flag[i]);
+        putchar ('\n');
     }
-    fprintf (stderr, "%zu numbers, smooth_parts %.3fs (%.1f us/num)\n", n, dt, n?1e6*dt/n:0);
+    fprintf (stderr, "%zu numbers, smooth_parts %.3fs (%.1f us/num), extra columns %.3fs\n", n, dt, n?1e6*dt/n:0, dx);
     mpz_clear (cof);
-    for ( size_t i = 0 ; i < n ; i++ ) { mpz_clear (N[i]); mpz_clear (S[i]); }
-    free (N); free (S);
+    for ( size_t i = 0 ; i < n ; i++ ) { mpz_clear (N[i]); mpz_clear (S[i]); if ( s2 ) mpz_clear (s2[i]); }
+    free (N); free (S); free (s2); free (flag);
     smooth_base_clear (&sb);
     return 0;
 }
@@ -244,7 +310,7 @@ int main (int argc, char **argv)
         fprintf (stderr,
           "usage:\n"
           "  smoothtest pbuild y=<Y> [threads=N] [save=<file>]\n"
-          "  smoothtest parts  (y=<Y>|load=<file>) [threads=N]   < integers\n"
+          "  smoothtest parts  (y=<Y>|load=<file>) [threads=N] [n2=<bound>] [prp=1]   < integers\n"
           "  smoothtest gate   (p=<dec>|pbits=<n> [seed=<s>]) [y=<Y>|load=<file>] [threads=N]  < 'd t v' lines\n");
         return 2;
     }

@@ -37,7 +37,19 @@ struct classpoly_crt_struct {
 	ecrt_context_t ecrt;
 	int index;
 	int jobs, jobid;				// multi-job ECRT (parallel workers + merge); 0 = single job
+	int tower_m;					// 0 for a plain class polynomial.  Otherwise the ccnt coefficients are a decomposition (see classpoly.h): the
+								// tower_m non-leading coefficients of F, then ccnt/tower_m - 1 interpolants g_0, g_1, ... of tower_m coefficients each
+	int tower_signfree;			// sign-free decomposition: one extra coefficient S comes first (so ccnt = m*n+1), see classpoly_crt.c
 };
+
+// the shape of a decomposition as one integer, carried as the tag of the ECRT dump files
+#define CLASSPOLY_TOWER_TAG_SIGNFREE	(1UL<<62)
+static inline uint64_t classpoly_tower_tag (int tower_m, int signfree) { return (uint64_t) tower_m | ( signfree ? CLASSPOLY_TOWER_TAG_SIGNFREE : 0 ); }
+static inline int classpoly_tower_tag_m (uint64_t tag) { return (int) (tag & ~CLASSPOLY_TOWER_TAG_SIGNFREE); }
+static inline int classpoly_tower_tag_signfree (uint64_t tag) { return ( tag & CLASSPOLY_TOWER_TAG_SIGNFREE ? 1 : 0 ); }
+// 1 if coefficient i (0 <= i < m*n, not counting S) of a decomposition with m cosets and subgroup order n changes sign when every root does
+static inline int classpoly_tower_odd (int i, int m, int n)
+	{ return ( i < m ? (m-i)&1 : (n - (i-m)/m + m - 1 - (i-m)%m)&1 ); }
 typedef struct classpoly_crt_struct classpoly_crt_t[1];
 
 void classpoly_crt_start (classpoly_crt_t crt, long D, int inv, unsigned long *primes, int pcnt, int ccnt, mpz_t P);
@@ -45,6 +57,8 @@ static inline void classpoly_crt_restart (classpoly_crt_t crt) { crt->index = -1
 void classpoly_crt_end (classpoly_crt_t crt);	// use end to terminate early and cleanup, finish to terminate normally
 int classpoly_crt_finish (classpoly_crt_t crt, long *totbits, long *maxcbits, FILE *fp);
 void classpoly_crt_dump (classpoly_crt_t crt);	// worker: dump ecrt partial sums for a later merge
+void classpoly_crt_print_header (FILE *fp, long D, int inv, mpz_t P, int ccnt, int tower_m, int signfree);	// P may be null (or zero) for a polynomial over Z
+void classpoly_crt_print_coeff (FILE *fp, mpz_t c, int i, int ccnt, int tower_m, int signfree);			// i-th of ccnt coefficients; also writes the leading 1 where it belongs
 
 static inline void classpoly_crt_cache_j (classpoly_crt_t crt, ff_t j)
 	{ if ( ! crt->jcache ) crt->jcache = mem_alloc (crt->pcnt*sizeof(ff_t)); crt->jcache[crt->index] = j; crt->jcnt++; }

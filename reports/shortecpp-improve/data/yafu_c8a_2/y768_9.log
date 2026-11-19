@@ -1,0 +1,38 @@
+[14:25:25] revised format: B = 61685, log2 rad <= 81, recursion floor B^2 = 3805039225
+[14:25:25] proving p0 (769 bits), n2 = 591361
+[14:25:26]   yafu here: 0.0385 s per curve at B1=50000 on 769 bits with 192 processes -> cost factor 0.96
+[14:25:29]   level 769 bits: rule table in 3.8s (28 sweeps, rewards 3..34802392 core-s)
+[14:25:29]   level 769 bits: dscan[0,6e+07) maxfb=1e+06 on 192 threads: +3903 D -> +3044 orders (2887 live), 42 core-s (strip 4) = 0.0139 per order; 0 winners
+[14:25:30]   level 769 bits: dscan[6e+07,1.2e+08) maxfb=1e+06 on 62 threads: +1297 D -> +962 orders (912 live), 14 core-s (strip 2) = 0.0150 per order; 0 winners
+[14:25:31]   level 769 bits: dscan[1.2e+08,2.4e+08) maxfb=1e+06 on 58 threads: +1763 D -> +1332 orders (1251 live), 24 core-s (strip 3) = 0.0184 per order; 0 winners
+[14:25:32]   level 769 bits: dscan[2.4e+08,4.8e+08) maxfb=1e+06 on 61 threads: +2416 D -> +1778 orders (1663 live), 49 core-s (strip 5) = 0.0277 per order; 0 winners
+[14:25:33]     WINNER D=-2927 q 374 bits, o=m*q with m=1342 (|D| h~54)
+[14:25:33]     search: 7116 orders, scan 130 + ecm 392 core-s (299 above the rule), 3.4s wall, 571 units, 1565 splits, rule R = 1433 core-s; the model expected 0.02 wins from this work; measured/modelled ECM cost by B1: 2000:0.86 11000:0.77 50000:0.76 250000:0.77; wins expected by B1: 2000:0.000 11000:0.002 50000:0.008 250000:0.009 1e+06:0.000; won at B1=50000
+[14:25:33]     cm_method D=-2927: H_D^inv(deg 31, inv 1): 0.028s   root: 0.238s   1 j-candidate(s)
+[14:25:34]   level 769 bits: built D=-2927 h~54 in 1.0s; o has 385 bits, q 374 bits (total 9.0s, 7116 cands, 392 ecm-s)
+[14:25:34]   level 374 bits: rule table in 0.5s (7 sweeps, rewards 0..30328 core-s)
+[14:25:34]   level 374 bits: dscan[0,3e+06) maxfb=1e+06 on 28 threads: +922 D -> +738 orders (642 live), 3 core-s (strip 1) = 0.0037 per order; 0 winners
+[14:25:34]   level 374 bits: dscan[3e+06,6e+06) maxfb=1e+06 on 12 threads: +353 D -> +278 orders (244 live), 1 core-s (strip 1) = 0.0049 per order; 0 winners
+[14:25:35]     WINNER D=-234223 q 179 bits, o=m*q with m=256 (|D| h~483)
+[14:25:35]     search: 1016 orders, scan 4 + ecm 4 core-s (3 above the rule), 0.2s wall, 35 units, 28 splits, rule R = 3 core-s; the model expected 1.09 wins from this work; measured/modelled ECM cost by B1: 2000:0.80 11000:0.75 50000:0.70; wins expected by B1: 2000:0.164 11000:0.552 50000:0.371; won at B1=11000
+[14:25:35]     cm_method D=-234223: H_D^inv(deg 224 = 14 x 16, inv 1): 0.012s   roots: 0.008s + 0.009s   1 j-candidate(s)
+[14:25:35]   level 374 bits: built D=-234223 h~483 in 0.6s; o has 191 bits, q 179 bits (total 1.3s, 8132 cands, 395 ecm-s)
+[14:25:35]   level 179 bits: dscan[0,100000) maxfb=1e+06 +394 D -> +380 orders (315 live) in 0.1s (strip 0.0s), 0 winners
+[14:25:35]     WINNER D=-9663 q 63 bits, o=m*q with m=111930981 (|D| h~98)
+[14:25:35]     WINNER D=-415 q 77 bits, o=m*q with m=10197 (|D| h~20)
+[14:25:35]     WINNER D=-28740 q 71 bits, o=m*q with m=485524 (|D| h~169)
+[14:25:35]     WINNER D=-69667 q 72 bits, o=m*q with m=249812 (|D| h~263)
+[14:25:35]     WINNER D=-49956 q 58 bits, o=m*q with m=4334747005 (|D| h~223)
+[14:25:35]     WINNER D=-14767 q 88 bits, o=m*q with m=61 (|D| h~121)
+[14:25:35]     WINNER D=-4980 q 90 bits, o=m*q with m=2 (|D| h~70)
+[14:25:35]     WINNER D=-36499 q 77 bits, o=m*q with m=8044 (|D| h~191)
+[14:25:35]     ecm B1=2000 c=10 on 315 tails: 28 split, 8 winners, 0.2s (stopped at the first winner, 32 tails done)
+[14:25:35]     cm_method D=-415: H_D^inv(deg 10, inv 0): 0.011s   root: 0.001s   1 j-candidate(s)
+[14:25:36]   level 179 bits: built D=-415 h~20 in 0.1s; o has 91 bits, q 77 bits (total 0.4s, 8512 cands, 396 ecm-s)
+[14:25:36] finishing below 94 bits with short2.gp (p has 77 bits)
+[14:25:36]   gp tail: 1 levels in 0.5s
+[14:25:36] chain complete: 4 levels, 11.2s; verifying...
+[14:25:36] vshort2.verify = True   PARI cross-check = True
+[14:25:36] certificate written to /home/ubuntu/rule/out3/y768_9.cert.txt (verified twice)
+RUN y768_9 wall=11.35 user=602.51 sys=49.99
+EXIT 0

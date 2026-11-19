@@ -1,0 +1,37 @@
+[14:55:55] revised format: B = 61685, log2 rad <= 81, recursion floor B^2 = 3805039225
+[14:55:55] proving p0 (769 bits), n2 = 591361
+[14:55:56]   yafu here: 0.0395 s per curve at B1=50000 on 769 bits with 192 processes -> cost factor 0.98
+[14:55:57]   level 769 bits: rule table in 0.6s (28 sweeps, rewards 30..32818515 core-s)
+[14:55:57]   level 769 bits: dscan[0,6e+07) maxfb=1e+06 on 192 threads: +2768 D -> +2210 orders (2072 live), 39 core-s (strip 3) = 0.0176 per order; 0 winners
+[14:55:57]   level 769 bits: dscan[6e+07,1.2e+08) maxfb=1e+06 on 67 threads: +961 D -> +792 orders (738 live), 12 core-s (strip 2) = 0.0155 per order; 0 winners
+[14:55:58]   level 769 bits: dscan[1.2e+08,2.4e+08) maxfb=1e+06 on 60 threads: +1314 D -> +976 orders (932 live), 20 core-s (strip 2) = 0.0203 per order; 0 winners
+[14:55:59]   level 769 bits: dscan[2.4e+08,4.8e+08) maxfb=1e+06 on 61 threads: +1673 D -> +1228 orders (1151 live), 35 core-s (strip 3) = 0.0281 per order; 0 winners
+[14:56:00]   level 769 bits: dscan[4.8e+08,9.6e+08) maxfb=1e+06 on 65 threads: +2165 D -> +1616 orders (1509 live), 65 core-s (strip 4) = 0.0403 per order; 0 winners
+[14:56:03]     WINNER D=-221131823 q 376 bits, o=m*q with m=502 (|D| h~14870)
+[14:56:03]     search: 6822 orders, scan 171 + ecm 642 core-s (441 above the rule), 5.6s wall, 895 units, 1969 splits, rule R = 1685 core-s; the model expected 0.29 wins from this work; measured/modelled ECM cost by B1: 2000:0.87 11000:0.73 50000:0.71 250000:0.78 1e+06:0.95; wins expected by B1: 2000:0.000 11000:0.002 50000:0.014 250000:0.206 1e+06:0.065; won at B1=250000
+[14:56:04]     cm_method D=-221131823: H_D^inv(deg 7488 = 78 x 96, inv 159): 0.121s   roots: 0.430s + 0.601s   1 j-candidate(s)
+[14:56:05]   level 769 bits: built D=-221131823 h~14870 in 2.7s; o has 385 bits, q 376 bits (total 9.8s, 6822 cands, 642 ecm-s)
+[14:56:05]   level 376 bits: rule table in 0.2s (7 sweeps, rewards 0..31650 core-s)
+[14:56:06]   level 376 bits: dscan[0,3e+06) maxfb=1e+06 on 29 threads: +794 D -> +766 orders (669 live), 3 core-s (strip 1) = 0.0046 per order; 0 winners
+[14:56:06]     WINNER D=-1610948 q 174 bits, o=m*q with m=12483 (|D| h~1269)
+[14:56:06]     search: 766 orders, scan 3 + ecm 2 core-s (4 above the rule), 0.2s wall, 22 units, 7 splits, rule R = 4 core-s; the model expected 0.54 wins from this work; measured/modelled ECM cost by B1: 2000:0.94 11000:0.68; wins expected by B1: 2000:0.115 11000:0.426 50000:0.000; won at B1=11000
+[14:56:06]     cm_method D=-1610948: H_D^inv(deg 540 = 20 x 27, inv 26): 0.025s   roots: 0.014s + 0.025s   1 j-candidate(s)
+[14:56:06]   level 376 bits: built D=-1610948 h~1269 in 0.1s; o has 188 bits, q 174 bits (total 0.4s, 7588 cands, 644 ecm-s)
+[14:56:06]   level 174 bits: dscan[0,100000) maxfb=1e+06 +362 D -> +264 orders (217 live) in 0.0s (strip 0.0s), 0 winners
+[14:56:06]     WINNER D=-28767 q 81 bits, o=m*q with m=116 (|D| h~169)
+[14:56:06]     WINNER D=-53727 q 47 bits, o=m*q with m=1418584379744 (|D| h~231)
+[14:56:06]     WINNER D=-53727 q 84 bits, o=m*q with m=16 (|D| h~231)
+[14:56:06]     WINNER D=-32019 q 82 bits, o=m*q with m=45 (|D| h~178)
+[14:56:06]     WINNER D=-15099 q 52 bits, o=m*q with m=59466973790 (|D| h~122)
+[14:56:06]     WINNER D=-15279 q 65 bits, o=m*q with m=6120583 (|D| h~123)
+[14:56:06]     WINNER D=-37279 q 80 bits, o=m*q with m=300 (|D| h~193)
+[14:56:06]     ecm B1=2000 c=10 on 217 tails: 25 split, 7 winners, 0.2s (stopped at the first winner, 32 tails done)
+[14:56:06]     cm_method D=-15099: H_D^inv(deg 16, inv 521): 0.010s   root: 0.002s   1 j-candidate(s)   ell=2 floor, ell=7 floor
+[14:56:06]   level 174 bits: built D=-15099 h~122 in 0.0s; o has 88 bits, q 52 bits (total 0.3s, 7852 cands, 644 ecm-s)
+[14:56:06] finishing below 88 bits with short2.gp (p has 52 bits)
+[14:56:06]   gp tail: 1 levels in 0.0s
+[14:56:06] chain complete: 4 levels, 10.6s; verifying...
+[14:56:06] vshort2.verify = True   PARI cross-check = True
+[14:56:06] certificate written to /home/ubuntu/rule/out4/y768_3.cert.txt (verified twice)
+RUN y768_3 wall=10.73 user=957.56 sys=68.73
+EXIT 0

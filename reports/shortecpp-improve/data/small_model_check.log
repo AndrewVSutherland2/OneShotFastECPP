@@ -1,0 +1,61 @@
+p 299 bits, D=99, y0=2^20, 3278 orders, tiers [(2000, 16), (11000, 24), (50000, 16)]
+intake winners 0; 2860 live composite; model: expected winners with the whole ladder 97.16 (+cost term 0.001)
+model: expected wins of the first sweep alone 14.11
+sweep 0 B1=2000 x 16 on 2860: 9 winners (model expected 14.11 for this sweep), 2167 left
+sweep 1 B1=11000 x 24 on 2167: 33 winners (model expected 38.48 for this sweep), 1704 left
+sweep 2 B1=50000 x 16 on 1704: 37 winners (model expected 31.19 for this sweep), 1444 left
+sweep 3 B1=50000 x 16 on 1444: 15 winners (model expected 15.01 for this sweep), 1316 left
+TOTAL winners 94 of 2860 live (model 97.16)
+class  0- 4:   385 orders,   1 winners, model 1.88
+class  5- 9:   593 orders,   8 winners, model 7.60
+class 10-14:   564 orders,  16 winners, model 13.36
+class 15-19:   533 orders,  15 winners, model 19.40
+class 20-24:   368 orders,  23 winners, model 18.88
+class 25-29:   206 orders,  11 winners, model 14.38
+class 30-34:   102 orders,   4 winners, model 8.90
+class 35-39:    88 orders,  12 winners, model 10.15
+class 40-44:    21 orders,   4 winners, model 2.60
+tail bits - lam in [ 40, 60):     1 orders,   0 winners, model 0.13
+tail bits - lam in [ 60, 80):     9 orders,   1 winners, model 1.52
+tail bits - lam in [ 80,100):    97 orders,  13 winners, model 11.05
+tail bits - lam in [100,120):   541 orders,  30 winners, model 34.06
+tail bits - lam in [120,140):  1478 orders,  44 winners, model 43.87
+tail bits - lam in [140,160):   734 orders,   6 winners, model 6.53
+best   50 by r: first-sweep wins expected 1.97, got 2; won in any sweep 8; r up to 0.32
+best  100 by r: first-sweep wins expected 3.09, got 3; won in any sweep 17; r up to 0.43
+best  200 by r: first-sweep wins expected 4.65, got 4; won in any sweep 23; r up to 0.55
+best  400 by r: first-sweep wins expected 6.86, got 5; won in any sweep 34; r up to 0.74
+best  800 by r: first-sweep wins expected 9.64, got 7; won in any sweep 50; r up to 1.10
+best 1600 by r: first-sweep wins expected 12.56, got 8; won in any sweep 80; r up to 2.04
+best 2860 by r: first-sweep wins expected 14.11, got 9; won in any sweep 94; r up to 18.22
+top 30 by r: (class, tail bits - lam, pwin0, r, won at)
+  cls 33  tb-lam   62  pw0 0.108  r 0.113  -
+  cls 33  tb-lam   71  pw0 0.075  r 0.151  -
+  cls 29  tb-lam   70  pw0 0.073  r 0.159  -
+  cls 18  tb-lam   61  pw0 0.074  r 0.167  -
+  cls 30  tb-lam   74  pw0 0.062  r 0.178  -
+  cls 34  tb-lam   77  pw0 0.059  r 0.181  1
+  cls 12  tb-lam   51  pw0 0.062  r 0.190  -
+  cls 26  tb-lam   74  pw0 0.057  r 0.196  -
+  cls 37  tb-lam   82  pw0 0.050  r 0.200  -
+  cls 38  tb-lam   83  pw0 0.048  r 0.203  -
+  cls 36  tb-lam   82  pw0 0.049  r 0.204  -
+  cls 39  tb-lam   85  pw0 0.045  r 0.213  -
+  cls 33  tb-lam   83  pw0 0.045  r 0.224  -
+  cls 33  tb-lam   85  pw0 0.041  r 0.238  -
+  cls 29  tb-lam   83  pw0 0.041  r 0.244  -
+  cls 38  tb-lam   89  pw0 0.037  r 0.245  -
+  cls 32  tb-lam   86  pw0 0.039  r 0.251  -
+  cls 38  tb-lam   90  pw0 0.036  r 0.253  0
+  cls 39  tb-lam   92  pw0 0.033  r 0.264  -
+  cls 36  tb-lam   91  pw0 0.033  r 0.270  2
+  cls 39  tb-lam   93  pw0 0.032  r 0.272  -
+  cls 40  tb-lam   94  pw0 0.031  r 0.276  -
+  cls 43  tb-lam   96  pw0 0.029  r 0.278  -
+  cls 43  tb-lam   96  pw0 0.029  r 0.278  -
+  cls 39  tb-lam   94  pw0 0.031  r 0.281  -
+  cls 37  tb-lam   93  pw0 0.031  r 0.282  -
+  cls 37  tb-lam   93  pw0 0.031  r 0.282  -
+  cls 38  tb-lam   94  pw0 0.030  r 0.286  -
+  cls 37  tb-lam   94  pw0 0.030  r 0.291  -
+  cls 37  tb-lam   94  pw0 0.030  r 0.291  2

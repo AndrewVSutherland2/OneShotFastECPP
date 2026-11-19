@@ -1,0 +1,38 @@
+[04:29:11] revised format: B = 61685, log2 rad <= 81, recursion floor B^2 = 3805039225
+[04:29:11] proving p0 (769 bits), n2 = 591361
+[04:29:11]     WINNER D=-5201738755 q 379 bits, o=m*q with m=1579 (|D| h~72123)
+[04:29:11]     WINNER D=-18960475695 q 377 bits, o=m*q with m=184 (|D| h~137697)
+[04:29:11]     WINNER D=-24483261047 q 376 bits, o=m*q with m=17987 (|D| h~156471)
+[04:29:11]     WINNER D=-26558327551 q 381 bits, o=m*q with m=18 (|D| h~162967)
+[04:29:11]     WINNER D=-27115302883 q 384 bits, o=m*q with m=2 (|D| h~164667)
+[04:29:11]     WINNER D=-30694863135 q 376 bits, o=m*q with m=426 (|D| h~175199)
+[04:29:11]     WINNER D=-43980816779 q 379 bits, o=m*q with m=36 (|D| h~209716)
+[04:29:11]     WINNER D=-62721263535 q 368 bits, o=m*q with m=155706 (|D| h~250442)
+[04:29:11]     WINNER D=-76050642003 q 380 bits, o=m*q with m=24001 (|D| h~275772)
+[04:29:11]     WINNER D=-115333393863 q 381 bits, o=m*q with m=11 (|D| h~339607)
+[04:29:11]     WINNER D=-123856576567 q 377 bits, o=m*q with m=257 (|D| h~351932)
+[04:29:11]     WINNER D=-124169733811 q 357 bits, o=m*q with m=139847114 (|D| h~352377)
+[04:29:11]     WINNER D=-126996060003 q 365 bits, o=m*q with m=866269 (|D| h~356365)
+[04:29:11]     WINNER D=-127843394223 q 368 bits, o=m*q with m=163848 (|D| h~357551)
+[04:29:11]     WINNER D=-150887559671 q 375 bits, o=m*q with m=545 (|D| h~388442)
+[04:29:11]     WINNER D=-154094250923 q 368 bits, o=m*q with m=138654 (|D| h~392548)
+[04:29:11]     WINNER D=-169383168327 q 338 bits, o=m*q with m=102930224033792 (|D| h~411561)
+[04:29:11]   level 769 bits: 17 journaled winner(s) replayed
+[04:29:19]   level 769 bits: built D=-5201738755 h~72123 in 7.9s; o has 389 bits, q 379 bits (total 8.0s, 0 cands, 0 ecm-s)
+[04:29:20]   level 379 bits: dscan[0,3e+07) maxfb=1e+06 +1661 D -> +1302 orders (1124 live) in 0.4s (strip 0.3s), 0 winners
+[04:29:20]     WINNER D=-4820563 q 185 bits, o=m*q with m=34 (|D| h~2195)
+[04:29:20]     ecm B1=2000 c=10 on 1124 tails: 400 split, 1 winners, 0.5s (stopped at the first winner, 795 tails done)
+[04:29:20]   level 379 bits: built D=-4820563 h~2195 in 0.1s; o has 190 bits, q 185 bits (total 1.0s, 1302 cands, 95 ecm-s)
+[04:29:21]     WINNER D=-176135 q 81 bits, o=m*q with m=5066 (|D| h~419)
+[04:29:21]     WINNER D=-752163 q 65 bits, o=m*q with m=343762842 (|D| h~867)
+[04:29:21]     WINNER D=-8323327 q 80 bits, o=m*q with m=6542 (|D| h~2885)
+[04:29:21]     WINNER D=-18519303 q 87 bits, o=m*q with m=56 (|D| h~4303)
+[04:29:21]     WINNER D=-28515415 q 85 bits, o=m*q with m=186 (|D| h~5339)
+[04:29:21]   level 185 bits: dscan[0,3e+07) maxfb=1e+06 +4689 D -> +3660 orders (2559 live) in 0.4s (strip 0.3s), 5 winners
+[04:29:21]   level 185 bits: built D=-176135 h~419 in 0.2s; o has 93 bits, q 81 bits (total 0.6s, 4962 cands, 95 ecm-s)
+[04:29:21] finishing below 135 bits with short2.gp (p has 81 bits)
+[04:29:21]   gp tail: 1 levels in 0.3s
+[04:29:21] chain complete: 4 levels, 10.0s; verifying...
+[04:29:21] vshort2.verify = True   PARI cross-check = True
+[04:29:21] certificate written to /home/ubuntu/tw/p768tw.txt (verified twice)
+CHAIN_DONE

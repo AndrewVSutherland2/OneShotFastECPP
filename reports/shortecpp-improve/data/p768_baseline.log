@@ -1,0 +1,39 @@
+[22:49:37] revised format: B = 61685, log2 rad <= 81, recursion floor B^2 = 3805039225
+[22:49:37] proving p0 (769 bits), n2 = 591361
+[22:49:44]   level 769 bits: dscan[0,6e+07) maxfb=1e+06 +6303 D -> +4932 orders (4628 live) in 7.2s (strip 6.9s), 0 winners
+[22:49:50]     ecm B1=2000 c=12 on 4628 tails: 2015 split, 0 winners, 6.3s
+[22:50:08]     ecm B1=11000 c=20 on 4410 tails: 1064 split, 0 winners, 17.6s
+[22:50:08]     tier B1=500000: admission boundary -11.13 < fresh median -8.22; widening
+[22:50:08]   level 769 bits: widening to B=3.6e+08 (4251 live)
+[22:50:17]   level 769 bits: dscan[6e+07,3.6e+08) maxfb=1e+06 +7106 D -> +5710 orders (5343 live) in 9.2s (strip 8.6s), 0 winners
+[22:50:25]     ecm B1=2000 c=12 on 5343 tails: 2434 split, 0 winners, 8.2s
+[22:50:46]     ecm B1=11000 c=20 on 5041 tails: 1277 split, 0 winners, 20.4s
+[22:50:46]     tier B1=500000: admission boundary -11.13 < fresh median -8.23; widening
+[22:50:46]   level 769 bits: widening to B=2.16e+09 (9109 live)
+[22:51:09]   level 769 bits: dscan[3.6e+08,2.16e+09) maxfb=2.16e+06 +17895 D -> +13958 orders (13066 live) in 23.2s (strip 20.6s), 0 winners
+[22:51:28]     ecm B1=2000 c=12 on 13066 tails: 5904 split, 0 winners, 19.3s
+[22:52:17]     ecm B1=11000 c=20 on 12350 tails: 3227 split, 0 winners, 49.1s
+[22:52:35]     pm1 B1=500000 c=1 on 15000 tails: 776 split, 0 winners, 17.3s
+[22:55:28]     ecm B1=50000 c=16 on 15000 tails: 1898 split, 0 winners, 173.0s
+[22:55:28]     tier B1=50000: admission boundary -8.45 < fresh median -8.23; widening
+[22:55:28]   level 769 bits: widening to B=1.296e+10 (20408 live)
+[22:56:34]   level 769 bits: dscan[2.16e+09,1.296e+10) maxfb=1.296e+07 +49616 D -> +38582 orders (36203 live) in 66.7s (strip 53.5s), 0 winners
+[22:57:25]     ecm B1=2000 c=12 on 36203 tails: 16286 split, 0 winners, 51.0s
+[22:59:42]     ecm B1=11000 c=20 on 34305 tails: 8901 split, 0 winners, 137.1s
+[23:00:00]     pm1 B1=500000 c=1 on 15000 tails: 748 split, 0 winners, 17.1s
+[23:02:46]     ecm B1=50000 c=16 on 15000 tails: 1853 split, 0 winners, 166.6s
+[23:05:24]     ecm B1=50000 c=16 on 15000 tails: 937 split, 0 winners, 158.0s
+[23:08:04]     ecm B1=250000 c=12 on 5000 tails: 419 split, 0 winners, 159.9s
+[23:08:07]     ecm B1=250000 c=12 on 5000 tails: 1 split, 1 winners, 2.8s (stopped at the first winner, 1 tails done)
+[23:09:56]   level 769 bits: built D=-5201738755 h~72123 in 108.8s; o has 389 bits, q 379 bits (total 1219.1s, 63182 cands, 192719 ecm-s)
+[23:09:57]   level 379 bits: dscan[0,3e+07) maxfb=1e+06 +1661 D -> +1302 orders (1124 live) in 1.2s (strip 1.0s), 0 winners
+[23:09:58]     ecm B1=2000 c=10 on 1124 tails: 531 split, 1 winners, 0.8s (stopped at the first winner, 1054 tails done)
+[23:09:58]   level 379 bits: built D=-4820563 h~2195 in 0.4s; o has 190 bits, q 185 bits (total 2.4s, 64484 cands, 192881 ecm-s)
+[23:10:00]   level 185 bits: dscan[0,3e+07) maxfb=1e+06 +4689 D -> +3660 orders (2559 live) in 1.4s (strip 1.3s), 5 winners
+[23:10:00]   level 185 bits: built D=-176135 h~419 in 0.3s; o has 93 bits, q 81 bits (total 1.8s, 68144 cands, 192881 ecm-s)
+[23:10:00] finishing below 135 bits with short2.gp (p has 81 bits)
+[23:10:00]   gp tail: 1 levels in 0.3s
+[23:10:00] chain complete: 4 levels, 1223.7s; verifying...
+[23:10:00] vshort2.verify = True   PARI cross-check = True
+[23:10:00] certificate written to /home/ubuntu/exp768/p768base.txt (verified twice)
+BASE_DONE

@@ -5,37 +5,66 @@
 At each level (modulus p, top-level n fixed for the whole chain, n2 = n^2):
   1. dscan enumerates (D,t,v) with 4p = t^2 + |D| v^2; candidate curve orders
      are N = p+1-t and p+1+t with 4 | N (Montgomery-representable side pairs).
-  2. smoothtest strips every candidate's y0-smooth part S (y0 = 2^32, batched
-     Bernstein remainder trees against a cached prime product); the n2-smooth
+  2. smoothtest strips every candidate's y0-smooth part S (y0 = 2^26, less at
+     small levels, see level_params; batched Bernstein remainder trees against
+     a cached prime product); the n2-smooth
      part s | S supplies the certificate cofactor m, the rest of S is discarded
      into the untracked cofactor c (which never needs factoring), and the rough
-     tail T = N/S is peeled by breadth-first rounds of gmp-ecm with escalating
-     B1 and per-round admission caps (rank: smallest tail first).
+     tail T = N/S is peeled by gmp-ecm.  Which tail gets which curves is decided
+     by the stopping rule of shortsched.py (levels of POLICY_MIN_BITS bits and
+     more) or by tiered rounds with admission caps (smaller levels, sched=old).
   3. A candidate wins when a known prime q (a peeled factor, or a tail that
      became prime) satisfies n2 < q, q^2 < p, and some divisor m | s lands
      o = m*q in the window L < o < r(m)*L, L = (p^(1/4)+1)^2.  The winner's
      curve comes from H_D (cm_method / classpoly, PARI polclass fallback), the
      Montgomery A from the u-cubic, and the point of exact order o from the
      x-only ladder; the certificate stores (A, x, o) and descends to q.
-Levels below CM_MIN_BITS are finished by short.gp (SEA is cheap there), called
-with the top-level n2.  The chain is verified by vshort2.verify (v2=1, the
+Levels too small for a q above the recursion floor (cm_min_bits: 64 to 94 bits
+in the revised format) are finished by short.gp, called with the top-level n2.
+The first scan, the strip bound and the number of threads follow the size of
+the level (level_params), so that a 170-bit prime costs half a second.  The chain is verified by vshort2.verify (v2=1, the
 revised format; vsmallECPP.verify for the original) and independently
 cross-checked level by level in PARI before it is written.
 
 usage: shortECPP.py (p=<decimal> | c=<digits: p=nextprime(10^c)>)
                       [threads=N] [out=<file>] [tag=<name>] [B0=<dscan start>]
                       [Bmax=<dscan cap>] [maxfb=<factor-base cap>] [seed=1]
-                      [v=1] [v2=1] [resume=1]
+                      [v=1] [v2=1] [resume=1] [sched=auto|rule|old]
+                      [engine=auto|gmp|yafu] [yafu=<binary>]
+
+The scan's factor base is always capped: at maxfb if given (top level only),
+otherwise at fb_cap(B) for the first scan.  From there the stopping-rule levels
+get their orders the cheaper of two ways, measured as they go: a wider
+discriminant bound, or a higher cap over the range already scanned (the
+discriminants passed over for a prime above the cap).  The square roots are
+cached per modulus under work/rootcache/ for the life of the level.
+
+sched: levels of POLICY_MIN_BITS (280) bits and more are run by the stopping-rule
+scheduler (shortsched.py: candidates are worked in the order of their
+break-even reward and only while that is below what a fresh order from the scan
+is worth); smaller levels, and everything with sched=old, by the tiered rounds
+of ladder_rounds.  sched=rule fails if numpy is missing instead of falling back.
+
+engine: the ECM program of the stopping-rule levels.  yafu (its AVX-512 ECM,
+8 curves per call; binary from yafu= or SHORTECPP_YAFU, built with
+USE_AVX512IFMA=1) costs several times less per curve than gmp-ecm and has its
+own success table and cost table (shortsim.ENGINES); auto uses it when a binary
+is given.  The tiered rounds and P-1 always use gmp-ecm.
 """
 
 import concurrent.futures
 import json
 import math
 import os
+import pickle
+import queue
 import random
+import hashlib
+import re
 import shutil
 import subprocess
 import sys
+import threading
 import time
 from math import gcd, isqrt
 
@@ -94,9 +123,45 @@ if not ECM_BIN:
 ECM_ENV = dict(os.environ)
 _ecm_lib = os.path.join(os.path.dirname(os.path.dirname(ECM_BIN)), "lib", "x86_64-linux-gnu") if ECM_BIN else ""
 ECM_ENV["LD_LIBRARY_PATH"] = _ecm_lib + ":" + ECM_ENV.get("LD_LIBRARY_PATH", "")
-PCACHE = os.path.join(REPO_DIR, "work/pcache/oneshot_P_4294967296.bin")   # y0 = 2^32
-Y0 = 4294967296
-CM_MIN_BITS = 135                 # below this, short.gp (SEA) finishes the chain
+# Strip bound y0 = 2^26.  The strip only has to be exact up to n^2 (the
+# certificate cofactor m is n^2-smooth); everything between n^2 and y0 is junk
+# that ECM would remove anyway.  The batch cost is one reduction of the prime
+# product modulo the product of the batch, so it scales with y0: 2^26 strips
+# 27,000 orders at 1030 bits ten times faster than 2^32 did (6 s against 62 s),
+# with identical n^2-smooth parts, and the primes it leaves, 27 to 32 bits, are
+# found by the first ECM tier.
+Y0 = 1 << 26
+PCACHE = os.path.join(REPO_DIR, "work/pcache/oneshot_P_%d.bin" % Y0)
+CM_MIN_BITS = 0                   # below this, short.gp (SEA) finishes the chain; 0: cm_min_bits()
+
+
+def cm_min_bits(floor):
+    """Smallest level given to the CM search.  Its q must exceed the recursion
+    floor (n^2, or B^2 in the revised format: a terminal prime below it comes
+    from the gp tail only) and is about half the level less the cofactor m, so
+    the level needs twice the floor's bits and room for m."""
+    return CM_MIN_BITS if CM_MIN_BITS else max(48, 2 * floor.bit_length() + 24)
+
+
+def level_params(nb, threads, bound):
+    """(strip bound in bits, first scan bound, threads) for a level of nb bits.
+    The defaults of the large levels are fixed costs that swamp a small one:
+    the 2^26 strip is a second of work whatever the number of orders, a scan to
+    3e7 buys thousands of orders where a 200-bit level needs fifty, and
+    processes with more threads than there is work spend their time waiting.
+    bound: the smoothness bound of the certificate, which the strip must reach."""
+    y0 = 26 if nb >= 320 else 20 if nb >= 200 else 16
+    y0 = max(y0, bound.bit_length())
+    B0 = (10 ** 5 if nb < 200 else 3 * 10 ** 5 if nb < 260 else 10 ** 6 if nb < 320 else
+          3 * 10 ** 6 if nb < 400 else 10 ** 7 if nb < 500 else None)
+    thr = max(1, min(threads, int(2.0 ** ((nb - 180) / 40.0))))
+    return y0, B0, thr
+
+
+def set_strip_bound(bits):
+    global Y0, PCACHE
+    Y0 = 1 << bits
+    PCACHE = os.path.join(REPO_DIR, "work/pcache/oneshot_P_%d.bin" % Y0)
 
 # Revised (August 2026) format support: when V2_BCAP > 0, fillers are restricted
 # to primes <= V2_BCAP = ceil(n^2/log2 n) with log2 rad(m) <= V2_RADLIM =
@@ -115,9 +180,25 @@ ECM_ENV["ONESHOT_PCACHE_DIR"] = ECM_ENV.get("ONESHOT_PCACHE_DIR", os.path.join(R
 ECM_ENV["PATH"] = (os.path.join(REPO_DIR, "classpoly_v1.0.3") + ":" + ECPP_DIR + ":"
                    + ECM_ENV.get("PATH", ""))
 
+SCHED = os.environ.get("SHORTECPP_SCHED", "auto")    # auto | rule | old (sched= argument)
+POLICY_MIN_BITS = 280             # below this a level costs less than the rule's set-up
+ENGINE = os.environ.get("SHORTECPP_ECM", "auto")     # auto | gmp | yafu (engine= argument)
+YAFU_BIN = os.environ.get("SHORTECPP_YAFU", "")      # yafu= argument
+_YAFU_CWD = None                  # yafu reads yafu.ini from its working directory: give it an empty one
+# The strip is mostly serial: 4,000 orders of 768 bits take 1.65 s on one thread,
+# 0.41 s on 8 and on 16, 0.53 s on 32; 40,000 take 2.8 s on 8 and 2.7 s on 32.  The
+# rule scheduler therefore gives it 8 threads and frees the scan's other threads
+# for ECM while it runs (on 192 cores it used to hold 50 or more for a second per
+# chunk).
+STRIP_THREADS = 8
+
 VERBOSE = 1
 CAMP_DIR = os.path.join(REPO_DIR, "work", "shortcamp")
 JOURNAL = None       # set per run: winners survive crashes / spot preemptions
+CKPT = None          # set per run: the search state of a rule level (RuleDriver.checkpoint)
+CKPT_RESUME = False  # resume=1: take up the search where the checkpoint left it
+CKPT_MIN_BITS = int(os.environ.get("SHORTECPP_CKPT_BITS", "900"))  # below this a level's search is minutes at most: nothing worth saving
+CKPT_EVERY = float(os.environ.get("SHORTECPP_CKPT", "600"))   # seconds between checkpoints
 
 
 def log(msg):
@@ -172,20 +253,6 @@ def is_prp(n, rounds=24):
     return True
 
 
-def fermat2(n):
-    """Base-2 Fermat test: True = probably prime.  Used only as a cheap pool
-    screen; acceptance always re-tests with is_prp (and the final certificate
-    is verified independently), so a 2-pseudoprime costs at most a dead branch."""
-    return pow(2, n - 1, n) == 1
-
-
-def parallel_map(fn, items, threads):
-    if len(items) < 4:
-        return [fn(x) for x in items]
-    with concurrent.futures.ProcessPoolExecutor(max_workers=threads) as ex:
-        return list(ex.map(fn, items, chunksize=max(1, len(items) // (4 * threads))))
-
-
 def sqrt_mod(a, p):
     a %= p
     if a == 0:
@@ -238,7 +305,8 @@ def factor_small(s, small_primes):
 # ------------------------------------------------------------ candidate state
 class Cand:
     __slots__ = ("d", "t", "v", "N", "s", "sfac", "mid", "tail", "dead",
-                 "splits", "effort", "prp_checked", "tcurves", "last_b1")
+                 "splits", "effort", "prp_checked", "tcurves", "last_b1",
+                 "cls", "tb", "st", "sent", "done", "infl", "ver")     # shortsched's fields
 
     def __init__(self, d, t, v, N):
         self.d, self.t, self.v, self.N = d, t, v, N
@@ -255,17 +323,101 @@ class Cand:
 
 
 # ------------------------------------------------------------ pool components
-def run_dscan(p, B, Bmin, threads, maxfb=0):
+def fb_cap_max(nb):
+    """Largest factor-base cap whose square roots mod a prime of nb bits fit in a
+    quarter of the machine's memory (dscan keeps them all: nb/8 bytes each and
+    about 64 of housekeeping, for half the primes below the cap)."""
+    try:
+        ram = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    except (ValueError, OSError, AttributeError):
+        ram = 16 << 30
+    roots = 0.25 * ram / (nb // 8 + 64)
+    y = 40.0 * roots
+    for _ in range(6):                       # pi(y) / 2 = roots
+        y = 2.0 * roots * (math.log(y) - 1.0)
+    return int(min(y, 10 ** 11))
+
+
+def fb_cap(B, nb=0):
+    """Factor-base cap for a first scan to B, and for the scans of the tiered
+    rounds.  A square root mod p costs about 60 Cornacchia tests and a prime q
+    is in about B/(30 q) of the discriminants scanned, so roots of primes far
+    above B/1000 never pay for themselves; the count of solvable D is flat in
+    the cap (measured at 1030 bits, B = 2e10: a cap of B/4000 keeps 81% of what
+    B/400 finds, with a ninth of the roots).  The stopping-rule levels start
+    here and then raise the cap when that is the cheaper way to more orders
+    (RuleDriver.next_chunk)."""
+    return max(10 ** 6, min(fb_cap_max(nb) if nb else 10 ** 8, B // 1000))
+
+
+_DSCAN_SUMMARY = re.compile(r"dscan B=\d+ Bmin=\d+: fb ([\d.]+)s \(sieve ([\d.]+), legendre ([\d.]+), tonelli ([\d.]+); "
+                            r"(\d+) roots, (\d+) cached\), scan ([\d.]+)s, (\d+)/(\d+) solvable, (\d+) threads(?:, (\d+) tested)?")
+
+
+def roots_path(p):
+    """Per-modulus cache of the scan's factor-base square roots (dscan roots=)."""
+    d = os.path.join(REPO_DIR, "work", "rootcache")
+    os.makedirs(d, exist_ok=True)
+    return os.path.join(d, "roots_%s.bin" % hashlib.sha256(str(p).encode()).hexdigest()[:20])
+
+
+def run_cap(cmd, inp=None, reg=None):
+    """Run cmd to completion and return (exit code, stdout, stderr).  While it
+    runs the process sits in reg (a set), so another thread can kill it."""
+    pr = subprocess.Popen(cmd, stdin=subprocess.PIPE if inp is not None else subprocess.DEVNULL,
+                          stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=ECM_ENV)
+    if reg is not None:
+        reg.add(pr)
+    try:
+        out, err = pr.communicate(inp)
+    finally:
+        if reg is not None:
+            reg.discard(pr)
+    return pr.returncode, out, err
+
+
+def dscan_seed(B):
+    """dscan's unit of parallel work (sd=), in discriminants, or 0 for its default
+    of 2,000.  The scan first cuts its tree into such units, in one thread, and
+    keeps them all in memory with a residue modulo p each: their number goes like
+    B over the unit.  With the default that pass took 17 minutes and 226 GB at
+    B = 8e12 on a 1495-bit prime, while the scan's other threads waited, and the
+    next doubling would not have fitted in the machine's 384 GB.  Units that grow
+    with B from 4e11 keep the count near 5e7 (about 12 GB at that size); the
+    discriminants scanned are the same."""
+    return B // 200000000 if B >= 400000000000 else 0
+
+
+def run_dscan(p, B, Bmin, threads, maxfb=0, fbmin=0, roots=None, reg=None, info=None):
+    """Solvable (d, t, v) with Bmin <= d < B over the factor base capped at maxfb.
+    With fbmin set (the cap of the scans already done below Bmin) the d < Bmin
+    that need a prime in (fbmin, maxfb] are included too, so successive calls
+    with a growing cap tile [0, B) at the latest cap without repeats; with
+    Bmin = B the call only raises the cap.  info (a dict) receives dscan's own
+    account: seconds for the square roots and for the scan, roots computed,
+    discriminants tested."""
     cmd = [os.path.join(ECPP_DIR, "dscan"), "p=%d" % p, "B=%d" % B, "threads=%d" % threads, "dump"]
     if Bmin:
         cmd.append("Bmin=%d" % Bmin)
     if maxfb:
         cmd.append("maxfb=%d" % maxfb)
-    r = subprocess.run(cmd, capture_output=True, text=True, env=ECM_ENV)
-    if r.returncode != 0:
-        raise RuntimeError("dscan failed: %s" % r.stderr[:500])
+    if fbmin and Bmin:
+        cmd.append("fbmin=%d" % fbmin)
+    if roots:
+        cmd.append("roots=" + roots)
+    sd = dscan_seed(B)
+    if sd:
+        cmd.append("sd=%d" % sd)
+    rc, sout, serr = run_cap(cmd, None, reg)
+    if rc != 0:
+        raise RuntimeError("dscan failed: %s" % serr[:500])
+    m = _DSCAN_SUMMARY.search(serr)
+    if info is not None and m:
+        info.update(fb_s=float(m.group(1)), root_s=float(m.group(4)), roots_new=int(m.group(5)) - int(m.group(6)),
+                    scan_s=float(m.group(7)), solvable=int(m.group(8)), threads=int(m.group(10)),
+                    tested=int(m.group(11) or m.group(9)))
     out = []
-    for line in r.stdout.splitlines():
+    for line in sout.splitlines():
         w = line.split()
         if len(w) == 3:
             d, t, v = int(w[0]), int(w[1]), int(w[2])
@@ -276,8 +428,8 @@ def run_dscan(p, B, Bmin, threads, maxfb=0):
 
 
 def ensure_pcache(threads):
-    """Build the primorial cache on first use (fresh checkouts do not ship
-    the 775 MB file); smoothtest pbuild writes it once and load= reuses it."""
+    """Build the primorial cache on first use (about a second for y0 = 2^26);
+    smoothtest pbuild writes it once and load= reuses it."""
     if os.path.exists(PCACHE):
         return
     os.makedirs(os.path.dirname(PCACHE), exist_ok=True)
@@ -293,68 +445,279 @@ def ensure_pcache(threads):
     os.replace(tmp, PCACHE)   # atomic; racing builders publish identical content
 
 
-def smooth_strip(Ns, threads):
-    """Batched y0-smooth-part extraction: N -> (S, T) with N = S*T, S the
-    2^32-smooth part.  Uses the cached prime product via smoothtest parts."""
+def smooth_strip(Ns, threads, n2, reg=None):
+    """Batched strip: N -> (S, T, s, prp) with N = S*T, S the y0-smooth part
+    (cached prime product, smoothtest parts), s the n2-smooth part of S with
+    multiplicity, and prp the base-2 Fermat verdict on T.  The last two are
+    computed inside smoothtest, in parallel, so nothing per-candidate is left
+    for the interpreter."""
     if not Ns:
         return {}
     ensure_pcache(threads)
     inp = "\n".join(str(N) for N in Ns) + "\n"
-    r = subprocess.run([os.path.join(ECPP_DIR, "smoothtest"), "parts", "load=" + PCACHE,
-                        "threads=%d" % threads],
-                       input=inp, capture_output=True, text=True, env=ECM_ENV)
-    if r.returncode != 0:
-        raise RuntimeError("smoothtest failed: %s" % r.stderr[:500])
+    rc, sout, serr = run_cap([os.path.join(ECPP_DIR, "smoothtest"), "parts", "load=" + PCACHE,
+                              "threads=%d" % threads, "n2=%d" % n2, "prp=1"], inp, reg)
+    if rc != 0:
+        raise RuntimeError("smoothtest failed: %s" % serr[:500])
     res = {}
-    for line in r.stdout.splitlines():
+    for line in sout.splitlines():
         w = line.split()
-        if len(w) == 3:
-            N, S, T = int(w[0]), int(w[1]), int(w[2])
-            if S * T != N:
+        if len(w) == 5:
+            N, S, T, s2 = int(w[0]), int(w[1]), int(w[2]), int(w[3])
+            if S * T != N or S % s2 != 0:
                 raise RuntimeError("smoothtest self-inconsistency")
-            res[N] = (S, T)
+            res[N] = (S, T, s2, w[4] == "1")
     for N in Ns:
         if N not in res:
             raise RuntimeError("smoothtest missed an input")
     return res
 
 
-def n2_parts(S_list, P2):
-    """For each y0-smooth S, its n2-smooth part (with multiplicity), via one
-    remainder tree against the primorial P2 = prod(primes <= n2)."""
-    reduced = remainder_tree(P2, [S if S > 1 else 2 for S in S_list])
-    out = []
-    for S, r in zip(S_list, reduced):
-        if S <= 1:
-            out.append(1)
+_ECM_INPUT = re.compile(r"^Input number is (\d+)")
+_ECM_FACTOR = re.compile(r"^Found (?:prime|composite) factor of +\d+ digits: (\d+)")
+_ECM_COF = re.compile(r"^(Prime|Composite) cofactor (\d+) has")
+
+
+def parse_ecm(out, nums):
+    """gmp-ecm's normal (not -q) report for a list of inputs -> {n: (factors,
+    cofactor, cofactor_is_prp)} for the inputs it split.  The cofactor verdict is
+    gmp-ecm's own probable-prime test; a split is kept only if the factors and
+    the cofactor multiply back to the input."""
+    want = set(nums)
+    res = {}
+    cur, facs, cof, cprp = None, [], None, False
+
+    def flush():
+        if cur in want and facs and cof is not None and math.prod(facs) * cof == cur:
+            res[cur] = (facs, cof, cprp)
+    for line in out.splitlines():
+        m = _ECM_INPUT.match(line)
+        if m:
+            flush()
+            cur, facs, cof, cprp = int(m.group(1)), [], None, False
             continue
-        s, rest = 1, S
-        g = gcd(r % rest if rest > 1 else 1, rest)
-        while g > 1:
-            s *= g
-            rest //= g
-            g = gcd(g, rest)
-        out.append(s)
-    return out
+        m = _ECM_FACTOR.match(line)
+        if m:
+            facs.append(int(m.group(1)))
+            continue
+        m = _ECM_COF.match(line)
+        if m:
+            cof, cprp = int(m.group(2)), m.group(1) == "Prime"
+    flush()
+    return res
+
+
+_YAFU_EXPR = re.compile(r"^(?:>> )?=== Starting work on batchfile expression #(\d+) ===")
+_YAFU_PART = re.compile(r"^(P|PRP|C)\d+ = (\d+)\s*$")
+
+
+_YAFU_PROG = re.compile(r"^ecm: (\d+)/(\d+) curves on ")
+
+
+class EcmResult(dict):
+    """{n: (factors, cofactor, cofactor_is_prp)} for the inputs that were split.
+    ran: {n: curves run} for the inputs on which the engine stopped before the
+    curves asked for were done."""
+
+    def __init__(self):
+        dict.__init__(self)
+        self.ran = {}
+
+
+def parse_yafu(out, nums):
+    """yafu's report for the expressions ecm(n, curves), one per input, in the
+    form parse_ecm returns: {n: (factors, cofactor, cofactor_is_prp)} for the
+    inputs it split.  yafu lists the parts it ended with (P/PRP = probable
+    prime, C = composite); the largest is taken as the cofactor, and a split is
+    kept only if the parts multiply back to the input.
+
+    yafu stops working on an input after the batch of 8 curves in which a factor
+    appears, whatever is left of the curves asked for and even if the cofactor
+    is composite (gmp-ecm goes on with the cofactor).  Its progress lines
+    "ecm: K/TOTAL curves" give the curves it ran; they are returned in .ran for
+    the inputs that stopped short, so the caller can credit the right number."""
+    res = EcmResult()
+    cur, parts, prog = None, [], None
+
+    def flush():
+        if cur is not None and len(parts) >= 2 and math.prod(v for (_, v) in parts) == cur:
+            k = max(range(len(parts)), key=lambda i: parts[i][1])
+            res[cur] = ([v for i, (_, v) in enumerate(parts) if i != k], parts[k][1], parts[k][0] != "C")
+            if prog is not None and prog[0] < prog[1]:
+                res.ran[cur] = prog[0]
+    for line in out.replace("\r", "\n").splitlines():
+        m = _YAFU_EXPR.match(line)
+        if m:
+            flush()
+            k = int(m.group(1)) - 1
+            cur, parts, prog = (nums[k] if 0 <= k < len(nums) else None), [], None
+            continue
+        m = _YAFU_PART.match(line)
+        if m:
+            parts.append((m.group(1), int(m.group(2))))
+            continue
+        m = _YAFU_PROG.match(line)
+        if m:
+            prog = (int(m.group(1)), int(m.group(2)))
+    flush()
+    return res
+
+
+def yafu_cwd():
+    global _YAFU_CWD
+    if _YAFU_CWD is None:
+        import atexit
+        import tempfile
+        _YAFU_CWD = tempfile.mkdtemp(prefix="shortecpp_yafu_")
+        atexit.register(shutil.rmtree, _YAFU_CWD, True)
+    return _YAFU_CWD
+
+
+_ENGINE_OK = None
+
+
+def ecm_engine():
+    """The ECM program of the stopping-rule levels: "yafu" or "gmp".  yafu is
+    used when a binary is given and passes a self-test (a planted 31-bit factor
+    of a 450-bit number must come back, with the cofactor called prime); a
+    binary that fails it -- wrong build for this CPU, changed output format --
+    is refused with engine=yafu and replaced by gmp-ecm with engine=auto."""
+    global YAFU_BIN, _ENGINE_OK
+    if ENGINE == "gmp":
+        return "gmp"
+    if _ENGINE_OK is not None:
+        return _ENGINE_OK
+    if not YAFU_BIN and ENGINE == "yafu":
+        YAFU_BIN = shutil.which("yafu") or ""
+    if YAFU_BIN:
+        YAFU_BIN = os.path.abspath(YAFU_BIN)         # yafu is started in a scratch directory (yafu_cwd)
+    why = "no yafu binary (yafu=<path> or SHORTECPP_YAFU)"
+    if YAFU_BIN and os.access(YAFU_BIN, os.X_OK):
+        f, g = 1191999629, (1 << 419) + 299          # both prime
+        try:
+            res = EcmRunner("yafu").run([f * g], 11000, 24, 120)
+        except OSError as e:
+            res, why = None, "yafu did not run: %r" % (e,)
+        if res and res.get(f * g) == ([f], g, True):
+            _ENGINE_OK = "yafu"
+            return _ENGINE_OK
+        if res is not None:
+            why = "yafu failed its self-test (%s)" % YAFU_BIN
+    if ENGINE == "yafu":
+        sys.exit("engine=yafu: " + why)
+    if YAFU_BIN:
+        log("  %s; using gmp-ecm" % why)
+    _ENGINE_OK = "gmp"
+    return _ENGINE_OK
+
+
+class EcmRunner:
+    """Runs ECM processes for one round and can stop them all at once.
+
+    Each call handles a list of numbers in one process (gmp-ecm takes one input
+    per line, yafu one expression per line), which keeps the launch rate down at
+    the shallow tiers where a tail needs a fraction of a second.  abort() kills
+    every running process and makes pending calls return None, so a round ends
+    as soon as a winner is in hand instead of when its slowest tail finishes.
+
+    engine "yafu": yafu's AVX-512 ECM, 8 curves at a time (curves is rounded up
+    to a multiple of 8 by yafu), FFT stage 2 with a B2 that depends on B1 only
+    (-avxecm_stg2 1), APR-CL proofs of prime cofactors switched off (-aprcl_p 1:
+    two seconds each at 1000 bits, and the prover tests them itself).  The curves
+    are seeded from the clock, the process id and the system's random source, so
+    processes running at once use different curves.  P-1 always goes to gmp-ecm."""
+
+    def __init__(self, engine="gmp"):
+        self.lock = threading.Lock()
+        self.procs = set()
+        self.stopped = False
+        self.engine = engine
+
+    def run(self, nums, b1, curves, timeout, method="ecm"):
+        if self.stopped:
+            return None
+        if self.engine == "yafu" and method == "ecm":
+            return self._run_yafu(nums, b1, curves, timeout)
+        cmd = [ECM_BIN] + (["-pm1"] if method == "pm1" else []) + ["-c", str(curves), str(b1)]
+        out = self._communicate(cmd, "\n".join(str(n) for n in nums) + "\n", timeout, None)
+        return None if out is None else parse_ecm(out, nums)
+
+    def _run_yafu(self, nums, b1, curves, timeout):
+        """All `curves` curves on every number.  yafu drops an input after the
+        batch in which a factor appears, so the curves it left are run on the
+        composite cofactor in a further process, until none are left (gmp-ecm
+        does the same within one call)."""
+        cmd = [os.path.abspath(YAFU_BIN), "-B1ecm", str(b1), "-threads", "1", "-avxecm_stg2", "1", "-aprcl_p", "1",
+               "-logfile", os.devnull, "-session", os.devnull]
+        res = {}
+        todo = [(n, n, curves) for n in nums]         # (input, what is left of it, curves left)
+        t_end = time.time() + timeout
+        while todo:
+            out = self._communicate(cmd, "".join("ecm(%d,%d)\n" % (cur, left) for (_, cur, left) in todo),
+                                    max(1.0, t_end - time.time()), yafu_cwd())
+            if out is None:
+                return None
+            r = parse_yafu(out, [cur for (_, cur, _) in todo])
+            nxt = []
+            for (n, cur, left) in todo:
+                if cur not in r:
+                    continue                          # all its curves ran and found nothing
+                found, cof, cprp = r[cur]
+                if n in res:                          # the same input twice in one call
+                    found = res[n][0] + [f for f in found if f not in res[n][0]]
+                    if res[n][1] < cof:
+                        cof, cprp = res[n][1], res[n][2]
+                res[n] = (found, cof, cprp)
+                left -= r.ran.get(cur, left)
+                if left > 0 and cof > 1 and not cprp:
+                    nxt.append((n, cof, left))
+            todo = nxt
+            if time.time() >= t_end:
+                break
+        return res
+
+    def _communicate(self, cmd, inp, timeout, cwd):
+        """Output of one process, or None if the round was stopped."""
+        p = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                             stderr=subprocess.DEVNULL, text=True, env=ECM_ENV, cwd=cwd)
+        with self.lock:
+            if self.stopped:
+                p.kill()
+            else:
+                self.procs.add(p)
+        try:
+            out, _ = p.communicate(inp, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            p.kill()
+            out, _ = p.communicate()          # keep whatever it had finished
+        finally:
+            with self.lock:
+                self.procs.discard(p)
+        return None if self.stopped else out
+
+    def abort(self):
+        with self.lock:
+            self.stopped = True
+            for p in self.procs:
+                p.kill()
 
 
 def ecm_peel(n, b1, curves, timeout, method="ecm"):
-    """One gmp-ecm run (ECM, or P-1 with method="pm1"); returns
+    """One gmp-ecm run (ECM, or P-1 with method="pm1") on one number; returns
     (found_factors, cofactor)."""
-    try:
-        r = subprocess.run([ECM_BIN, "-q"] + (["-pm1"] if method == "pm1" else [])
-                           + ["-c", str(curves), str(b1)],
-                           input=str(n) + "\n", capture_output=True, text=True,
-                           timeout=timeout, env=ECM_ENV)
-    except subprocess.TimeoutExpired:
-        return [], n
-    try:
-        toks = [int(x) for x in r.stdout.split()]
-    except ValueError:
-        return [], n
-    if toks and math.prod(toks) == n:
-        return toks[:-1], toks[-1]
+    res = EcmRunner().run([n], b1, curves, timeout, method) or {}
+    if n in res:
+        return res[n][0], res[n][1]
     return [], n
+
+
+def ecm_chunk(b1, curves, nbits, method, ntails, threads):
+    """Tails per gmp-ecm process: enough that a process runs for about 1.5 s
+    (a curve costs about 1e-5*B1 s at 1030 bits, P-1 an eighth of that), but
+    never so many that fewer than `threads` processes are running."""
+    per_tail = 1e-5 * b1 * curves * (nbits / 1030.0) ** 2 / (8 if method == "pm1" else 1)
+    k = max(1, min(32, int(1.5 / max(per_tail, 1e-4))))
+    return max(1, min(k, ntails // max(1, threads)))
 
 
 # ------------------------------------------------------------ window matching
@@ -421,12 +784,49 @@ def accept_q(cand, q, p, L, n2, small_primes):
 
 
 # ------------------------------------------------------------ winner -> level
-def get_j(p, d, ells=None, jobs=0, attempts=3):
+_CM_UNBUILDABLE = set()          # discriminants whose class polynomial cannot be computed on this installation
+
+# What a build will cost, before it is run.  It is root-finding at the larger
+# part x of the most balanced factorisation of the class number (cm_method's
+# decomposition splits there): 0.0145 x^0.93 (bits/768)^2.74 seconds on a
+# 192-core Zen 5 box, within a factor 1.25 over 31 builds of 500 to 1064 bits
+# (reports/shortecpp-improve/data/build_fit.py).  _BUILD_SCALE carries the
+# ratio seen in this run's own builds to the next estimates.
+BUILD_EST = {}                   # |D| -> estimated seconds (try_build takes the cheapest winner first)
+_BUILD_SCALE = [1.0]
+_LAST_ROOT = {}                  # |D| -> root-finding seconds cm_method reported
+
+
+def build_estimate(ds, nb):
+    """Estimated build seconds for the discriminants -d, d in ds, at a level of
+    nb bits ({d: seconds}; class numbers from PARI, a fraction of a millisecond
+    each).  A discriminant PARI did not answer for is left out."""
+    ds = [d for d in dict.fromkeys(ds)]
+    if not ds:
+        return {}
+    script = "bal(h)=my(v=divisors(h));h/v[(#v+1)\\2];\n" + "".join("print(%d,\" \",bal(qfbclassno(-%d)));\n" % (d, d) for d in ds)
+    out = {}
+    try:
+        for line in gp(script, timeout=300).splitlines():
+            w = line.split()
+            if len(w) == 2:
+                out[int(w[0])] = _BUILD_SCALE[0] * (0.0145 * int(w[1]) ** 0.93 + 0.5) * (nb / 768.0) ** 2.74
+    except (RuntimeError, ValueError, subprocess.TimeoutExpired):
+        pass
+    return out
+
+
+def get_j(p, d, ells=None, jobs=0, attempts=3, plain=False):
     """j-invariant of a curve with CM by -d over F_p (cm_method, polclass
     fallback).  The root-find's equal-degree splitting is randomized and an
     attempt can come back rootless (exit 0, no j line), so retry a few times
-    before giving up on the discriminant."""
+    before giving up on the discriminant.  plain=True makes cm_method use the
+    class polynomial itself instead of its class-group decomposition."""
+    if d in _CM_UNBUILDABLE:
+        return None
     cmd = [os.path.join(ECPP_DIR, "cm_method"), "D=-%d" % d, "p=%d" % p]
+    if plain:
+        cmd.append("tower=0")
     if ells:
         cmd.append("ells=" + ",".join(str(e) for e in ells))
     if jobs > 1 and d >= 20000000:
@@ -434,16 +834,39 @@ def get_j(p, d, ells=None, jobs=0, attempts=3):
     for att in range(attempts):
         # distinct seed per attempt: cm_method's root-find is deterministically
         # seeded, so an identical rerun would repeat a rootless result exactly
-        r = subprocess.run(cmd + ["seed=%d" % (att + 1)],
-                           capture_output=True, text=True, env=ECM_ENV, timeout=3600)
+        # an hour, or several times the estimate where there is one (root-finding
+        # at a prime degree of 10^5 takes an hour at 1300 bits)
+        tmo = max(3600, int(6 * BUILD_EST.get(d, 0.0)) + 1800)
+        try:
+            r = subprocess.run(cmd + ["seed=%d" % (att + 1)],
+                               capture_output=True, text=True, env=ECM_ENV, timeout=tmo)
+        except subprocess.TimeoutExpired:
+            log("    cm_method D=-%d: no answer after %d s, giving this discriminant up" % (d, tmo))
+            _CM_UNBUILDABLE.add(d)
+            return None
         if r.returncode == 0:
             for line in r.stdout.splitlines():
                 w = line.split()
                 if len(w) == 2 and w[0] == "j":
+                    for ln in r.stderr.splitlines():      # degrees, timings, and whether a retry was needed
+                        if ln.startswith("[H_D"):
+                            log("    cm_method D=-%d: %s" % (d, ln.strip("[] ")))
+                            m = re.search(r"roots?: ([\d.]+)s(?: \+ ([\d.]+)s)?", ln)
+                            if m:
+                                _LAST_ROOT[d] = float(m.group(1)) + float(m.group(2) or 0)
                     return int(w[1])
         log("    cm_method D=-%d attempt %d/%d: exit %d, no j; tail: %s" % (
             d, att + 1, attempts, r.returncode,
             (r.stderr or r.stdout)[-260:].replace("\n", " | ")))
+        m = re.search(r"Unable to locate file (\S+)", r.stderr or "")
+        if m:
+            # nothing random about this one: the class group of D needs an isogeny
+            # degree whose modular polynomial is not installed
+            _CM_UNBUILDABLE.add(d)
+            log("    D=-%d cannot be built here: %s is missing (the repository carries a subset of the "
+                "modular polynomials, see INSTALL; CLASSPOLY_PHI_DIR should hold the full set)"
+                % (d, os.path.basename(m.group(1))))
+            return None
     if ells is None and d <= 3 * 10 ** 6:
         out = gp("r=polrootsmod(polclass(-%d),%d);\n"
                  "if(#r==0,print(\"NOROOT\"),print(lift(r[1])));\n" % (d, p), timeout=1800)
@@ -451,6 +874,18 @@ def get_j(p, d, ells=None, jobs=0, attempts=3):
         if w and w[-1] != "NOROOT":
             return int(w[-1])
     return None
+
+
+def j_order_ok(p, j, N):
+    """Whether the curves with j-invariant j over F_p have N or 2p+2-N points:
+    a random point of y^2 = x^3 + 3kx + 2k, k = j/(1728-j), is killed by one of
+    the two.  (False for a wrong j, up to a negligible chance.)"""
+    if j % p in (0, 1728 % p):
+        return True
+    out = gp("p=%d;\nk=Mod(%d,p)/(1728-Mod(%d,p));\nE=ellinit([3*k,2*k]);\nP=random(E);\n"
+             "print(ellmul(E,P,%d)==[0]||ellmul(E,P,%d)==[0]);\n" % (p, j, j, N, 2 * p + 2 - N))
+    w = out.split()
+    return bool(w) and w[-1] == "1"
 
 
 def mont_As(j, p):
@@ -541,11 +976,14 @@ def build_level(p, cand, q, hits, rng, jobs=0):
     volcano_first = (p % 4 == 3 and cand.N % 8 == 4 and cand.v % 2 == 0)
     tried_ells = volcano_first
     first_ells = sorted(set(need) | {2}) if volcano_first else None
+    ells = first_ells                   # what the current j was computed with
     j = (get_j(p, cand.d, ells=first_ells, jobs=jobs) if volcano_first
          else get_j(p, cand.d, jobs=jobs))
     if volcano_first and j is None:
         tried_ells = False              # volcano failed: fall back to direct
+        ells = None
         j = get_j(p, cand.d, jobs=jobs)
+    tried_plain = False
     while True:
         if j is not None:
             As = mont_As(j, p)
@@ -557,6 +995,12 @@ def build_level(p, cand, q, hits, rng, jobs=0):
                 chi_target = side  # +1: E_A itself has order N; -1: its twist does
                 for o, m in hits[:12]:
                     mdiv = [pr for pr in sorted(cand.sfac) if m % pr == 0]
+                    # An odd prime ell | gcd(m, v) divides pi - 1 in the maximal
+                    # order (ell | N and ell | v force ell | t - 2), so the curve
+                    # from H_D has full ell-torsion and no cofactor multiple has
+                    # exact order o: such a hit can only work from the floor.
+                    if not tried_ells and any(pr > 2 and cand.v % pr == 0 for pr in mdiv):
+                        continue
                     odiv = mdiv + [q]
                     x = find_point(p, A, cand.N, o, odiv, chi_target, rng)
                     if x is not None:
@@ -573,8 +1017,21 @@ def build_level(p, cand, q, hits, rng, jobs=0):
             if need:
                 log("    D=-%d: retrying via volcano floors ells=%s"
                     % (cand.d, ",".join(map(str, need))))
+                ells = need
                 j = get_j(p, cand.d, ells=need, jobs=jobs)
                 continue
+        # Still nothing.  cm_method's default route is the class-group
+        # decomposition, whose height bound is heuristic: a bound that was too
+        # small and slipped past cm_method's own checks gives a j whose curves
+        # have the wrong order.  That is cheap to see (a random point is killed
+        # by neither N nor the twist's order), and a winner is too dear to drop
+        # on it, so in that case compute j once more from the plain polynomial.
+        if j is not None and not tried_plain and not j_order_ok(p, j, cand.N):
+            tried_plain = True
+            log("    D=-%d: the curves with the computed j do not have order N; "
+                "recomputing j from the plain class polynomial" % cand.d)
+            j = get_j(p, cand.d, ells=ells, jobs=jobs, plain=True)
+            continue
         return None
 
 
@@ -629,6 +1086,10 @@ def ladder_rounds(nbits):
                  ("pm1", 500000, [1], 0),
                  ("ecm", 50000, [14, 14], 0), ("ecm", 250000, [10] * 4, 0),
                  ("ecm", 1000000, [16] * 4, 0)]
+        # a small level is cheaper to widen than to work deep: the cofactor to
+        # clear has about nbits/2 bits
+        top = 11000 if nbits < 230 else 50000 if nbits < 320 else 250000 if nbits < 410 else 1000000
+        tiers = [t for t in tiers if t[1] <= top or (t[0] == "pm1" and nbits >= 320)]
     if os.environ.get("SHORTECPP_PM1", "1") == "0":
         tiers = [t for t in tiers if t[0] != "pm1"]
     out = []
@@ -651,7 +1112,7 @@ def b_schedule(nbits, B0=None, Bmax=None):
             1 if nbits < 700 else 2 if nbits < 800 else 3 if nbits < 950
             else 4 if nbits < 1150 else 5]
     if Bmax is None:
-        Bmax = 20000000000
+        Bmax = 200000000000
     return B0, Bmax
 
 
@@ -660,10 +1121,16 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
     rt = isqrt(p)
     L = rt + 1 + isqrt(4 * rt)
     rng = random.Random(seed * 1000003 + nb)
-    B0, Bmax = b_schedule(nb, B0, Bmax)
-    if Bmax > 3 * 10 ** 10 and not maxfb:
-        maxfb = 10 ** 8          # keep the Tonelli/memory wall bounded
-        log("  level %d bits: auto maxfb=%d for Bmax=%g" % (nb, maxfb, Bmax))
+    Bmax_given = Bmax
+    y0b, B0s, threads = level_params(nb, threads, V2_BCAP if V2_BCAP else n2)
+    set_strip_bound(y0b)
+    B0, Bmax = b_schedule(nb, B0 if B0 else B0s, Bmax)
+    # The factor base is capped from the first scan (maxfb= fixes the cap,
+    # otherwise it follows B) and its square roots are kept on disk for the
+    # level, so a widening pays only for the primes the larger cap adds.
+    fixed_cap = maxfb
+    roots = roots_path(p)
+    cap_prev = 0
     rounds = ladder_rounds(nb)
     t0 = time.time()
     pool = []
@@ -675,6 +1142,8 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
 
     def note_prime_factor(c, f, fresh=True):
         """A newly known prime factor f (peeled or terminal tail)."""
+        if f * c.s <= L:
+            return                        # no m | s lifts o = m*f above L
         hits = accept_q(c, f, p, L, n2, small_primes)
         if hits:
             key = (c.d, c.N, f)
@@ -709,30 +1178,45 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
         if c.tail == 1 or c.s * c.tail <= L:
             c.dead = True
 
-    def classify_tails(cands):
-        """Fermat-screen the given candidates' tails in parallel; primes are
-        dead ends unless they are an acceptable q."""
-        todo = [c for c in cands if not c.dead and not c.prp_checked and c.tail > 1]
-        if not todo:
+    def settle_tail(c, prp):
+        """Record the probable-prime verdict on c's current tail (from smoothtest
+        or gmp-ecm); a prime tail is a dead end unless it is an acceptable q.
+        Only a tail below sqrt p can be a q, so only those get the full
+        Miller-Rabin test: 24 rounds in the interpreter on every prime tail was
+        what the old classify phase spent its time on (about 1,500 prime tails
+        per 27,000 orders, 60 ms each at 1030 bits).  A probable prime above
+        sqrt p is dropped on the Fermat verdict alone; a base-2 pseudoprime
+        there costs one dead branch."""
+        c.prp_checked = True
+        if c.dead or c.tail <= 1 or not prp:
             return
-        flags = parallel_map(fermat2, [c.tail for c in todo], threads)
-        for c, f in zip(todo, flags):
-            c.prp_checked = True
-            if f and is_prp(c.tail, 24):
-                c.dead = True
-                note_prime_factor(c, c.tail)
+        if c.tail * c.tail >= p:
+            c.dead = True
+        elif is_prp(c.tail, 24):
+            c.dead = True
+            note_prime_factor(c, c.tail)
 
     def try_build():
-        winners.sort(key=lambda w: w[1].d)
+        winners.sort(key=lambda w: (BUILD_EST.get(w[1].d, 0.0), w[1].d))
         while winners:
             o, c, q, hits = winners.pop(0)
             t1 = time.time()
             lev = build_level(p, c, q, hits, rng, jobs=threads)
+            est, act = BUILD_EST.get(c.d), _LAST_ROOT.get(c.d)
+            if est and act and est > 2.0 and act > 2.0:
+                # this machine against the fit, carried at half weight
+                _BUILD_SCALE[0] = min(8.0, max(0.25, _BUILD_SCALE[0] * (act / est) ** 0.5))
             if lev:
                 A, x, o = lev
                 log("  level %d bits: built D=-%d h~%d in %.1fs; o has %d bits, q %d bits (total %.1fs, %d cands, %.0f ecm-s)"
                     % (nb, c.d, isqrt(c.d), time.time() - t1, o.bit_length(), q.bit_length(),
                        time.time() - t0, stats.get("cands", 0), stats.get("ecm_s", 0.0)))
+                for done_with in (roots, CKPT if (CKPT and nb >= CKPT_MIN_BITS) else None):
+                    try:                      # the level is done with its scan and its search
+                        if done_with:
+                            os.remove(done_with)
+                    except OSError:
+                        pass
                 return (A, x, o, q, {"D": -c.d, "t": c.t, "v": c.v, "N": str(c.N),
                                      "m": str(o // q), "bits": nb,
                                      "seconds": round(time.time() - t0, 1)})
@@ -759,28 +1243,30 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
         if lev:
             return lev
 
+    if use_rule(nb):
+        return run_rule_level(p, nb, L, n2, small_primes, threads, stats, B0, Bmax_given, fixed_cap, roots,
+                              winners, process_result, settle_tail, try_build)
+
     while True:
         # ---- widen the candidate pool ----
         if Bmin < B:
             tds = time.time()
-            recs = run_dscan(p, B, Bmin, threads, maxfb)
+            fbc = fixed_cap if fixed_cap else fb_cap(B)
+            recs = run_dscan(p, B, Bmin, threads, fbc, cap_prev if fbc > cap_prev else 0, roots)
+            cap_prev = max(fbc, cap_prev)
             fresh = []
             for (d, t, v) in recs:
                 for N in (p + 1 - t, p + 1 + t):
                     if N % 4 == 0:          # Montgomery model needs 4 | #E
                         fresh.append(Cand(d, t, v, N))
             tstrip = time.time()
-            strip = smooth_strip(sorted(set(c.N for c in fresh)), threads)
-            S_list = [strip[c.N][0] for c in fresh]
-            s_list = n2_parts(S_list, P2)
-            for c, S, s in zip(fresh, S_list, s_list):
-                c.s = s
-                c.mid = S // s
-                c.tail = strip[c.N][1]
+            strip = smooth_strip(sorted(set(c.N for c in fresh)), threads, n2)
+            for c in fresh:
+                S, c.tail, c.s, prp = strip[c.N]
+                c.mid = S // c.s
                 if c.tail == 1 or c.s * c.tail <= L:
                     c.dead = True
-            tcls = time.time()
-            classify_tails(fresh)
+                settle_tail(c, prp)
             live_new = [c for c in fresh if not c.dead]
             pool += live_new
             if live_new:
@@ -790,17 +1276,19 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
                               for c in live_new)
                 fresh_med = idxs[len(idxs) // 2]
             stats["cands"] = stats.get("cands", 0) + len(fresh)
-            log("  level %d bits: dscan[%g,%g) +%d D -> +%d orders (%d live) in %.1fs"
-                " (strip %.1fs, classify %.1fs), %d winners"
-                % (nb, Bmin, B, len(recs), len(fresh), len(live_new),
-                   time.time() - tds, tcls - tstrip, time.time() - tcls, len(winners)))
+            log("  level %d bits: dscan[%g,%g) maxfb=%g +%d D -> +%d orders (%d live) in %.1fs"
+                " (strip %.1fs), %d winners"
+                % (nb, Bmin, B, fbc, len(recs), len(fresh), len(live_new),
+                   time.time() - tds, time.time() - tstrip, len(winners)))
             Bmin = B
             if winners:
                 lev = try_build()
                 if lev:
                     return lev
         # ---- ECM ladder over the pool ----
-        for (method, b1, curves, cap, ekey) in rounds:
+        ri = 0
+        while ri < len(rounds):
+            (method, b1, curves, cap, ekey) = rounds[ri]
             if winners:
                 break
             # breadth-first: before the deepest tiers, prefer widening the
@@ -855,47 +1343,591 @@ def prove_level_cm(p, n2, small_primes, P2, threads, stats, seed=1, B0=None, Bma
                     r += 1
                 live = live + pads
             if not live:
+                ri += 1
                 continue
+            # Results are handled as each gmp-ecm process finishes, and the
+            # round stops at the first winner: the tails still running are
+            # killed and keep their old effort key, so if the build fails the
+            # same tier is simply resumed for them.
             tr = time.time()
             tmo = ecm_timeout(b1, curves, nb)
+            k = ecm_chunk(b1, curves, nb, method, len(live), threads)
+            units = [[(c, c.tail) for c in live[i:i + k]] for i in range(0, len(live), k)]
+            runner = EcmRunner()
+            nsplit = ndone = 0
             with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as ex:
-                res = list(ex.map(lambda c: ecm_peel(c.tail, b1, curves, tmo, method), live))
-            nsplit = 0
-            changed = []
-            for c, (found, cof) in zip(live, res):
-                c.effort = ekey
-                c.tcurves += curves
-                if found:
-                    nsplit += 1
-                    process_result(c, found, cof)
-                    if c not in changed:
-                        changed.append(c)
-            classify_tails(changed)
+                futs = {ex.submit(runner.run, [t for (_, t) in u], b1, curves, tmo * len(u), method): u
+                        for u in units}
+                for fut in concurrent.futures.as_completed(futs):
+                    res = None if fut.cancelled() else fut.result()
+                    if res is None:
+                        continue                    # stopped before it ran or finished
+                    for (c, t) in futs[fut]:
+                        ndone += 1
+                        c.effort = ekey
+                        c.tcurves += curves
+                        if t not in res:
+                            continue
+                        found, cof, cprp = res[t]
+                        nsplit += 1
+                        process_result(c, found, cof)
+                        if c.tail == cof:           # gmp-ecm already tested this cofactor
+                            settle_tail(c, cprp)
+                        elif not c.dead and c.tail > 1:   # a concurrent duplicate got there first
+                            settle_tail(c, pow(2, c.tail - 1, c.tail) == 1)
+                    if winners and not runner.stopped:
+                        runner.abort()
+                        for g in futs:
+                            g.cancel()
             dt = time.time() - tr
             stats["ecm_s"] = stats.get("ecm_s", 0.0) + dt * threads
-            log("    %s B1=%d c=%d on %d tails: %d split, %d winners, %.1fs"
-                % (method, b1, curves, len(live), nsplit, len(winners), dt))
+            log("    %s B1=%d c=%d on %d tails: %d split, %d winners, %.1fs%s"
+                % (method, b1, curves, len(live), nsplit, len(winners), dt,
+                   " (stopped at the first winner, %d tails done)" % ndone if runner.stopped else ""))
             if winners:
                 lev = try_build()
                 if lev:
                     return lev
+                if runner.stopped:
+                    continue                        # build failed: finish this tier
+            ri += 1
         if winners:
             lev = try_build()
             if lev:
                 return lev
         pool = [c for c in pool if not c.dead]
         if B >= Bmax:
-            if not maxfb:
-                # engage the bounded factor base and keep going: Tonelli/memory
-                # stay flat while the discriminant supply extends 10x
-                maxfb = 10 ** 8
-                Bmax = Bmax * 10
-                log("  level %d bits: engaging maxfb=%d, extending Bmax to %g"
-                    % (nb, maxfb, Bmax))
-            else:
-                raise RuntimeError("level %d bits: exhausted dscan budget B=%d" % (nb, B))
+            raise RuntimeError("level %d bits: exhausted dscan budget B=%d" % (nb, B))
         Bmin, B = B, min(B * 6, Bmax)
         log("  level %d bits: widening to B=%g (%d live)" % (nb, B, len(pool)))
+
+
+# ------------------------------------------------------------ the stopping-rule scheduler
+_HAVE_RULE = None
+_MACHINE = {}
+
+
+def use_rule(nb):
+    """Whether this level is run by shortsched (see the module docstring)."""
+    global _HAVE_RULE
+    if SCHED == "old" or nb < POLICY_MIN_BITS:
+        return False
+    if _HAVE_RULE is None:
+        try:
+            import numpy                      # noqa: F401
+            import shortsim                   # noqa: F401
+            import shortsched                 # noqa: F401
+            _HAVE_RULE = True
+        except ImportError as e:
+            if SCHED == "rule":
+                raise
+            log("stopping-rule scheduler unavailable (%s); using the tiered rounds" % e)
+            _HAVE_RULE = False
+    return _HAVE_RULE
+
+
+def ecm_machine_factor(nb, threads, engine="gmp"):
+    """Seconds per ECM curve here, with `threads` processes at once, relative to
+    the engine's table in shortsim.ENGINES (a c8a.48xlarge with every core
+    busy).  Measured once per run: two curves (yafu: one batch of 8) at
+    B1 = 50000 on a number of nb bits with no factor in reach, one process per
+    thread."""
+    if engine in _MACHINE:
+        return _MACHINE[engine]
+    if nb < 400:
+        # the benchmark would cost more than a small level; the table's costs
+        # are right within a factor 1.4 on the machines seen so far
+        return 1.0
+    import shortsim as ss
+    prof = ss.ENGINES[engine]
+    rng = random.Random(12345)
+
+    def prime(bits):
+        while True:
+            n = rng.getrandbits(bits) | (1 << (bits - 1)) | 1
+            if is_prp(n, 8):
+                return n
+    N = prime(nb // 2) * prime(nb - nb // 2)
+    b1, curves = 50000, 2 * prof["quantum"]
+
+    def one(_):
+        t = time.time()
+        EcmRunner(engine).run([N], b1, curves, 600)
+        return time.time() - t
+    with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as ex:
+        ts = sorted(ex.map(one, range(threads)))
+    per = ts[len(ts) // 2] / curves
+    f = per / ss.make_cost(prof["sec"], prof["exponent"], prof["step"], scalar=True)(b1, nb)
+    _MACHINE[engine] = f = min(20.0, max(0.2, f))
+    log("  %s here: %.4f s per curve at B1=%d on %d bits with %d processes -> cost factor %.2f"
+        % ("yafu" if engine == "yafu" else "gmp-ecm", per, b1, nb, threads, f))
+    return f
+
+
+def ckpt_pack(c, p):
+    """A live candidate as the checkpoint keeps it: the order is p + 1 -+ t and
+    the tail is the order over cof, so one large integer is stored, not four."""
+    return (c.d, c.t, 1 if c.N == p + 1 - c.t else -1, c.N // c.tail, c.s, c.mid, c.splits,
+            c.cls, c.st, c.done, c.prp_checked)
+
+
+def ckpt_unpack(rec, p):
+    from shortsched import sched_init
+    d, t, sgn, cof, s, mid, splits, cls, st, done, prp = rec
+    N = p + 1 - sgn * t
+    v = isqrt((4 * p - t * t) // d)
+    if v * v * d + t * t != 4 * p or N % cof:
+        raise ValueError("checkpoint record does not belong to this prime")
+    c = Cand(d, t, v, N)
+    c.s, c.mid, c.tail, c.splits, c.prp_checked = s, mid, N // cof, splits, prp
+    sched_init(c, cls, int(round(math.log2(c.tail))))
+    c.st, c.sent, c.done = st, done, done
+    return c
+
+
+class RuleDriver:
+    """shortsched's driver for the prover: dscan and smoothtest supply the orders,
+    gmp-ecm runs the units.  Everything that touches candidate state happens in
+    the thread that runs level_loop; worker threads only run processes and post
+    what came back."""
+
+    def __init__(self, p, nb, L, threads, stats, B0, Bmax, fixed_cap, roots, nsm, small_primes,
+                 winners, process_result, settle_tail, try_build, grow=2.0, engine="gmp"):
+        self.p, self.nb, self.L, self.threads, self.stats = p, nb, L, threads, stats
+        self.engine = engine
+        import shortsched as sd
+        import shortsim as ss
+        # the ladder run_rule_level hands to level_loop: a candidate's place in a
+        # checkpoint is a place on this ladder
+        self.tiers = [tuple(t) for t in sd.default_tiers(engine, nb)]
+        self.quantum = ss.ENGINES[engine]["quantum"]
+        self.small_primes = small_primes
+        self.ecm_seen = 0.0
+        self.Bmax, self.fixed_cap, self.roots, self.nsm, self.grow = Bmax, fixed_cap, roots, nsm, grow
+        self.winners, self.process_result, self.settle_tail, self.try_build = \
+            winners, process_result, settle_tail, try_build
+        self.t0 = time.time()
+        self.q = queue.Queue()
+        self.ex = concurrent.futures.ThreadPoolExecutor(max_workers=threads + 4)
+        self.runner = EcmRunner(engine)
+        self.procs = set()
+        self.epoch = 0
+        # supply: the scan has two bounds, B on the discriminant and the cap on its
+        # prime factors, and more orders come from moving either (next_chunk)
+        self.B, self.cap = 0, 0
+        self.B0 = min(B0, Bmax)
+        self.capmax = fixed_cap if fixed_cap else fb_cap_max(nb)
+        self.arm = ("widen", self.B0, fixed_cap if fixed_cap else fb_cap(self.B0, nb))
+        self.last = None                      # the last widening: (orders, scan core-s, strip core-s, lo, hi, density then)
+        self.raise_fit = (0.7, 1.0)           # found/predicted of the last raise: orders, core-seconds
+        self.tot_orders, self.tot_test_s = 0, 0.0
+        self.c_root = 1.0e-9 * nb * nb        # core-seconds per square root until one is timed
+        self._nxt = None
+        self.act, self.est = {}, {}           # core-seconds by B1: measured, modelled
+        self.nsplit = 0
+        self.split_b1 = {}                    # candidates that lost a factor to a unit, by B1
+        self.prefetched = True                # the first chunk starts now, while the table is built
+        self.build_ref = 0.0                  # estimated build of a typical candidate, seconds (see should_build)
+        self.build_refs = []
+        self.pass_t0, self.pass_n = None, 0
+        self.pool = []                        # live candidates, for the checkpoint
+        self.after_restore = False
+        self.ckpt_every = CKPT_EVERY if (CKPT and nb >= CKPT_MIN_BITS) else 0.0
+        self._restored = self._load_ckpt() if self.ckpt_every else None
+        if self._restored is None:
+            self._launch_scan(threads)
+        else:
+            self.prefetched = False           # the loop decides when the next chunk is due
+
+    def now(self):
+        return time.time()
+
+    def log(self, msg):
+        log(msg)
+
+    # ---- checkpoint: a search of hours or days on a machine that may be taken away
+    def checkpoint(self, loop):
+        """Write the search state: the scan's frontier and measurements, level_loop's
+        counters (loop) and every live candidate with its tail and its place on
+        the ladder, with the engine, the ladder and the smoothness bound these
+        refer to (_load_ckpt reads the places onto another ladder and refuses
+        another bound).  Units in flight are not part of it: their curves are run
+        again after a restore.  The factor base's square roots are not saved
+        either (20 GB at a cap of 4e9); the first scan after a restore computes
+        them again."""
+        if not CKPT:
+            return
+        t = time.time()
+        self.pool = [c for c in self.pool if not c.dead]
+        st = {"v": 1, "p": str(self.p), "nb": self.nb, "time": t, "host": os.uname().nodename,
+              "engine": self.engine, "tiers": list(self.tiers), "nsm": self.nsm,
+              "drv": {k: getattr(self, k) for k in self._CKPT_FIELDS},
+              "stats": {k: self.stats.get(k, 0) for k in ("cands", "scan_s", "ecm_s")},
+              "loop": loop, "cands": [ckpt_pack(c, self.p) for c in self.pool]}
+        tmp = CKPT + ".tmp"
+        with open(tmp, "wb") as f:
+            pickle.dump(st, f, protocol=4)
+        os.replace(tmp, CKPT)
+        log("    checkpoint: %d live candidates, B = %g, cap = %g, %.0f MB in %.1fs"
+            % (len(self.pool), self.B, self.cap, os.path.getsize(CKPT) / 1e6, time.time() - t))
+
+    _CKPT_FIELDS = ("B", "cap", "last", "raise_fit", "tot_orders", "tot_test_s", "c_root", "act", "est",
+                    "nsplit", "split_b1", "build_ref", "build_refs", "ecm_seen")
+
+    def _load_ckpt(self):
+        if not (CKPT and CKPT_RESUME and os.path.exists(CKPT)):
+            return None
+        try:
+            with open(CKPT, "rb") as f:
+                st = pickle.load(f)
+        except Exception as e:
+            log("  level %d bits: checkpoint %s unreadable (%r), starting afresh" % (self.nb, CKPT, e))
+            return None
+        if st.get("v") != 1 or st.get("p") != str(self.p):
+            return None
+        if st.get("nsm", self.nsm) != self.nsm:
+            # the smooth parts were stripped up to another bound: a search for the
+            # other certificate format, whose candidates cannot be read here
+            log("  level %d bits: checkpoint %s is a search with smoothness bound %d, this run's is %d: not used, "
+                "starting afresh" % (self.nb, CKPT, st["nsm"], self.nsm))
+            return None
+        for k in self._CKPT_FIELDS:
+            setattr(self, k, st["drv"][k])
+        self.stats.update(st["stats"])
+        self.pool = [ckpt_unpack(r, self.p) for r in st["cands"]]
+        # a checkpoint without a ladder is from before they were recorded and is
+        # taken to be on this run's
+        old = [tuple(x) for x in (st.get("tiers") or self.tiers)]
+        if old != self.tiers:
+            # written with another ECM engine: stages and curve counts are those of
+            # its ladder (left as they are, a candidate with more curves at its B1
+            # than this ladder offers would never be queued again)
+            from shortsched import restage, ladder_stages
+            nst, through = len(ladder_stages(self.tiers)), 0
+            for c in self.pool:
+                c.st, c.done = restage(c.st, c.done, old, self.tiers, self.quantum)
+                c.sent = c.done
+                through += c.st >= nst
+            self.act, self.est = {}, {}           # measured against the other engine's costs
+            log("  level %d bits: the checkpoint's search ran on another ladder (engine %s, this run: %s): the %d live "
+                "candidates keep the curves of the B1 they were at as far as this ladder has them (%d are through it)"
+                % (self.nb, st.get("engine", "?"), self.engine, len(self.pool), through))
+        self.after_restore = True
+        log("  level %d bits: search resumed from the checkpoint of %s on %s: %d orders bought, %d live "
+            "candidates, B = %g, cap = %g, scan %.0f + ecm %.0f core-s, %.0f s of search"
+            % (self.nb, time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(st["time"])), st.get("host", "?"),
+               st["loop"]["K"], len(self.pool), self.B, self.cap, st["loop"]["spent_scan"],
+               st["loop"]["spent_ecm"], st["loop"]["elapsed"]))
+        return (list(self.pool), st["loop"])
+
+    def restore(self):
+        """(candidates, level_loop's counters) of the checkpoint this driver started from, once."""
+        r, self._restored = self._restored, None
+        return r
+
+    # ---- supply
+    def _density(self, B, cap):
+        """Share of the discriminants below B whose primes are all below cap."""
+        import shortsim as ss
+        return float(ss.rho(max(1.0, math.log(B) / math.log(max(cap, 3)))))
+
+    def next_chunk(self):
+        """(orders expected, core-seconds expected) of the cheaper of the two ways
+        to more orders, or None when neither is left:
+          widen  the discriminant bound B -> grow * B at the present cap.  Counts
+                 go like sqrt(B) (the chance that a discriminant is solvable
+                 falls like one over its class number) and work like B.
+          raise  the cap on the primes of a discriminant, cap -> 4 * cap, over the
+                 range already scanned: the discriminants passed over so far for
+                 a prime above the cap.  They cost what discriminants of their
+                 size cost, plus a square root mod p for every prime added to
+                 the factor base, where a wider B pays ever more per order.
+        Both are predicted from what the scans so far have measured, and the
+        prediction of a raise is corrected by the outcome of the last one."""
+        if self.last is None:
+            return (1.0, 1.0)                 # the first chunk is on its way
+        if self._nxt is not None:
+            return self._nxt[0]
+        n, cs, cstrip, lo, hi, dens = self.last
+        strip1 = cstrip / max(n, 1)
+        opts = []
+        if self.B < self.Bmax:
+            Bn = min(self.Bmax, int(self.B * self.grow))
+            f = self._density(Bn, self.cap) / dens
+            nn = max(1.0, n * (math.sqrt(Bn) - math.sqrt(self.B)) / (math.sqrt(hi) - math.sqrt(lo)) * f)
+            cc = cs * (Bn - self.B) / (hi - lo) * f + strip1 * nn
+            opts.append((cc / nn, nn, cc, ("widen", Bn, self.cap)))
+        ncap = min(self.capmax, 4 * self.cap, self.B // 30)
+        if not self.fixed_cap and ncap >= 2 * self.cap and self.tot_orders:
+            gain = self._density(self.B, ncap) / self._density(self.B, self.cap) - 1.0
+            roots = 0.5 * (ncap / (math.log(ncap) - 1.0) - self.cap / (math.log(self.cap) - 1.0))
+            nn = max(1.0, self.tot_orders * gain * self.raise_fit[0])
+            cc = self.tot_test_s * gain * self.raise_fit[1] + roots * self.c_root + strip1 * nn
+            opts.append((cc / nn, nn, cc, ("raise", self.B, ncap)))
+        if not opts:
+            return None
+        _, nn, cc, arm = min(opts)
+        self._nxt = ((nn, cc), arm, [(o[3][0], round(o[0], 4)) for o in opts])
+        self.arm = arm
+        return self._nxt[0]
+
+    def _launch_scan(self, ns):
+        ep = self.epoch
+        kind, hi, cap = self.arm
+        lo, cap0 = self.B, self.cap
+        pred = self._nxt
+
+        def scan():
+            try:
+                t0 = time.time()
+                info = {}
+                if kind == "raise":           # Bmin = B: only what the larger cap adds
+                    recs = run_dscan(self.p, hi, hi, ns, cap, cap0, self.roots, reg=self.procs, info=info)
+                else:
+                    recs = run_dscan(self.p, hi, lo, ns, cap, cap0 if (cap > cap0 and lo) else 0, self.roots,
+                                     reg=self.procs, info=info)
+                t1 = time.time()
+                Ns = sorted({N for (_, t, _) in recs for N in (self.p + 1 - t, self.p + 1 + t) if N % 4 == 0})
+                k = min(ns, STRIP_THREADS)
+                if k < ns:
+                    self.q.put((ep, ("scanthreads", k)))
+                strip = smooth_strip(Ns, k, self.nsm, reg=self.procs)
+                t2 = time.time()
+                self.q.put((ep, ("orders", (lo, hi, cap, recs, strip, (t1 - t0) * ns, (t2 - t1) * k, ns,
+                                            kind, cap0, info, pred))))
+            except Exception as e:            # killed by abort(), or a real failure
+                self.q.put((ep, ("scanfail", repr(e))))
+        threading.Thread(target=scan, daemon=True).start()
+
+    def start_scan(self, ns):
+        if self.prefetched:
+            self.prefetched = False
+            return
+        self._launch_scan(ns)
+
+    def take_orders(self, payload):
+        from shortsched import sched_init
+        lo, hi, fbc, recs, strip, cs, cstrip, ns, kind, cap0, info, pred = payload
+        p, L = self.p, self.L
+        fresh = []
+        for (d, t, v) in recs:
+            for N in (p + 1 - t, p + 1 + t):
+                if N % 4 == 0:
+                    fresh.append(Cand(d, t, v, N))
+        live = []
+        for c in fresh:
+            S, c.tail, c.s, prp = strip[c.N]
+            c.mid = S // c.s
+            if c.tail == 1 or c.s * c.tail <= L:
+                c.dead = True
+            self.settle_tail(c, prp)
+            if c.dead:
+                continue
+            # coverage: the divisors of s cover every delta in (0, log2 s) unless
+            # the revised format's radical cap cuts in (s above 2^RADLIM only)
+            W = math.log2(c.s) if c.s > 1 else 0.0
+            if V2_RADLIM and c.s.bit_length() > V2_RADLIM:
+                import shortsim as ss
+                W = float(ss.coverage_cells(factor_small(c.s, self.small_primes), bcap=V2_BCAP or None,
+                                            radlim=V2_RADLIM).sum())
+            sched_init(c, int(round(W)), int(round(math.log2(c.tail))))
+            live.append(c)
+        if live and self.nb >= 500:
+            # what a typical winner of this pool costs to build: the median
+            # estimate over a sample of the candidates bought so far
+            sample = sorted({c.d for c in live})
+            sample = sample[::max(1, len(sample) // 48)][:64]
+            self.build_refs += list(build_estimate(sample, self.nb).values())
+            if self.build_refs:
+                self.build_ref = sorted(self.build_refs)[len(self.build_refs) // 2]
+        nf = max(len(fresh), 1)
+        test_s = info.get("scan_s", 0.0) * info.get("threads", ns) if info else cs
+        if info and info.get("roots_new", 0) > 1000 and info.get("root_s", 0.0) > 0.5:
+            self.c_root = info["root_s"] * info["threads"] / info["roots_new"]
+        csp = cs                              # what this chunk says about the price of the next
+        if self.after_restore:
+            # the first scan after a restore computed the factor base's square
+            # roots again: paid, but no part of what a chunk costs
+            self.after_restore = False
+            if info:
+                csp = max(test_s, cs - info.get("root_s", 0.0) * info.get("threads", ns))
+        if kind == "raise":
+            if pred is not None:              # how the prediction of this raise did
+                (pn, pc), _, _ = pred
+                self.raise_fit = (min(1.5, max(0.2, self.raise_fit[0] * len(fresh) / max(pn, 1.0))),
+                                  min(3.0, max(0.3, self.raise_fit[1] * csp / max(pc - cstrip, 1.0))))
+        else:
+            self.last = (nf, csp, cstrip, lo, hi, self._density(hi, fbc))
+        if self.ckpt_every:
+            self.pool += live
+        self.B, self.cap = hi, fbc
+        self.tot_orders += len(fresh)
+        self.tot_test_s += test_s
+        self._nxt = None
+        self.stats["cands"] = self.stats.get("cands", 0) + len(fresh)
+        self.stats["scan_s"] = self.stats.get("scan_s", 0.0) + cs + cstrip
+        if kind == "raise":
+            log("  level %d bits: dscan[0,%g) cap %g -> %g on %d threads: +%d D -> +%d orders (%d live), "
+                "%.0f core-s (strip %.0f) = %.4f per order; %d winners"
+                % (self.nb, hi, cap0, fbc, ns, len(recs), len(fresh), len(live), cs + cstrip, cstrip,
+                   (cs + cstrip) / nf, len(self.winners)))
+        else:
+            log("  level %d bits: dscan[%g,%g) maxfb=%g on %d threads: +%d D -> +%d orders (%d live), "
+                "%.0f core-s (strip %.0f) = %.4f per order; %d winners"
+                % (self.nb, lo, hi, fbc, ns, len(recs), len(fresh), len(live), cs + cstrip, cstrip,
+                   (cs + cstrip) / nf, len(self.winners)))
+        nx = self.next_chunk()
+        if nx is not None and self._nxt is not None and len(self._nxt[2]) > 1:
+            log("    next orders: %s (core-s per order: %s)"
+                % (self._nxt[1][0], ", ".join("%s %.3f" % o for o in self._nxt[2])))
+        return live, len(fresh), cs + cstrip
+
+    # ---- work
+    def start_unit(self, u):
+        tails = [c.tail for c in u.cands]
+        ep, runner = self.epoch, self.runner
+        tmo = ecm_timeout(u.b1, u.n, self.nb) * len(tails)
+
+        def work():
+            t = time.time()
+            try:
+                res = runner.run(tails, u.b1, u.n, tmo, u.method)
+            except Exception as e:
+                log("    ECM unit failed: %r" % (e,))
+                res = {}
+            if res is not None:
+                self.q.put((ep, ("ecm", u, (tails, res, time.time() - t))))
+        self.ex.submit(work)
+
+    def wait(self, timeout):
+        out = []
+        try:
+            item = self.q.get(timeout=timeout)
+        except queue.Empty:
+            return out
+        while True:
+            ep, ev = item
+            if ep == self.epoch:
+                if ev[0] == "scanfail":
+                    raise RuntimeError("scan failed: %s" % ev[1])
+                out.append(ev)
+            try:
+                item = self.q.get_nowait()
+            except queue.Empty:
+                return out
+
+    def apply(self, u, payload):
+        tails, res, dt = payload
+        self.act[u.b1] = self.act.get(u.b1, 0.0) + dt
+        self.est[u.b1] = self.est.get(u.b1, 0.0) + u.est
+        for c, t in zip(u.cands, tails):
+            if c.dead or t not in res:
+                continue
+            found, cof, cprp = res[t]
+            self.nsplit += 1
+            self.split_b1[u.b1] = self.split_b1.get(u.b1, 0) + 1
+            self.process_result(c, found, cof)
+            if c.tail == cof:                         # the ECM program already tested this cofactor
+                self.settle_tail(c, cprp)
+            elif not c.dead and c.tail > 1:           # the unit ran on a multiple of the present tail
+                self.settle_tail(c, pow(2, c.tail - 1, c.tail) == 1)
+            if not c.dead and c.tail > 1:
+                c.tb = int(round(math.log2(c.tail)))
+
+    def has_winner(self):
+        return bool(self.winners)
+
+    def should_build(self, R):
+        """Whether to stop the search and build the cheapest winner in hand.  A
+        winner whose class number has a large prime factor takes one to five
+        minutes to build where the next winner is often seconds away: it is
+        kept in reserve while its estimated build exceeds the expected wait for
+        another winner (R core-seconds on all the threads) plus a typical
+        build, and for no longer than that build would have taken."""
+        ws = [w[1].d for w in self.winners]
+        new = [d for d in ws if d not in BUILD_EST]
+        if new:
+            BUILD_EST.update(build_estimate(new, self.nb))
+        tb = min(BUILD_EST.get(d, 0.0) for d in ws)
+        now = time.time()
+        wait = (R / self.threads if 0 < R < float("inf") else 0.0) + self.build_ref
+        if tb <= max(wait, 5.0) or (self.pass_t0 is not None and now - self.pass_t0 >= tb):
+            return True
+        if self.pass_t0 is None:
+            self.pass_t0 = now
+        if len(ws) > self.pass_n:
+            self.pass_n = len(ws)
+            log("    %d winner(s) kept in reserve: the cheapest build is estimated at %.0f s, another winner and its build at %.0f s"
+                % (len(ws), tb, wait))
+        return False
+
+    def abort(self):
+        self.epoch += 1
+        self.runner.abort()
+        self.runner = EcmRunner(self.engine)
+        for pr in list(self.procs):
+            try:
+                pr.kill()
+            except OSError:
+                pass
+
+    def build(self, st):
+        self.stats["ecm_s"] = self.stats.get("ecm_s", 0.0) + st["ecm_s"] - self.ecm_seen
+        self.ecm_seen = st["ecm_s"]
+        ratios = " ".join("%g:%.2f" % (b1, self.act[b1] / self.est[b1]) for b1 in sorted(self.act) if self.est[b1] > 0)
+        eb = st.get("expwin_b1") or {}
+        es = st.get("expsplit_b1") or {}
+        log("    search: %d orders, scan %.0f + ecm %.0f core-s (%.0f above the rule), %.1fs wall, %d units, "
+            "%d splits, rule R = %.0f core-s; the model expected %.2f wins from this work; "
+            "measured/modelled ECM cost by B1: %s; wins expected by B1: %s; won at B1=%s; "
+            "splits found/expected by B1: %s"
+            % (st["orders"], st["scan_s"], st["ecm_s"], st.get("over_s", 0.0), st["wall"], st["units"],
+               self.nsplit, st["R"], st["expwin"], ratios,
+               " ".join("%g:%.3f" % (b1, eb[b1]) for b1 in sorted(eb)), st.get("win_b1"),
+               " ".join("%g:%d/%.0f" % (b1, self.split_b1.get(b1, 0), es[b1]) for b1 in sorted(es))))
+        self.pass_t0, self.pass_n = None, 0
+        return self.try_build()
+
+    def close(self):
+        self.abort()
+        self.ex.shutdown(wait=False)
+
+
+def run_rule_level(p, nb, L, n2, small_primes, threads, stats, B0, Bmax_given, fixed_cap, roots,
+                   winners, process_result, settle_tail, try_build):
+    import shortsim as ss
+    import shortsched as sd
+    lam = math.log2(L)
+    engine = ecm_engine()
+    f = ecm_machine_factor(nb, threads, engine)
+    # the scan is bounded by the rule (its price), not by a budget: dscan's
+    # products stay within 64 bits up to 2^60, and long before that a wider scan
+    # costs more per order than raising the cap on the primes (RuleDriver.next_chunk)
+    Bmax = Bmax_given if Bmax_given else 10 ** 15
+    nsm = V2_BCAP if V2_BCAP else n2          # fillers use primes up to B only in the revised format
+    drv = RuleDriver(p, nb, L, threads, stats, B0, Bmax, fixed_cap, roots, nsm, small_primes,
+                     winners, process_result, settle_tail, try_build, engine=engine)
+    try:
+        t0 = time.time()
+        ss.set_grid(nb)
+        em, sec, mcost, quantum = ss.engine_model(engine, f, ECPP_DIR)
+        cost = ss.engine_model(engine, f, ECPP_DIR, scalar=True)[2]
+        tiers = drv.tiers                     # sd.default_tiers(engine, nb)
+        lad = ss.Ladder(tiers, em, y0bits=Y0.bit_length() - 1, cost=mcost)
+        # rewards of interest shrink fast with the size (a win costs 1.5 core-h
+        # at 768 bits, a minute at 520 and a second at 300)
+        rlo = min(30.0, 3.0 * (nb / 500.0) ** 8)
+        # (R was 4.3e6 core-s at the win of nextprime(10^410); a candidate whose
+        # break-even reward is off the grid is abandoned for good, so the grid of
+        # the largest levels goes a decade further)
+        rhi = (3.0e8 if nb >= 1300 else 3.0e7) if nb >= 500 else rlo * 1e5
+        tab = ss.IndexTable(lad, lam, rlo=rlo, rhi=rhi, threads=min(16, threads))
+        log("  level %d bits: rule table in %.1fs (%d sweeps, rewards %.0f..%.0f core-s)"
+            % (nb, time.time() - t0, len(tiers), tab.rgrid[0], tab.rgrid[-1]))
+        return sd.level_loop(drv, tab, tiers, cost, {"quantum": quantum})
+    finally:
+        drv.close()
+
 
 
 # ------------------------------------------------------------ chain assembly
@@ -976,7 +2008,7 @@ def pari_check(seq, n2):
 
 def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, resume=False, maxfb=0,
                 v2=False):
-    global JOURNAL, V2_BCAP, V2_RADLIM, V2_QFLOOR
+    global JOURNAL, CKPT, CKPT_RESUME, V2_BCAP, V2_RADLIM, V2_QFLOOR
     if not is_prp(p0, 32):
         sys.exit("p0 is not prime")
     n = p0.bit_length()
@@ -995,6 +2027,8 @@ def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, res
     name = tag or ("p%dbits" % n)
     os.makedirs(CAMP_DIR, exist_ok=True)
     JOURNAL = os.path.join(CAMP_DIR, name + ".winners.jsonl")
+    CKPT = os.path.join(CAMP_DIR, name + ".search.pkl")
+    CKPT_RESUME = bool(resume)
     partial = os.path.join(CAMP_DIR, name + ".partial.json")
     seq = [p0]
     levels_meta = []
@@ -1011,7 +2045,8 @@ def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, res
             p = int(st["p"])
             log("resumed: %d level(s) done, current p has %d bits"
                 % ((len(seq) - 1) // 3, p.bit_length()))
-    while p.bit_length() >= CM_MIN_BITS:
+    cmmin = cm_min_bits(V2_QFLOOR if v2 else n2)
+    while p.bit_length() >= cmmin:
         A, x, o, q, meta = prove_level_cm(p, n2, small_primes, P2, threads, stats,
                                           seed=seed, B0=B0 if p == p0 else None,
                                           Bmax=Bmax if p == p0 else None,
@@ -1025,7 +2060,7 @@ def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, res
                        "meta": levels_meta}, f)
     if p > 1:
         log("finishing below %d bits with %s (p has %d bits)"
-            % (CM_MIN_BITS, "short2.gp" if v2 else "short.gp", p.bit_length()))
+            % (cmmin, "short2.gp" if v2 else "short.gp", p.bit_length()))
         t1 = time.time()
         tail = gp_tail_chain2(p, n) if v2 else gp_tail_chain(p, n2)
         log("  gp tail: %d levels in %.1fs" % (len(tail) // 3, time.time() - t1))
@@ -1067,6 +2102,12 @@ def prove_chain(p0, threads, seed=1, B0=None, Bmax=None, tag=None, out=None, res
 
 def main():
     global VERBOSE
+    try:                                  # one gmp-ecm process and two pipes per worker thread
+        import resource
+        soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+        resource.setrlimit(resource.RLIMIT_NOFILE, (min(hard, 65536) if hard > 0 else 65536, hard))
+    except (ImportError, ValueError, OSError):
+        pass
     args = dict(kv.split("=", 1) for kv in sys.argv[1:] if "=" in kv)
     if "p" in args:
         p0 = int(args["p"])
@@ -1079,6 +2120,14 @@ def main():
         print(__doc__)
         sys.exit(2)
     VERBOSE = int(args.get("v", "1"))
+    if "sched" in args:
+        global SCHED
+        SCHED = args["sched"]
+    global ENGINE, YAFU_BIN
+    ENGINE = args.get("engine", ENGINE)
+    YAFU_BIN = args.get("yafu", YAFU_BIN)
+    if ENGINE not in ("auto", "gmp", "yafu"):
+        sys.exit("engine must be auto, gmp or yafu")
     threads = int(args.get("threads", str(os.cpu_count())))
     seed = int(args.get("seed", "1"))
     B0 = int(float(args["B0"])) if "B0" in args else None

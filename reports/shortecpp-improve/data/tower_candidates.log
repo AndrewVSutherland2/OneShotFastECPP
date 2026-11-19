@@ -1,0 +1,899 @@
+=== D=-5201738755
+Using invariant a59 (159)
+root enum cost for ell=7 with relative order 1894 is 9031503 nsecs
+root enum cost for ell=31 with relative order 3 is 145314 nsecs
+5: (5,5,260086939) relative order 2, order 2, 
+7: (7,5,185776385) relative order 1894, order 1894, 7^1894 = 5^0 
+31: (31,19,41949509) relative order 3, order 2841, 31^3 = 5^0 7^930 
+Decomposition candidates for D=-5201738755 (degree 11364, plain height bound 42450 bits, P has 769 bits, 192 jobs):
+  n=947 m=12 c=(2,2,3): 21545 bits, est. 0.1s CRT + 0.1s + 7.5s roots
+  n=1894 m=6 c=(2,1,3): 24556 bits, est. 0.1s CRT + 0.1s + 15.5s roots
+  n=1894 m=6 c=(1,2,3): 23455 bits, est. 0.1s CRT + 0.1s + 15.5s roots
+  n=2841 m=4 c=(2,2,1): 24907 bits, est. 0.1s CRT + 0.0s + 23.8s roots
+  n=4 m=2841 c=(1,947,3): 42525 bits, est. 0.1s CRT + 23.8s + 0.0s roots
+  n=3788 m=3 c=(1,1,3): 31143 bits, est. 0.1s CRT + 0.0s + 32.2s roots
+  n=5682 m=2 c=(2,1,1): 34464 bits, est. 0.1s CRT + 0.0s + 69.0s roots
+  n=5682 m=2 c=(1,2,1): 33781 bits, est. 0.1s CRT + 0.0s + 69.0s roots
+  n=2 m=5682 c=(2,947,3): 50444 bits, est. 0.1s CRT + 69.0s + 0.0s roots
+  n=2 m=5682 c=(1,1894,3): 48028 bits, est. 0.1s CRT + 69.0s + 0.0s roots
+Decomposing with subgroup of order n=947, m=12 cosets, height bound 21545 bits (plain: 42450)
+bits = 22878.08 (classpoly degree 11364 height factor 30.00, safety margin 256 bits)
+Selected 747 primes, maxp=5702692679, totbits = 22897.8
+=== D=-18960475695
+Using invariant w5w7 (535)
+Computing square-root of classpoly for D=-18960475695
+root enum cost for ell=2 with relative order 9364 is 6301299 nsecs
+root enum cost for ell=11 with relative order 2 is 10903 nsecs
+35: (35,35,135431978) relative order 2, order 2, 
+2: (2,1,2370059462) relative order 9364, order 9364, 2^9364 = 35^0 
+3: (3,3,1580039642) relative order 2, order 2, 3^2 = 35^0 2^0 
+11: (11,9,430919904) relative order 2, order 9364, 11^2 = 35^0 2^4474 3^0 
+Decomposition candidates for D=-18960475695 (degree 37456, plain height bound 349640 bits, P has 769 bits, 192 jobs):
+  n=2341 m=16 c=(4,2,2): 69890 bits, est. 0.7s CRT + 0.2s + 19.4s roots
+  n=4682 m=8 c=(4,1,2): 66412 bits, est. 0.6s CRT + 0.1s + 62.8s roots
+  n=4682 m=8 c=(2,2,2): 67754 bits, est. 0.7s CRT + 0.1s + 62.8s roots
+  n=8 m=4682 c=(2341,1,2): 134923 bits, est. 1.3s CRT + 62.8s + 0.1s roots
+  n=9364 m=4 c=(2,2,1): 86725 bits, est. 0.8s CRT + 0.0s + 92.0s roots
+  n=9364 m=4 c=(2,1,2): 80709 bits, est. 0.8s CRT + 0.0s + 92.0s roots
+  n=9364 m=4 c=(1,2,2): 90823 bits, est. 0.9s CRT + 0.0s + 92.0s roots
+  n=4 m=9364 c=(4682,1,2): 152657 bits, est. 1.5s CRT + 92.0s + 0.0s roots
+  n=4 m=9364 c=(2341,2,2): 177880 bits, est. 1.7s CRT + 92.0s + 0.0s roots
+  n=18728 m=2 c=(2,1,1): 118714 bits, est. 1.2s CRT + 0.0s + 147.3s roots
+  n=18728 m=2 c=(1,2,1): 137169 bits, est. 1.3s CRT + 0.0s + 147.3s roots
+  n=18728 m=2 c=(1,1,2): 130762 bits, est. 1.3s CRT + 0.0s + 147.3s roots
+  n=2 m=18728 c=(9364,1,2): 171785 bits, est. 1.7s CRT + 147.3s + 0.0s roots
+  n=2 m=18728 c=(4682,2,2): 198438 bits, est. 1.9s CRT + 147.3s + 0.0s roots
+Decomposing with subgroup of order n=2341, m=16 cosets, height bound 69890 bits (plain: 349640)
+bits = 73640.07 (classpoly degree 37456 height factor 24.00, safety margin 256 bits)
+Selected 2148 primes, maxp=28439055859, totbits = 73647.7
+=== D=-24483261047
+Using invariant f (1)
+root enum cost for ell=19 with relative order 58834 is 1657796274 nsecs
+7: (7,7,874402182) relative order 2, order 2, 
+19: (19,5,322148172) relative order 58834, order 58834, 19^58834 = 7^0 
+Decomposition candidates for D=-24483261047 (degree 117668, plain height bound 170352 bits, P has 769 bits, 192 jobs):
+  n=1279 m=92 c=(2,46): 69624 bits, est. 2.1s CRT + 0.6s + 10.2s roots
+  n=92 m=1279 c=(1,1279): 103229 bits, est. 3.2s CRT + 10.2s + 0.6s roots
+  n=2558 m=46 c=(2,23): 61678 bits, est. 1.9s CRT + 0.5s + 21.3s roots
+  n=2558 m=46 c=(1,46): 61605 bits, est. 1.9s CRT + 0.5s + 21.3s roots
+  n=46 m=2558 c=(2,1279): 125499 bits, est. 3.8s CRT + 21.3s + 0.5s roots
+  n=46 m=2558 c=(1,2558): 117679 bits, est. 3.6s CRT + 21.3s + 0.5s roots
+  n=5116 m=23 c=(1,23): 58188 bits, est. 1.8s CRT + 0.2s + 65.5s roots
+  n=23 m=5116 c=(2,2558): 145978 bits, est. 4.5s CRT + 65.5s + 0.2s roots
+  n=29417 m=4 c=(2,2): 87761 bits, est. 2.7s CRT + 0.0s + 205.9s roots
+  n=4 m=29417 c=(1,29417): 221753 bits, est. 6.8s CRT + 205.9s + 0.0s roots
+  n=58834 m=2 c=(2,1): 152220 bits, est. 4.7s CRT + 0.0s + 355.1s roots
+  n=58834 m=2 c=(1,2): 153134 bits, est. 4.7s CRT + 0.0s + 355.1s roots
+  n=2 m=58834 c=(2,29417): 273386 bits, est. 8.4s CRT + 355.1s + 0.0s roots
+  n=2 m=58834 c=(1,58834): 262850 bits, est. 8.1s CRT + 355.1s + 0.0s roots
+Decomposing with subgroup of order n=1279, m=92 cosets, height bound 69624 bits (plain: 170352)
+Sign-free decomposition: no trace computation, height bound 88913 bits
+bits = 89169.18 (classpoly degree 117668 height factor 72.00, safety margin 256 bits)
+Selected 2573 primes, maxp=37498420103, totbits = 89178.9
+=== D=-26558327551
+Using invariant f (1)
+root enum cost for ell=5 with relative order 21148 is 66084375 nsecs
+root enum cost for ell=41 with relative order 2 is 148141 nsecs
+5: (5,3,1327916378) relative order 21148, order 21148, 
+7: (7,7,948511700) relative order 2, order 2, 7^2 = 5^0 
+41: (41,37,161941030) relative order 2, order 42296, 41^2 = 5^10267 7^1 
+Decomposition candidates for D=-26558327551 (degree 84592, plain height bound 130115 bits, P has 769 bits, 192 jobs):
+  n=311 m=272 c=(68,2,2): 65200 bits, est. 1.4s CRT + 2.0s + 2.3s roots
+  n=622 m=136 c=(68,1,2): 54750 bits, est. 1.2s CRT + 1.0s + 4.8s roots
+  n=622 m=136 c=(34,2,2): 58617 bits, est. 1.3s CRT + 1.0s + 4.8s roots
+  n=136 m=622 c=(311,1,2): 72758 bits, est. 1.6s CRT + 4.8s + 1.0s roots
+  n=1244 m=68 c=(34,1,2): 51334 bits, est. 1.1s CRT + 0.5s + 10.0s roots
+  n=1244 m=68 c=(17,2,2): 54300 bits, est. 1.2s CRT + 0.5s + 10.0s roots
+  n=68 m=1244 c=(622,1,2): 81917 bits, est. 1.8s CRT + 10.0s + 0.5s roots
+  n=68 m=1244 c=(311,2,2): 88070 bits, est. 1.9s CRT + 10.0s + 0.5s roots
+  n=2488 m=34 c=(17,1,2): 48654 bits, est. 1.1s CRT + 0.4s + 20.7s roots
+  n=34 m=2488 c=(1244,1,2): 97318 bits, est. 2.1s CRT + 20.7s + 0.4s roots
+  n=34 m=2488 c=(622,2,2): 100834 bits, est. 2.2s CRT + 20.7s + 0.4s roots
+  n=17 m=4976 c=(1244,2,2): 120966 bits, est. 2.7s CRT + 64.6s + 0.2s roots
+  n=5287 m=16 c=(4,2,2): 46596 bits, est. 1.0s CRT + 0.2s + 66.6s roots
+  n=10574 m=8 c=(4,1,2): 53797 bits, est. 1.2s CRT + 0.1s + 99.5s roots
+  n=10574 m=8 c=(2,2,2): 53330 bits, est. 1.2s CRT + 0.1s + 99.5s roots
+  n=8 m=10574 c=(5287,1,2): 138314 bits, est. 3.0s CRT + 99.5s + 0.1s roots
+  n=21148 m=4 c=(2,1,2): 79973 bits, est. 1.8s CRT + 0.0s + 160.9s roots
+  n=21148 m=4 c=(1,2,2): 78915 bits, est. 1.7s CRT + 0.0s + 160.9s roots
+  n=4 m=21148 c=(10574,1,2): 166698 bits, est. 3.7s CRT + 160.9s + 0.0s roots
+  n=4 m=21148 c=(5287,2,2): 174465 bits, est. 3.8s CRT + 160.9s + 0.0s roots
+  n=42296 m=2 c=(1,1,2): 141592 bits, est. 3.1s CRT + 0.0s + 272.9s roots
+  n=2 m=42296 c=(21148,1,2): 196111 bits, est. 4.3s CRT + 272.9s + 0.0s roots
+  n=2 m=42296 c=(10574,2,2): 204204 bits, est. 4.5s CRT + 272.9s + 0.0s roots
+Decomposing with subgroup of order n=311, m=272 cosets, height bound 65200 bits (plain: 130115)
+Sign-free decomposition: no trace computation, height bound 84922 bits
+bits = 85178.11 (classpoly degree 84592 height factor 72.00, safety margin 256 bits)
+Selected 2451 primes, maxp=38604268067, totbits = 85183.6
+=== D=-27115302883
+Using invariant a59 (159)
+root enum cost for ell=23 with relative order 1989 is 80486168 nsecs
+root enum cost for ell=29 with relative order 8 is 450863 nsecs
+23: (23,19,294731557) relative order 1989, order 1989, 
+29: (29,15,233752613) relative order 8, order 15912, 29^8 = 23^1702 
+Decomposition candidates for D=-27115302883 (degree 15912, plain height bound 67137 bits, P has 769 bits, 192 jobs):
+  n=117 m=136 c=(17,8): 44136 bits, est. 0.2s CRT + 1.0s + 0.8s roots
+  n=153 m=104 c=(13,8): 43370 bits, est. 0.2s CRT + 0.7s + 1.1s roots
+  n=221 m=72 c=(9,8): 42909 bits, est. 0.2s CRT + 0.5s + 1.6s roots
+  n=51 m=312 c=(39,8): 49133 bits, est. 0.2s CRT + 2.3s + 0.3s roots
+  n=39 m=408 c=(51,8): 50229 bits, est. 0.2s CRT + 3.1s + 0.4s roots
+  n=663 m=24 c=(3,8): 38521 bits, est. 0.2s CRT + 0.3s + 5.1s roots
+  n=17 m=936 c=(117,8): 56240 bits, est. 0.2s CRT + 7.4s + 0.2s roots
+  n=13 m=1224 c=(153,8): 58379 bits, est. 0.2s CRT + 9.8s + 0.1s roots
+  n=9 m=1768 c=(221,8): 61918 bits, est. 0.3s CRT + 14.4s + 0.1s roots
+  n=1989 m=8 c=(1,8): 39294 bits, est. 0.2s CRT + 0.1s + 16.3s roots
+  n=3978 m=4 c=(1,4): 42215 bits, est. 0.2s CRT + 0.0s + 33.9s roots
+  n=3 m=5304 c=(663,8): 73868 bits, est. 0.3s CRT + 66.7s + 0.0s roots
+  n=7956 m=2 c=(1,2): 55243 bits, est. 0.2s CRT + 0.0s + 83.3s roots
+Decomposing with subgroup of order n=117, m=136 cosets, height bound 44136 bits (plain: 67137)
+bits = 46599.24 (classpoly degree 15912 height factor 30.00, safety margin 256 bits)
+Selected 1407 primes, maxp=27591939107, totbits = 46615.0
+=== D=-30694863135
+Using invariant w2w7e1 (14)
+root enum cost for ell=11 with relative order 30020 is 327297157 nsecs
+3: (3,3,2557905262) relative order 2, order 2, 
+5: (5,5,1534743158) relative order 2, order 2, 5^2 = 3^0 
+11: (11,3,697610526) relative order 30020, order 30020, 11^30020 = 3^0 5^0 
+Decomposition candidates for D=-30694863135 (degree 120080, plain height bound 271338 bits, P has 769 bits, 192 jobs):
+  n=380 m=316 c=(2,2,79): 112467 bits, est. 3.5s CRT + 2.3s + 2.8s roots
+  n=380 m=316 c=(2,1,158): 112653 bits, est. 3.5s CRT + 2.3s + 2.8s roots
+  n=380 m=316 c=(1,2,158): 107971 bits, est. 3.4s CRT + 2.3s + 2.8s roots
+  n=380 m=316 c=(1,1,316): 104831 bits, est. 3.3s CRT + 2.3s + 2.8s roots
+  n=316 m=380 c=(2,2,95): 144321 bits, est. 4.5s CRT + 2.8s + 2.3s roots
+  n=316 m=380 c=(2,1,190): 134015 bits, est. 4.2s CRT + 2.8s + 2.3s roots
+  n=316 m=380 c=(1,2,190): 124883 bits, est. 3.9s CRT + 2.8s + 2.3s roots
+  n=316 m=380 c=(1,1,380): 114322 bits, est. 3.6s CRT + 2.8s + 2.3s roots
+  n=395 m=304 c=(2,2,76): 132858 bits, est. 4.2s CRT + 2.2s + 3.0s roots
+  n=304 m=395 c=(1,1,395): 105927 bits, est. 3.3s CRT + 3.0s + 2.2s roots
+  n=632 m=190 c=(2,1,95): 120456 bits, est. 3.8s CRT + 1.4s + 4.9s roots
+  n=632 m=190 c=(1,2,95): 111197 bits, est. 3.5s CRT + 1.4s + 4.9s roots
+  n=632 m=190 c=(1,1,190): 106731 bits, est. 3.3s CRT + 1.4s + 4.9s roots
+  n=190 m=632 c=(2,2,158): 137169 bits, est. 4.3s CRT + 4.9s + 1.4s roots
+  n=190 m=632 c=(2,1,316): 128971 bits, est. 4.0s CRT + 4.9s + 1.4s roots
+  n=190 m=632 c=(1,2,316): 122573 bits, est. 3.8s CRT + 4.9s + 1.4s roots
+  n=760 m=158 c=(2,1,79): 95078 bits, est. 3.0s CRT + 1.1s + 5.9s roots
+  n=760 m=158 c=(1,2,79): 92836 bits, est. 2.9s CRT + 1.1s + 5.9s roots
+  n=760 m=158 c=(1,1,158): 93812 bits, est. 2.9s CRT + 1.1s + 5.9s roots
+  n=158 m=760 c=(2,2,190): 162616 bits, est. 5.1s CRT + 5.9s + 1.1s roots
+  n=158 m=760 c=(2,1,380): 145764 bits, est. 4.6s CRT + 5.9s + 1.1s roots
+  n=158 m=760 c=(1,2,380): 136016 bits, est. 4.3s CRT + 5.9s + 1.1s roots
+  n=790 m=152 c=(2,2,38): 124080 bits, est. 3.9s CRT + 1.1s + 6.2s roots
+  n=790 m=152 c=(2,1,76): 106612 bits, est. 3.3s CRT + 1.1s + 6.2s roots
+  n=790 m=152 c=(1,2,76): 103957 bits, est. 3.3s CRT + 1.1s + 6.2s roots
+  n=152 m=790 c=(2,1,395): 138657 bits, est. 4.3s CRT + 6.2s + 1.1s roots
+  n=152 m=790 c=(1,2,395): 125216 bits, est. 3.9s CRT + 6.2s + 1.1s roots
+  n=152 m=790 c=(1,1,790): 126068 bits, est. 3.9s CRT + 6.2s + 1.1s roots
+  n=1264 m=95 c=(1,1,95): 97026 bits, est. 3.0s CRT + 0.7s + 10.1s roots
+  n=95 m=1264 c=(2,2,316): 158845 bits, est. 5.0s CRT + 10.1s + 0.7s roots
+  n=1501 m=80 c=(2,2,20): 105898 bits, est. 3.3s CRT + 0.5s + 12.1s roots
+  n=80 m=1501 c=(1,1,1501): 137164 bits, est. 4.3s CRT + 12.1s + 0.5s roots
+  n=1520 m=79 c=(1,1,79): 84140 bits, est. 2.6s CRT + 0.5s + 12.3s roots
+  n=79 m=1520 c=(2,2,380): 179411 bits, est. 5.6s CRT + 12.3s + 0.5s roots
+  n=1580 m=76 c=(2,2,19): 110052 bits, est. 3.4s CRT + 0.5s + 12.8s roots
+  n=1580 m=76 c=(2,1,38): 102049 bits, est. 3.2s CRT + 0.5s + 12.8s roots
+  n=1580 m=76 c=(1,2,38): 99221 bits, est. 3.1s CRT + 0.5s + 12.8s roots
+  n=1580 m=76 c=(1,1,76): 88760 bits, est. 2.8s CRT + 0.5s + 12.8s roots
+  n=76 m=1580 c=(2,2,395): 170542 bits, est. 5.3s CRT + 12.8s + 0.5s roots
+  n=76 m=1580 c=(2,1,790): 163051 bits, est. 5.1s CRT + 12.8s + 0.5s roots
+  n=76 m=1580 c=(1,2,790): 151946 bits, est. 4.8s CRT + 12.8s + 0.5s roots
+  n=76 m=1580 c=(1,1,1580): 140005 bits, est. 4.4s CRT + 12.8s + 0.5s roots
+  n=3002 m=40 c=(2,2,10): 94125 bits, est. 2.9s CRT + 0.4s + 25.2s roots
+  n=3002 m=40 c=(2,1,20): 92090 bits, est. 2.9s CRT + 0.4s + 25.2s roots
+  n=3002 m=40 c=(1,2,20): 85830 bits, est. 2.7s CRT + 0.4s + 25.2s roots
+  n=40 m=3002 c=(2,1,1501): 179573 bits, est. 5.6s CRT + 25.2s + 0.4s roots
+  n=40 m=3002 c=(1,2,1501): 167679 bits, est. 5.2s CRT + 25.2s + 0.4s roots
+  n=40 m=3002 c=(1,1,3002): 155974 bits, est. 4.9s CRT + 25.2s + 0.4s roots
+  n=3160 m=38 c=(2,1,19): 93561 bits, est. 2.9s CRT + 0.4s + 26.6s roots
+  n=3160 m=38 c=(1,2,19): 89613 bits, est. 2.8s CRT + 0.4s + 26.6s roots
+  n=3160 m=38 c=(1,1,38): 87669 bits, est. 2.7s CRT + 0.4s + 26.6s roots
+  n=38 m=3160 c=(2,2,790): 202218 bits, est. 6.3s CRT + 26.6s + 0.4s roots
+  n=38 m=3160 c=(2,1,1580): 183821 bits, est. 5.7s CRT + 26.6s + 0.4s roots
+  n=38 m=3160 c=(1,2,1580): 171514 bits, est. 5.4s CRT + 26.6s + 0.4s roots
+  n=6004 m=20 c=(2,2,5): 89754 bits, est. 2.8s CRT + 0.2s + 71.1s roots
+  n=6004 m=20 c=(2,1,10): 87218 bits, est. 2.7s CRT + 0.2s + 71.1s roots
+  n=6004 m=20 c=(1,2,10): 79940 bits, est. 2.5s CRT + 0.2s + 71.1s roots
+  n=6004 m=20 c=(1,1,20): 83578 bits, est. 2.6s CRT + 0.2s + 71.1s roots
+  n=20 m=6004 c=(2,2,1501): 225679 bits, est. 7.1s CRT + 71.1s + 0.2s roots
+  n=20 m=6004 c=(2,1,3002): 206502 bits, est. 6.5s CRT + 71.1s + 0.2s roots
+  n=20 m=6004 c=(1,2,3002): 193781 bits, est. 6.1s CRT + 71.1s + 0.2s roots
+  n=20 m=6004 c=(1,1,6004): 177272 bits, est. 5.5s CRT + 71.1s + 0.2s roots
+  n=6320 m=19 c=(1,1,19): 85450 bits, est. 2.7s CRT + 0.2s + 73.0s roots
+  n=19 m=6320 c=(2,2,1580): 231119 bits, est. 7.2s CRT + 73.0s + 0.2s roots
+  n=7505 m=16 c=(2,2,4): 87517 bits, est. 2.7s CRT + 0.2s + 80.5s roots
+  n=16 m=7505 c=(1,1,7505): 186163 bits, est. 5.8s CRT + 80.5s + 0.2s roots
+  n=12008 m=10 c=(2,1,5): 91378 bits, est. 2.9s CRT + 0.1s + 108.1s roots
+  n=12008 m=10 c=(1,2,5): 89730 bits, est. 2.8s CRT + 0.1s + 108.1s roots
+  n=12008 m=10 c=(1,1,10): 89404 bits, est. 2.8s CRT + 0.1s + 108.1s roots
+  n=10 m=12008 c=(2,2,3002): 262622 bits, est. 8.2s CRT + 108.1s + 0.1s roots
+  n=10 m=12008 c=(2,1,6004): 237742 bits, est. 7.4s CRT + 108.1s + 0.1s roots
+  n=10 m=12008 c=(1,2,6004): 224319 bits, est. 7.0s CRT + 108.1s + 0.1s roots
+  n=15010 m=8 c=(2,2,2): 93936 bits, est. 2.9s CRT + 0.1s + 125.9s roots
+  n=15010 m=8 c=(2,1,4): 94664 bits, est. 3.0s CRT + 0.1s + 125.9s roots
+  n=15010 m=8 c=(1,2,4): 96888 bits, est. 3.0s CRT + 0.1s + 125.9s roots
+  n=8 m=15010 c=(2,1,7505): 250836 bits, est. 7.8s CRT + 125.9s + 0.1s roots
+  n=8 m=15010 c=(1,2,7505): 236225 bits, est. 7.4s CRT + 125.9s + 0.1s roots
+  n=8 m=15010 c=(1,1,15010): 220915 bits, est. 6.9s CRT + 125.9s + 0.1s roots
+  n=24016 m=5 c=(1,1,5): 113115 bits, est. 3.5s CRT + 0.0s + 176.7s roots
+  n=5 m=24016 c=(2,2,6004): 305008 bits, est. 9.5s CRT + 176.7s + 0.0s roots
+  n=30020 m=4 c=(2,2,1): 138453 bits, est. 4.3s CRT + 0.0s + 209.1s roots
+  n=30020 m=4 c=(2,1,2): 125059 bits, est. 3.9s CRT + 0.0s + 209.1s roots
+  n=30020 m=4 c=(1,2,2): 136498 bits, est. 4.3s CRT + 0.0s + 209.1s roots
+  n=30020 m=4 c=(1,1,4): 127050 bits, est. 4.0s CRT + 0.0s + 209.1s roots
+  n=4 m=30020 c=(2,2,7505): 320567 bits, est. 10.0s CRT + 209.1s + 0.0s roots
+  n=4 m=30020 c=(2,1,15010): 296879 bits, est. 9.3s CRT + 209.1s + 0.0s roots
+  n=4 m=30020 c=(1,2,15010): 280582 bits, est. 8.8s CRT + 209.1s + 0.0s roots
+  n=4 m=30020 c=(1,1,30020): 263211 bits, est. 8.2s CRT + 209.1s + 0.0s roots
+  n=60040 m=2 c=(2,1,1): 210046 bits, est. 6.6s CRT + 0.0s + 361.0s roots
+  n=60040 m=2 c=(1,2,1): 240424 bits, est. 7.5s CRT + 0.0s + 361.0s roots
+  n=60040 m=2 c=(1,1,2): 208317 bits, est. 6.5s CRT + 0.0s + 361.0s roots
+  n=2 m=60040 c=(2,2,15010): 369679 bits, est. 11.6s CRT + 361.0s + 0.0s roots
+  n=2 m=60040 c=(2,1,30020): 343468 bits, est. 10.7s CRT + 361.0s + 0.0s roots
+  n=2 m=60040 c=(1,2,30020): 325911 bits, est. 10.2s CRT + 361.0s + 0.0s roots
+Decomposing with subgroup of order n=380, m=316 cosets, height bound 104831 bits (plain: 271338)
+Sign-free decomposition: no trace computation, height bound 136590 bits
+bits = 136845.85 (classpoly degree 120080 height factor 48.00, safety margin 256 bits)
+Selected 3899 primes, maxp=60294689251, totbits = 136852.6
+=== D=-43980816779
+Using invariant a71 (171)
+root enum cost for ell=3 with relative order 7315 is 5675664 nsecs
+root enum cost for ell=5 with relative order 4 is 9198 nsecs
+root enum cost for ell=37 with relative order 2 is 117622 nsecs
+3: (3,1,3665068065) relative order 7315, order 7315, 
+5: (5,1,2199040839) relative order 4, order 29260, 5^4 = 3^3753 
+37: (37,3,297167681) relative order 2, order 58520, 37^2 = 3^1892 5^3 
+Decomposition candidates for D=-43980816779 (degree 58520, plain height bound 189438 bits, P has 769 bits, 192 jobs):
+  n=209 m=280 c=(35,4,2): 111196 bits, est. 1.7s CRT + 2.1s + 1.5s roots
+  n=385 m=152 c=(19,4,2): 101620 bits, est. 1.5s CRT + 1.1s + 2.9s roots
+  n=133 m=440 c=(55,4,2): 115274 bits, est. 1.8s CRT + 3.3s + 0.9s roots
+  n=95 m=616 c=(77,4,2): 122564 bits, est. 1.9s CRT + 4.7s + 0.7s roots
+  n=665 m=88 c=(11,4,2): 95642 bits, est. 1.5s CRT + 0.6s + 5.1s roots
+  n=77 m=760 c=(95,4,2): 127127 bits, est. 1.9s CRT + 5.9s + 0.5s roots
+  n=1045 m=56 c=(7,4,2): 87648 bits, est. 1.3s CRT + 0.4s + 8.3s roots
+  n=55 m=1064 c=(133,4,2): 133769 bits, est. 2.0s CRT + 8.4s + 0.4s roots
+  n=1463 m=40 c=(5,4,2): 85430 bits, est. 1.3s CRT + 0.4s + 11.8s roots
+  n=35 m=1672 c=(209,4,2): 140472 bits, est. 2.1s CRT + 13.6s + 0.4s roots
+  n=19 m=3080 c=(385,4,2): 156028 bits, est. 2.4s CRT + 25.9s + 0.2s roots
+  n=11 m=5320 c=(665,4,2): 171907 bits, est. 2.6s CRT + 66.8s + 0.1s roots
+  n=7315 m=8 c=(1,4,2): 87170 bits, est. 1.3s CRT + 0.1s + 79.3s roots
+  n=7 m=8360 c=(1045,4,2): 186406 bits, est. 2.8s CRT + 85.8s + 0.1s roots
+  n=5 m=11704 c=(1463,4,2): 198992 bits, est. 3.0s CRT + 106.3s + 0.0s roots
+  n=14630 m=4 c=(1,2,2): 104115 bits, est. 1.6s CRT + 0.0s + 123.7s roots
+  n=29260 m=2 c=(1,1,2): 169381 bits, est. 2.6s CRT + 0.0s + 205.1s roots
+Decomposing with subgroup of order n=209, m=280 cosets, height bound 111196 bits (plain: 189438)
+bits = 117011.29 (classpoly degree 58520 height factor 36.00, safety margin 256 bits)
+Selected 3343 primes, maxp=199714787141, totbits = 117041.3
+=== D=-62721263535
+Using invariant w5w7 (535)
+Computing square-root of classpoly for D=-62721263535
+root enum cost for ell=2 with relative order 5336 is 3355715 nsecs
+root enum cost for ell=11 with relative order 4 is 32547 nsecs
+root enum cost for ell=19 with relative order 2 is 28517 nsecs
+35: (35,35,448009034) relative order 2, order 2, 
+2: (2,1,7840157942) relative order 5336, order 5336, 2^5336 = 35^0 
+3: (3,3,5226771962) relative order 2, order 2, 3^2 = 35^0 2^0 
+11: (11,9,1425483264) relative order 4, order 10672, 11^4 = 35^0 2^1818 3^0 
+19: (19,7,825279784) relative order 2, order 1334, 19^2 = 35^0 2^4944 3^0 11^0 
+Decomposition candidates for D=-62721263535 (degree 85376, plain height bound 783594 bits, P has 769 bits, 192 jobs):
+  n=368 m=232 c=(29,1,4,2): 159122 bits, est. 3.5s CRT + 1.7s + 2.7s roots
+  n=232 m=368 c=(46,1,4,2): 169231 bits, est. 3.8s CRT + 2.7s + 1.7s roots
+  n=232 m=368 c=(23,2,4,2): 191744 bits, est. 4.3s CRT + 2.7s + 1.7s roots
+  n=464 m=184 c=(23,1,4,2): 153590 bits, est. 3.4s CRT + 1.3s + 3.5s roots
+  n=184 m=464 c=(58,1,4,2): 174231 bits, est. 3.9s CRT + 3.5s + 1.3s roots
+  n=184 m=464 c=(29,2,4,2): 199264 bits, est. 4.4s CRT + 3.5s + 1.3s roots
+  n=667 m=128 c=(8,2,4,2): 163178 bits, est. 3.6s CRT + 0.9s + 5.2s roots
+  n=116 m=736 c=(92,1,4,2): 185183 bits, est. 4.1s CRT + 5.7s + 0.8s roots
+  n=116 m=736 c=(46,2,4,2): 213139 bits, est. 4.7s CRT + 5.7s + 0.8s roots
+  n=92 m=928 c=(116,1,4,2): 190731 bits, est. 4.2s CRT + 7.3s + 0.6s roots
+  n=92 m=928 c=(58,2,4,2): 219948 bits, est. 4.9s CRT + 7.3s + 0.6s roots
+  n=1334 m=64 c=(8,2,4,1): 149433 bits, est. 3.3s CRT + 0.4s + 10.7s roots
+  n=1334 m=64 c=(8,1,4,2): 128935 bits, est. 2.9s CRT + 0.4s + 10.7s roots
+  n=1334 m=64 c=(4,2,4,2): 128959 bits, est. 2.9s CRT + 0.4s + 10.7s roots
+  n=58 m=1472 c=(184,1,4,2): 220998 bits, est. 4.9s CRT + 11.9s + 0.4s roots
+  n=58 m=1472 c=(92,2,4,2): 235908 bits, est. 5.2s CRT + 11.9s + 0.4s roots
+  n=46 m=1856 c=(232,1,4,2): 227495 bits, est. 5.1s CRT + 15.2s + 0.5s roots
+  n=46 m=1856 c=(116,2,4,2): 243563 bits, est. 5.4s CRT + 15.2s + 0.5s roots
+  n=2668 m=32 c=(8,1,4,1): 125465 bits, est. 2.8s CRT + 0.3s + 22.2s roots
+  n=2668 m=32 c=(4,2,4,1): 123168 bits, est. 2.7s CRT + 0.3s + 22.2s roots
+  n=2668 m=32 c=(4,1,4,2): 115584 bits, est. 2.6s CRT + 0.3s + 22.2s roots
+  n=2668 m=32 c=(2,2,4,2): 110387 bits, est. 2.5s CRT + 0.3s + 22.2s roots
+  n=29 m=2944 c=(184,2,4,2): 290014 bits, est. 6.4s CRT + 24.7s + 0.3s roots
+  n=23 m=3712 c=(232,2,4,2): 299217 bits, est. 6.7s CRT + 31.5s + 0.2s roots
+  n=5336 m=16 c=(4,1,4,1): 121853 bits, est. 2.7s CRT + 0.2s + 66.9s roots
+  n=5336 m=16 c=(2,2,4,1): 115053 bits, est. 2.6s CRT + 0.2s + 66.9s roots
+  n=5336 m=16 c=(2,2,2,2): 109056 bits, est. 2.4s CRT + 0.2s + 66.9s roots
+  n=5336 m=16 c=(2,1,4,2): 119555 bits, est. 2.7s CRT + 0.2s + 66.9s roots
+  n=5336 m=16 c=(1,2,4,2): 129534 bits, est. 2.9s CRT + 0.2s + 66.9s roots
+  n=16 m=5336 c=(667,1,4,2): 244519 bits, est. 5.4s CRT + 66.9s + 0.2s roots
+  n=10672 m=8 c=(2,2,2,1): 125282 bits, est. 2.8s CRT + 0.1s + 100.0s roots
+  n=10672 m=8 c=(2,1,4,1): 139324 bits, est. 3.1s CRT + 0.1s + 100.0s roots
+  n=10672 m=8 c=(1,2,4,1): 150645 bits, est. 3.3s CRT + 0.1s + 100.0s roots
+  n=10672 m=8 c=(2,2,1,2): 129106 bits, est. 2.9s CRT + 0.1s + 100.0s roots
+  n=10672 m=8 c=(2,1,2,2): 131234 bits, est. 2.9s CRT + 0.1s + 100.0s roots
+  n=10672 m=8 c=(1,2,2,2): 140846 bits, est. 3.1s CRT + 0.1s + 100.0s roots
+  n=10672 m=8 c=(1,1,4,2): 177520 bits, est. 3.9s CRT + 0.1s + 100.0s roots
+  n=8 m=10672 c=(1334,1,4,2): 275964 bits, est. 6.1s CRT + 100.0s + 0.1s roots
+  n=8 m=10672 c=(667,2,4,2): 320435 bits, est. 7.1s CRT + 100.0s + 0.1s roots
+  n=21344 m=4 c=(2,2,1,1): 169632 bits, est. 3.8s CRT + 0.0s + 162.0s roots
+  n=21344 m=4 c=(2,1,2,1): 170956 bits, est. 3.8s CRT + 0.0s + 162.0s roots
+  n=21344 m=4 c=(1,2,2,1): 181965 bits, est. 4.0s CRT + 0.0s + 162.0s roots
+  n=21344 m=4 c=(1,1,4,1): 222670 bits, est. 5.0s CRT + 0.0s + 162.0s roots
+  n=21344 m=4 c=(2,1,1,2): 179729 bits, est. 4.0s CRT + 0.0s + 162.0s roots
+  n=21344 m=4 c=(1,2,1,2): 194333 bits, est. 4.3s CRT + 0.0s + 162.0s roots
+  n=21344 m=4 c=(1,1,2,2): 209663 bits, est. 4.7s CRT + 0.0s + 162.0s roots
+  n=4 m=21344 c=(2668,1,4,2): 316138 bits, est. 7.0s CRT + 162.0s + 0.0s roots
+  n=4 m=21344 c=(1334,2,4,2): 362072 bits, est. 8.1s CRT + 162.0s + 0.0s roots
+  n=42688 m=2 c=(2,1,1,1): 263733 bits, est. 5.9s CRT + 0.0s + 274.9s roots
+  n=42688 m=2 c=(1,2,1,1): 279052 bits, est. 6.2s CRT + 0.0s + 274.9s roots
+  n=42688 m=2 c=(1,1,2,1): 291986 bits, est. 6.5s CRT + 0.0s + 274.9s roots
+  n=42688 m=2 c=(1,1,1,2): 309472 bits, est. 6.9s CRT + 0.0s + 274.9s roots
+  n=2 m=42688 c=(5336,1,4,2): 383714 bits, est. 8.5s CRT + 274.9s + 0.0s roots
+  n=2 m=42688 c=(2668,2,4,2): 407240 bits, est. 9.1s CRT + 274.9s + 0.0s roots
+Decomposing with subgroup of order n=368, m=232 cosets, height bound 159122 bits (plain: 783594)
+bits = 167333.72 (classpoly degree 85376 height factor 24.00, safety margin 256 bits)
+Selected 4639 primes, maxp=115137534451, totbits = 167366.8
+=== D=-76050642003
+Using invariant w3w7 (521)
+Computing square-root of classpoly for D=-76050642003
+root enum cost for ell=11 with relative order 2736 is 30495250 nsecs
+root enum cost for ell=23 with relative order 2 is 42151 nsecs
+root enum cost for ell=41 with relative order 2 is 156639 nsecs
+21: (21,21,905364791) relative order 2, order 2, 
+11: (11,7,1728423683) relative order 2736, order 2736, 11^2736 = 21^0 
+23: (23,19,826637417) relative order 2, order 2736, 23^2 = 21^0 11^1426 
+41: (41,5,463723427) relative order 2, order 1368, 41^2 = 21^0 11^2236 23^0 
+67: (67,67,283771069) relative order 2, order 2, 67^2 = 21^0 11^0 23^0 41^0 
+Decomposition candidates for D=-76050642003 (degree 21888, plain height bound 346455 bits, P has 769 bits, 192 jobs):
+  n=152 m=144 c=(36,2,2,1): 110759 bits, est. 0.6s CRT + 1.0s + 1.1s roots
+  n=152 m=144 c=(18,2,2,2): 110899 bits, est. 0.6s CRT + 1.0s + 1.1s roots
+  n=144 m=152 c=(38,2,2,1): 111912 bits, est. 0.6s CRT + 1.1s + 1.0s roots
+  n=144 m=152 c=(19,2,2,2): 110858 bits, est. 0.6s CRT + 1.1s + 1.0s roots
+  n=171 m=128 c=(16,2,2,2): 106786 bits, est. 0.6s CRT + 0.9s + 1.2s roots
+  n=114 m=192 c=(48,2,2,1): 111799 bits, est. 0.6s CRT + 1.4s + 0.8s roots
+  n=114 m=192 c=(24,2,2,2): 112974 bits, est. 0.6s CRT + 1.4s + 0.8s roots
+  n=228 m=96 c=(24,2,2,1): 104829 bits, est. 0.6s CRT + 0.7s + 1.7s roots
+  n=228 m=96 c=(12,2,2,2): 102701 bits, est. 0.6s CRT + 0.7s + 1.7s roots
+  n=96 m=228 c=(57,2,2,1): 114667 bits, est. 0.7s CRT + 1.7s + 0.7s roots
+  n=288 m=76 c=(19,2,2,1): 103629 bits, est. 0.6s CRT + 0.5s + 2.1s roots
+  n=76 m=288 c=(72,2,2,1): 119189 bits, est. 0.7s CRT + 2.1s + 0.5s roots
+  n=76 m=288 c=(36,2,2,2): 119573 bits, est. 0.7s CRT + 2.1s + 0.5s roots
+  n=304 m=72 c=(18,2,2,1): 103541 bits, est. 0.6s CRT + 0.5s + 2.2s roots
+  n=304 m=72 c=(9,2,2,2): 103465 bits, est. 0.6s CRT + 0.5s + 2.2s roots
+  n=72 m=304 c=(76,2,2,1): 119402 bits, est. 0.7s CRT + 2.2s + 0.5s roots
+  n=72 m=304 c=(38,2,2,2): 120165 bits, est. 0.7s CRT + 2.2s + 0.5s roots
+  n=342 m=64 c=(16,2,2,1): 99442 bits, est. 0.6s CRT + 0.4s + 2.5s roots
+  n=342 m=64 c=(8,2,2,2): 100753 bits, est. 0.6s CRT + 0.4s + 2.5s roots
+  n=57 m=384 c=(48,2,2,2): 121653 bits, est. 0.7s CRT + 2.9s + 0.4s roots
+  n=456 m=48 c=(12,2,2,1): 96840 bits, est. 0.6s CRT + 0.3s + 3.4s roots
+  n=456 m=48 c=(6,2,2,2): 97088 bits, est. 0.6s CRT + 0.3s + 3.4s roots
+  n=48 m=456 c=(114,2,2,1): 124732 bits, est. 0.7s CRT + 3.4s + 0.3s roots
+  n=48 m=456 c=(57,2,2,2): 123560 bits, est. 0.7s CRT + 3.4s + 0.3s roots
+  n=38 m=576 c=(144,2,2,1): 128187 bits, est. 0.7s CRT + 4.4s + 0.4s roots
+  n=38 m=576 c=(72,2,2,2): 128253 bits, est. 0.7s CRT + 4.4s + 0.4s roots
+  n=608 m=36 c=(9,2,2,1): 97938 bits, est. 0.6s CRT + 0.4s + 4.7s roots
+  n=36 m=608 c=(152,2,2,1): 128577 bits, est. 0.7s CRT + 4.7s + 0.4s roots
+  n=36 m=608 c=(76,2,2,2): 128840 bits, est. 0.7s CRT + 4.7s + 0.4s roots
+  n=684 m=32 c=(8,2,2,1): 95747 bits, est. 0.5s CRT + 0.3s + 5.3s roots
+  n=684 m=32 c=(4,2,2,2): 92916 bits, est. 0.5s CRT + 0.3s + 5.3s roots
+  n=32 m=684 c=(171,2,2,1): 130359 bits, est. 0.7s CRT + 5.3s + 0.3s roots
+  n=912 m=24 c=(6,2,2,1): 94011 bits, est. 0.5s CRT + 0.3s + 7.2s roots
+  n=912 m=24 c=(3,2,2,2): 93462 bits, est. 0.5s CRT + 0.3s + 7.2s roots
+  n=24 m=912 c=(228,2,2,1): 134549 bits, est. 0.8s CRT + 7.2s + 0.3s roots
+  n=24 m=912 c=(114,2,2,2): 134735 bits, est. 0.8s CRT + 7.2s + 0.3s roots
+  n=19 m=1152 c=(144,2,2,2): 138871 bits, est. 0.8s CRT + 9.2s + 0.2s roots
+  n=18 m=1216 c=(304,2,2,1): 139292 bits, est. 0.8s CRT + 9.7s + 0.2s roots
+  n=18 m=1216 c=(152,2,2,2): 138520 bits, est. 0.8s CRT + 9.7s + 0.2s roots
+  n=1368 m=16 c=(4,2,2,1): 91690 bits, est. 0.5s CRT + 0.2s + 11.0s roots
+  n=1368 m=16 c=(4,2,1,2): 92107 bits, est. 0.5s CRT + 0.2s + 11.0s roots
+  n=1368 m=16 c=(2,2,2,2): 86538 bits, est. 0.5s CRT + 0.2s + 11.0s roots
+  n=16 m=1368 c=(342,2,2,1): 140903 bits, est. 0.8s CRT + 11.0s + 0.2s roots
+  n=16 m=1368 c=(171,2,2,2): 140995 bits, est. 0.8s CRT + 11.0s + 0.2s roots
+  n=1824 m=12 c=(3,2,2,1): 91865 bits, est. 0.5s CRT + 0.1s + 14.9s roots
+  n=12 m=1824 c=(456,2,2,1): 146103 bits, est. 0.8s CRT + 14.9s + 0.1s roots
+  n=12 m=1824 c=(228,2,2,2): 145533 bits, est. 0.8s CRT + 14.9s + 0.1s roots
+  n=9 m=2432 c=(304,2,2,2): 151280 bits, est. 0.9s CRT + 20.2s + 0.1s roots
+  n=2736 m=8 c=(4,2,1,1): 92632 bits, est. 0.5s CRT + 0.1s + 22.8s roots
+  n=2736 m=8 c=(2,2,2,1): 90523 bits, est. 0.5s CRT + 0.1s + 22.8s roots
+  n=2736 m=8 c=(2,2,1,2): 89842 bits, est. 0.5s CRT + 0.1s + 22.8s roots
+  n=2736 m=8 c=(2,1,2,2): 90069 bits, est. 0.5s CRT + 0.1s + 22.8s roots
+  n=2736 m=8 c=(1,2,2,2): 93107 bits, est. 0.5s CRT + 0.1s + 22.8s roots
+  n=8 m=2736 c=(684,2,2,1): 152956 bits, est. 0.9s CRT + 22.8s + 0.1s roots
+  n=8 m=2736 c=(342,2,2,2): 153310 bits, est. 0.9s CRT + 22.8s + 0.1s roots
+  n=6 m=3648 c=(912,2,2,1): 159275 bits, est. 0.9s CRT + 30.9s + 0.1s roots
+  n=6 m=3648 c=(456,2,2,2): 158846 bits, est. 0.9s CRT + 30.9s + 0.1s roots
+  n=5472 m=4 c=(2,2,1,1): 100015 bits, est. 0.6s CRT + 0.0s + 67.7s roots
+  n=5472 m=4 c=(2,1,2,1): 101071 bits, est. 0.6s CRT + 0.0s + 67.7s roots
+  n=5472 m=4 c=(1,2,2,1): 104890 bits, est. 0.6s CRT + 0.0s + 67.7s roots
+  n=5472 m=4 c=(2,1,1,2): 101322 bits, est. 0.6s CRT + 0.0s + 67.7s roots
+  n=5472 m=4 c=(1,2,1,2): 105364 bits, est. 0.6s CRT + 0.0s + 67.7s roots
+  n=5472 m=4 c=(1,1,2,2): 107511 bits, est. 0.6s CRT + 0.0s + 67.7s roots
+  n=4 m=5472 c=(1368,2,2,1): 167613 bits, est. 1.0s CRT + 67.7s + 0.0s roots
+  n=4 m=5472 c=(684,2,2,2): 167168 bits, est. 1.0s CRT + 67.7s + 0.0s roots
+  n=3 m=7296 c=(912,2,2,2): 173999 bits, est. 1.0s CRT + 79.2s + 0.0s roots
+  n=10944 m=2 c=(2,1,1,1): 129144 bits, est. 0.7s CRT + 0.0s + 101.7s roots
+  n=10944 m=2 c=(1,2,1,1): 138470 bits, est. 0.8s CRT + 0.0s + 101.7s roots
+  n=10944 m=2 c=(1,1,2,1): 132589 bits, est. 0.8s CRT + 0.0s + 101.7s roots
+  n=10944 m=2 c=(1,1,1,2): 132211 bits, est. 0.8s CRT + 0.0s + 101.7s roots
+  n=2 m=10944 c=(2736,2,2,1): 183186 bits, est. 1.0s CRT + 101.7s + 0.0s roots
+  n=2 m=10944 c=(1368,2,2,2): 182561 bits, est. 1.0s CRT + 101.7s + 0.0s roots
+Decomposing with subgroup of order n=152, m=144 cosets, height bound 110759 bits (plain: 346455)
+bits = 116552.69 (classpoly degree 21888 height factor 16.00, safety margin 256 bits)
+Selected 3321 primes, maxp=89918059603, totbits = 116571.4
+=== D=-115333393863
+Using invariant w2w13e1 (26)
+root enum cost for ell=11 with relative order 37348 is 416419050 nsecs
+3: (3,3,9611116156) relative order 2, order 2, 
+11: (11,7,2621213498) relative order 37348, order 37348, 11^37348 = 3^0 
+53: (53,53,544025456) relative order 2, order 2, 53^2 = 3^0 11^0 
+Decomposition candidates for D=-115333393863 (degree 149392, plain height bound 437070 bits, P has 769 bits, 192 jobs):
+  n=9337 m=16 c=(2,4,2): 153061 bits, est. 6.0s CRT + 0.2s + 91.9s roots
+  n=16 m=9337 c=(1,9337,1): 323261 bits, est. 12.6s CRT + 91.9s + 0.2s roots
+  n=18674 m=8 c=(2,4,1): 172279 bits, est. 6.7s CRT + 0.1s + 147.0s roots
+  n=18674 m=8 c=(2,2,2): 166237 bits, est. 6.5s CRT + 0.1s + 147.0s roots
+  n=18674 m=8 c=(1,4,2): 170866 bits, est. 6.6s CRT + 0.1s + 147.0s roots
+  n=8 m=18674 c=(2,9337,1): 430605 bits, est. 16.8s CRT + 147.0s + 0.1s roots
+  n=8 m=18674 c=(1,18674,1): 368383 bits, est. 14.3s CRT + 147.0s + 0.1s roots
+  n=8 m=18674 c=(1,9337,2): 369465 bits, est. 14.4s CRT + 147.0s + 0.1s roots
+  n=37348 m=4 c=(2,2,1): 211147 bits, est. 8.2s CRT + 0.0s + 247.5s roots
+  n=37348 m=4 c=(1,4,1): 213832 bits, est. 8.3s CRT + 0.0s + 247.5s roots
+  n=37348 m=4 c=(2,1,2): 235720 bits, est. 9.2s CRT + 0.0s + 247.5s roots
+  n=37348 m=4 c=(1,2,2): 234041 bits, est. 9.1s CRT + 0.0s + 247.5s roots
+  n=4 m=37348 c=(2,18674,1): 490796 bits, est. 19.1s CRT + 247.5s + 0.0s roots
+  n=4 m=37348 c=(1,37348,1): 424755 bits, est. 16.5s CRT + 247.5s + 0.0s roots
+  n=4 m=37348 c=(2,9337,2): 492783 bits, est. 19.2s CRT + 247.5s + 0.0s roots
+  n=4 m=37348 c=(1,18674,2): 425110 bits, est. 16.5s CRT + 247.5s + 0.0s roots
+  n=74696 m=2 c=(2,1,1): 324356 bits, est. 12.6s CRT + 0.0s + 431.2s roots
+  n=74696 m=2 c=(1,2,1): 322753 bits, est. 12.6s CRT + 0.0s + 431.2s roots
+  n=74696 m=2 c=(1,1,2): 407847 bits, est. 15.9s CRT + 0.0s + 431.2s roots
+  n=2 m=74696 c=(2,37348,1): 553762 bits, est. 21.5s CRT + 431.2s + 0.0s roots
+  n=2 m=74696 c=(2,18674,2): 554744 bits, est. 21.6s CRT + 431.2s + 0.0s roots
+  n=2 m=74696 c=(1,37348,2): 484881 bits, est. 18.9s CRT + 431.2s + 0.0s roots
+Decomposing with subgroup of order n=9337, m=16 cosets, height bound 153061 bits (plain: 437070)
+Sign-free decomposition: no trace computation, height bound 219400 bits
+bits = 219656.29 (classpoly degree 149392 height factor 42.00, safety margin 256 bits)
+Selected 5947 primes, maxp=172948754887, totbits = 219658.4
+=== D=-123856576567
+Using invariant f (1)
+root enum cost for ell=7 with relative order 40002 is 204725118 nsecs
+root enum cost for ell=13 with relative order 2 is 15122 nsecs
+root enum cost for ell=19 with relative order 2 is 29309 nsecs
+7: (7,5,4423449164) relative order 40002, order 40002, 
+13: (13,11,2381857244) relative order 2, order 40002, 13^2 = 7^10576 
+19: (19,9,1629691798) relative order 2, order 80004, 19^2 = 7^18333 13^1 
+Decomposition candidates for D=-123856576567 (degree 160008, plain height bound 259065 bits, P has 769 bits, 192 jobs):
+  n=354 m=452 c=(113,2,2): 137563 bits, est. 5.7s CRT + 3.4s + 2.6s roots
+  n=339 m=472 c=(118,2,2): 143082 bits, est. 6.0s CRT + 3.6s + 2.5s roots
+  n=678 m=236 c=(59,2,2): 131079 bits, est. 5.5s CRT + 1.7s + 5.2s roots
+  n=226 m=708 c=(177,2,2): 150793 bits, est. 6.3s CRT + 5.5s + 1.6s roots
+  n=177 m=904 c=(226,2,2): 157310 bits, est. 6.6s CRT + 7.1s + 1.3s roots
+  n=118 m=1356 c=(339,2,2): 160908 bits, est. 6.7s CRT + 10.9s + 0.8s roots
+  n=113 m=1416 c=(354,2,2): 170380 bits, est. 7.1s CRT + 11.4s + 0.8s roots
+  n=59 m=2712 c=(678,2,2): 187420 bits, est. 7.8s CRT + 22.6s + 0.4s roots
+  n=6667 m=24 c=(6,2,2): 99431 bits, est. 4.1s CRT + 0.3s + 75.2s roots
+  n=13334 m=12 c=(3,2,2): 101422 bits, est. 4.2s CRT + 0.1s + 116.0s roots
+  n=20001 m=8 c=(2,2,2): 105465 bits, est. 4.4s CRT + 0.1s + 154.5s roots
+  n=6 m=26668 c=(6667,2,2): 308393 bits, est. 12.9s CRT + 191.2s + 0.1s roots
+  n=40002 m=4 c=(2,1,2): 144950 bits, est. 6.0s CRT + 0.0s + 261.2s roots
+  n=40002 m=4 c=(1,2,2): 145260 bits, est. 6.1s CRT + 0.0s + 261.2s roots
+  n=3 m=53336 c=(13334,2,2): 366508 bits, est. 15.3s CRT + 328.2s + 0.0s roots
+  n=80004 m=2 c=(1,1,2): 226441 bits, est. 9.4s CRT + 0.0s + 456.3s roots
+  n=2 m=80004 c=(20001,2,2): 398630 bits, est. 16.6s CRT + 456.3s + 0.0s roots
+Decomposing with subgroup of order n=354, m=452 cosets, height bound 137563 bits (plain: 259065)
+Sign-free decomposition: no trace computation, height bound 179937 bits
+bits = 180192.66 (classpoly degree 160008 height factor 72.00, safety margin 256 bits)
+Selected 4881 primes, maxp=142304735543, totbits = 180195.2
+=== D=-124169733811
+Using invariant a29 (129)
+Computing square-root of classpoly for D=-124169733811
+root enum cost for ell=5 with relative order 42188 is 132931237 nsecs
+29: (29,29,1070428747) relative order 2, order 2, 
+5: (5,3,6208486691) relative order 42188, order 42188, 5^42188 = 29^0 
+Decomposition candidates for D=-124169733811 (degree 42188, plain height bound 634311 bits, P has 769 bits, 192 jobs):
+  n=212 m=199 c=(199): 175288 bits, est. 1.9s CRT + 1.4s + 1.5s roots
+  n=199 m=212 c=(212): 178138 bits, est. 2.0s CRT + 1.5s + 1.4s roots
+  n=398 m=106 c=(106): 162842 bits, est. 1.8s CRT + 0.7s + 3.0s roots
+  n=106 m=398 c=(398): 193281 bits, est. 2.1s CRT + 3.0s + 0.7s roots
+  n=796 m=53 c=(53): 149497 bits, est. 1.6s CRT + 0.4s + 6.2s roots
+  n=53 m=796 c=(796): 213415 bits, est. 2.3s CRT + 6.2s + 0.4s roots
+  n=10547 m=4 c=(4): 166085 bits, est. 1.8s CRT + 0.0s + 99.3s roots
+  n=4 m=10547 c=(10547): 303348 bits, est. 3.3s CRT + 99.3s + 0.0s roots
+  n=21094 m=2 c=(2): 221611 bits, est. 2.4s CRT + 0.0s + 160.6s roots
+  n=2 m=21094 c=(21094): 333890 bits, est. 3.7s CRT + 160.6s + 0.0s roots
+Decomposing with subgroup of order n=212, m=199 cosets, height bound 175288 bits (plain: 634311)
+bits = 184308.00 (classpoly degree 42188 height factor 15.00, safety margin 256 bits)
+Selected 5155 primes, maxp=300348506677, totbits = 184319.2
+=== D=-126996060003
+Using invariant a47 (147)
+root enum cost for ell=11 with relative order 4200 is 46818850 nsecs
+root enum cost for ell=17 with relative order 8 is 167342 nsecs
+3: (3,3,10583005001) relative order 2, order 2, 
+11: (11,1,2886274091) relative order 4200, order 4200, 11^4200 = 3^0 
+17: (17,15,1867589121) relative order 8, order 336, 17^8 = 3^0 11^1900 
+Decomposition candidates for D=-126996060003 (degree 67200, plain height bound 339708 bits, P has 769 bits, 192 jobs):
+  n=280 m=240 c=(2,15,8): 192115 bits, est. 3.4s CRT + 1.7s + 2.1s roots
+  n=280 m=240 c=(1,30,8): 174508 bits, est. 3.1s CRT + 1.7s + 2.1s roots
+  n=240 m=280 c=(1,35,8): 181826 bits, est. 3.2s CRT + 2.1s + 1.7s roots
+  n=300 m=224 c=(2,14,8): 191686 bits, est. 3.4s CRT + 1.6s + 2.2s roots
+  n=300 m=224 c=(1,28,8): 178912 bits, est. 3.1s CRT + 1.6s + 2.2s roots
+  n=210 m=320 c=(2,20,8): 202245 bits, est. 3.5s CRT + 2.4s + 1.5s roots
+  n=210 m=320 c=(1,40,8): 184463 bits, est. 3.2s CRT + 2.4s + 1.5s roots
+  n=336 m=200 c=(2,100,1): 180380 bits, est. 3.2s CRT + 1.4s + 2.5s roots
+  n=336 m=200 c=(2,50,2): 186477 bits, est. 3.3s CRT + 1.4s + 2.5s roots
+  n=336 m=200 c=(1,100,2): 166047 bits, est. 2.9s CRT + 1.4s + 2.5s roots
+  n=336 m=200 c=(2,25,4): 188484 bits, est. 3.3s CRT + 1.4s + 2.5s roots
+  n=336 m=200 c=(1,50,4): 172073 bits, est. 3.0s CRT + 1.4s + 2.5s roots
+  n=336 m=200 c=(1,25,8): 175798 bits, est. 3.1s CRT + 1.4s + 2.5s roots
+  n=200 m=336 c=(2,21,8): 203034 bits, est. 3.6s CRT + 2.5s + 1.4s roots
+  n=200 m=336 c=(1,42,8): 186283 bits, est. 3.3s CRT + 2.5s + 1.4s roots
+  n=350 m=192 c=(2,12,8): 188324 bits, est. 3.3s CRT + 1.4s + 2.6s roots
+  n=350 m=192 c=(1,24,8): 175058 bits, est. 3.1s CRT + 1.4s + 2.6s roots
+  n=175 m=384 c=(2,24,8): 207618 bits, est. 3.6s CRT + 2.9s + 1.2s roots
+  n=400 m=168 c=(1,21,8): 172390 bits, est. 3.0s CRT + 1.2s + 3.0s roots
+  n=168 m=400 c=(2,100,2): 200682 bits, est. 3.5s CRT + 3.0s + 1.2s roots
+  n=168 m=400 c=(2,50,4): 203404 bits, est. 3.6s CRT + 3.0s + 1.2s roots
+  n=168 m=400 c=(1,100,4): 182295 bits, est. 3.2s CRT + 3.0s + 1.2s roots
+  n=168 m=400 c=(2,25,8): 209093 bits, est. 3.7s CRT + 3.0s + 1.2s roots
+  n=168 m=400 c=(1,50,8): 187930 bits, est. 3.3s CRT + 3.0s + 1.2s roots
+  n=420 m=160 c=(2,20,4): 183813 bits, est. 3.2s CRT + 1.1s + 3.2s roots
+  n=420 m=160 c=(2,10,8): 184751 bits, est. 3.2s CRT + 1.1s + 3.2s roots
+  n=420 m=160 c=(1,20,8): 171123 bits, est. 3.0s CRT + 1.1s + 3.2s roots
+  n=150 m=448 c=(2,28,8): 211932 bits, est. 3.7s CRT + 3.4s + 1.1s roots
+  n=150 m=448 c=(1,56,8): 192420 bits, est. 3.4s CRT + 3.4s + 1.1s roots
+  n=140 m=480 c=(2,30,8): 209393 bits, est. 3.7s CRT + 3.6s + 1.0s roots
+  n=140 m=480 c=(1,60,8): 189984 bits, est. 3.3s CRT + 3.6s + 1.0s roots
+  n=525 m=128 c=(2,8,8): 182961 bits, est. 3.2s CRT + 0.9s + 4.0s roots
+  n=560 m=120 c=(1,15,8): 162286 bits, est. 2.8s CRT + 0.8s + 4.3s roots
+  n=120 m=560 c=(2,35,8): 216313 bits, est. 3.8s CRT + 4.3s + 0.8s roots
+  n=120 m=560 c=(1,70,8): 195574 bits, est. 3.4s CRT + 4.3s + 0.8s roots
+  n=600 m=112 c=(2,7,8): 174550 bits, est. 3.1s CRT + 0.8s + 4.6s roots
+  n=600 m=112 c=(1,14,8): 163812 bits, est. 2.9s CRT + 0.8s + 4.6s roots
+  n=112 m=600 c=(1,75,8): 195241 bits, est. 3.4s CRT + 4.6s + 0.8s roots
+  n=105 m=640 c=(2,40,8): 220832 bits, est. 3.9s CRT + 4.9s + 0.7s roots
+  n=672 m=100 c=(2,50,1): 170683 bits, est. 3.0s CRT + 0.7s + 5.2s roots
+  n=672 m=100 c=(1,100,1): 160404 bits, est. 2.8s CRT + 0.7s + 5.2s roots
+  n=672 m=100 c=(2,25,2): 172378 bits, est. 3.0s CRT + 0.7s + 5.2s roots
+  n=672 m=100 c=(1,50,2): 158616 bits, est. 2.8s CRT + 0.7s + 5.2s roots
+  n=672 m=100 c=(1,25,4): 162171 bits, est. 2.8s CRT + 0.7s + 5.2s roots
+  n=100 m=672 c=(2,42,8): 222380 bits, est. 3.9s CRT + 5.2s + 0.7s roots
+  n=100 m=672 c=(1,84,8): 200061 bits, est. 3.5s CRT + 5.2s + 0.7s roots
+  n=700 m=96 c=(2,6,8): 175200 bits, est. 3.1s CRT + 0.7s + 5.4s roots
+  n=700 m=96 c=(1,12,8): 159751 bits, est. 2.8s CRT + 0.7s + 5.4s roots
+  n=84 m=800 c=(2,100,4): 220718 bits, est. 3.9s CRT + 6.2s + 0.6s roots
+  n=84 m=800 c=(2,50,8): 225931 bits, est. 4.0s CRT + 6.2s + 0.6s roots
+  n=84 m=800 c=(1,100,8): 201404 bits, est. 3.5s CRT + 6.2s + 0.6s roots
+  n=840 m=80 c=(2,20,2): 167154 bits, est. 2.9s CRT + 0.5s + 6.6s roots
+  n=840 m=80 c=(2,10,4): 163775 bits, est. 2.9s CRT + 0.5s + 6.6s roots
+  n=840 m=80 c=(1,20,4): 157313 bits, est. 2.8s CRT + 0.5s + 6.6s roots
+  n=840 m=80 c=(2,5,8): 169032 bits, est. 3.0s CRT + 0.5s + 6.6s roots
+  n=840 m=80 c=(1,10,8): 156555 bits, est. 2.7s CRT + 0.5s + 6.6s roots
+  n=80 m=840 c=(1,105,8): 205027 bits, est. 3.6s CRT + 6.6s + 0.5s roots
+  n=75 m=896 c=(2,56,8): 231264 bits, est. 4.0s CRT + 7.0s + 0.5s roots
+  n=70 m=960 c=(2,60,8): 229326 bits, est. 4.0s CRT + 7.6s + 0.5s roots
+  n=70 m=960 c=(1,120,8): 206723 bits, est. 3.6s CRT + 7.6s + 0.5s roots
+  n=1050 m=64 c=(2,4,8): 167419 bits, est. 2.9s CRT + 0.4s + 8.3s roots
+  n=1050 m=64 c=(1,8,8): 158048 bits, est. 2.8s CRT + 0.4s + 8.3s roots
+  n=60 m=1120 c=(2,70,8): 235653 bits, est. 4.1s CRT + 8.9s + 0.4s roots
+  n=60 m=1120 c=(1,140,8): 210431 bits, est. 3.7s CRT + 8.9s + 0.4s roots
+  n=1200 m=56 c=(1,7,8): 151944 bits, est. 2.7s CRT + 0.4s + 9.6s roots
+  n=56 m=1200 c=(2,75,8): 236337 bits, est. 4.1s CRT + 9.6s + 0.4s roots
+  n=56 m=1200 c=(1,150,8): 211251 bits, est. 3.7s CRT + 9.6s + 0.4s roots
+  n=1344 m=50 c=(2,25,1): 159008 bits, est. 2.8s CRT + 0.3s + 10.8s roots
+  n=1344 m=50 c=(1,50,1): 156078 bits, est. 2.7s CRT + 0.3s + 10.8s roots
+  n=1344 m=50 c=(1,25,2): 149841 bits, est. 2.6s CRT + 0.3s + 10.8s roots
+  n=50 m=1344 c=(2,84,8): 241613 bits, est. 4.2s CRT + 10.8s + 0.3s roots
+  n=50 m=1344 c=(1,168,8): 216280 bits, est. 3.8s CRT + 10.8s + 0.3s roots
+  n=1400 m=48 c=(2,3,8): 162736 bits, est. 2.8s CRT + 0.3s + 11.3s roots
+  n=1400 m=48 c=(1,6,8): 151002 bits, est. 2.6s CRT + 0.3s + 11.3s roots
+  n=48 m=1400 c=(1,175,8): 216877 bits, est. 3.8s CRT + 11.3s + 0.3s roots
+  n=42 m=1600 c=(2,100,8): 245354 bits, est. 4.3s CRT + 13.0s + 0.5s roots
+  n=42 m=1600 c=(1,200,8): 219946 bits, est. 3.8s CRT + 13.0s + 0.5s roots
+  n=1680 m=40 c=(2,20,1): 155527 bits, est. 2.7s CRT + 0.4s + 13.7s roots
+  n=1680 m=40 c=(2,10,2): 151068 bits, est. 2.6s CRT + 0.4s + 13.7s roots
+  n=1680 m=40 c=(1,20,2): 145814 bits, est. 2.6s CRT + 0.4s + 13.7s roots
+  n=1680 m=40 c=(2,5,4): 152941 bits, est. 2.7s CRT + 0.4s + 13.7s roots
+  n=1680 m=40 c=(1,10,4): 144676 bits, est. 2.5s CRT + 0.4s + 13.7s roots
+  n=1680 m=40 c=(1,5,8): 146623 bits, est. 2.6s CRT + 0.4s + 13.7s roots
+  n=40 m=1680 c=(2,105,8): 248206 bits, est. 4.3s CRT + 13.7s + 0.4s roots
+  n=40 m=1680 c=(1,210,8): 220993 bits, est. 3.9s CRT + 13.7s + 0.4s roots
+  n=35 m=1920 c=(2,120,8): 251908 bits, est. 4.4s CRT + 15.7s + 0.4s roots
+  n=2100 m=32 c=(2,4,4): 154879 bits, est. 2.7s CRT + 0.3s + 17.3s roots
+  n=2100 m=32 c=(2,2,8): 147778 bits, est. 2.6s CRT + 0.3s + 17.3s roots
+  n=2100 m=32 c=(1,4,8): 147893 bits, est. 2.6s CRT + 0.3s + 17.3s roots
+  n=30 m=2240 c=(2,140,8): 257004 bits, est. 4.5s CRT + 18.5s + 0.3s roots
+  n=30 m=2240 c=(1,280,8): 229011 bits, est. 4.0s CRT + 18.5s + 0.3s roots
+  n=28 m=2400 c=(2,150,8): 259174 bits, est. 4.5s CRT + 19.9s + 0.3s roots
+  n=28 m=2400 c=(1,300,8): 228890 bits, est. 4.0s CRT + 19.9s + 0.3s roots
+  n=2688 m=25 c=(1,25,1): 150453 bits, est. 2.6s CRT + 0.3s + 22.4s roots
+  n=25 m=2688 c=(2,168,8): 264344 bits, est. 4.6s CRT + 22.4s + 0.3s roots
+  n=2800 m=24 c=(1,3,8): 143444 bits, est. 2.5s CRT + 0.3s + 23.4s roots
+  n=24 m=2800 c=(2,175,8): 265677 bits, est. 4.6s CRT + 23.4s + 0.3s roots
+  n=24 m=2800 c=(1,350,8): 235145 bits, est. 4.1s CRT + 23.4s + 0.3s roots
+  n=21 m=3200 c=(2,200,8): 270438 bits, est. 4.7s CRT + 26.9s + 0.2s roots
+  n=3360 m=20 c=(2,10,1): 148386 bits, est. 2.6s CRT + 0.2s + 28.3s roots
+  n=3360 m=20 c=(1,20,1): 149326 bits, est. 2.6s CRT + 0.2s + 28.3s roots
+  n=3360 m=20 c=(2,5,2): 146491 bits, est. 2.6s CRT + 0.2s + 28.3s roots
+  n=3360 m=20 c=(1,10,2): 139992 bits, est. 2.4s CRT + 0.2s + 28.3s roots
+  n=3360 m=20 c=(1,5,4): 145311 bits, est. 2.5s CRT + 0.2s + 28.3s roots
+  n=20 m=3360 c=(2,210,8): 271335 bits, est. 4.7s CRT + 28.3s + 0.2s roots
+  n=20 m=3360 c=(1,420,8): 240624 bits, est. 4.2s CRT + 28.3s + 0.2s roots
+  n=4200 m=16 c=(2,4,2): 143591 bits, est. 2.5s CRT + 0.2s + 60.0s roots
+  n=4200 m=16 c=(2,2,4): 142747 bits, est. 2.5s CRT + 0.2s + 60.0s roots
+  n=4200 m=16 c=(1,4,4): 141506 bits, est. 2.5s CRT + 0.2s + 60.0s roots
+  n=4200 m=16 c=(2,1,8): 145324 bits, est. 2.5s CRT + 0.2s + 60.0s roots
+  n=4200 m=16 c=(1,2,8): 136638 bits, est. 2.4s CRT + 0.2s + 60.0s roots
+  n=16 m=4200 c=(1,525,8): 248538 bits, est. 4.3s CRT + 60.0s + 0.2s roots
+  n=15 m=4480 c=(2,280,8): 282843 bits, est. 4.9s CRT + 61.6s + 0.2s roots
+  n=14 m=4800 c=(2,300,8): 284427 bits, est. 5.0s CRT + 63.6s + 0.1s roots
+  n=14 m=4800 c=(1,600,8): 252681 bits, est. 4.4s CRT + 63.6s + 0.1s roots
+  n=12 m=5600 c=(2,350,8): 291729 bits, est. 5.1s CRT + 68.5s + 0.1s roots
+  n=12 m=5600 c=(1,700,8): 258129 bits, est. 4.5s CRT + 68.5s + 0.1s roots
+  n=6720 m=10 c=(2,5,1): 152171 bits, est. 2.7s CRT + 0.1s + 75.6s roots
+  n=6720 m=10 c=(1,10,1): 152605 bits, est. 2.7s CRT + 0.1s + 75.6s roots
+  n=6720 m=10 c=(1,5,2): 155616 bits, est. 2.7s CRT + 0.1s + 75.6s roots
+  n=10 m=6720 c=(2,420,8): 299176 bits, est. 5.2s CRT + 75.6s + 0.1s roots
+  n=10 m=6720 c=(1,840,8): 265447 bits, est. 4.6s CRT + 75.6s + 0.1s roots
+  n=8400 m=8 c=(2,4,1): 150529 bits, est. 2.6s CRT + 0.1s + 86.1s roots
+  n=8400 m=8 c=(2,2,2): 151020 bits, est. 2.6s CRT + 0.1s + 86.1s roots
+  n=8400 m=8 c=(1,4,2): 143240 bits, est. 2.5s CRT + 0.1s + 86.1s roots
+  n=8400 m=8 c=(2,1,4): 150449 bits, est. 2.6s CRT + 0.1s + 86.1s roots
+  n=8400 m=8 c=(1,2,4): 143592 bits, est. 2.5s CRT + 0.1s + 86.1s roots
+  n=8400 m=8 c=(1,1,8): 155594 bits, est. 2.7s CRT + 0.1s + 86.1s roots
+  n=8 m=8400 c=(2,525,8): 310123 bits, est. 5.4s CRT + 86.1s + 0.1s roots
+  n=8 m=8400 c=(1,1050,8): 274576 bits, est. 4.8s CRT + 86.1s + 0.1s roots
+  n=7 m=9600 c=(2,600,8): 316259 bits, est. 5.5s CRT + 93.5s + 0.1s roots
+  n=6 m=11200 c=(2,700,8): 323709 bits, est. 5.7s CRT + 103.3s + 0.1s roots
+  n=6 m=11200 c=(1,1400,8): 286900 bits, est. 5.0s CRT + 103.3s + 0.1s roots
+  n=13440 m=5 c=(1,5,1): 182949 bits, est. 3.2s CRT + 0.0s + 116.7s roots
+  n=5 m=13440 c=(2,840,8): 332910 bits, est. 5.8s CRT + 116.7s + 0.0s roots
+  n=16800 m=4 c=(2,2,1): 178886 bits, est. 3.1s CRT + 0.0s + 136.3s roots
+  n=16800 m=4 c=(1,4,1): 182641 bits, est. 3.2s CRT + 0.0s + 136.3s roots
+  n=16800 m=4 c=(2,1,2): 180555 bits, est. 3.2s CRT + 0.0s + 136.3s roots
+  n=16800 m=4 c=(1,2,2): 168114 bits, est. 2.9s CRT + 0.0s + 136.3s roots
+  n=16800 m=4 c=(1,1,4): 186462 bits, est. 3.3s CRT + 0.0s + 136.3s roots
+  n=4 m=16800 c=(2,1050,8): 345011 bits, est. 6.0s CRT + 136.3s + 0.0s roots
+  n=4 m=16800 c=(1,2100,8): 305943 bits, est. 5.4s CRT + 136.3s + 0.0s roots
+  n=3 m=22400 c=(2,1400,8): 360209 bits, est. 6.3s CRT + 167.8s + 0.0s roots
+  n=33600 m=2 c=(2,1,1): 255368 bits, est. 4.5s CRT + 0.0s + 228.0s roots
+  n=33600 m=2 c=(1,2,1): 244726 bits, est. 4.3s CRT + 0.0s + 228.0s roots
+  n=33600 m=2 c=(1,1,2): 252806 bits, est. 4.4s CRT + 0.0s + 228.0s roots
+  n=2 m=33600 c=(2,2100,8): 381477 bits, est. 6.7s CRT + 228.0s + 0.0s roots
+  n=2 m=33600 c=(1,4200,8): 340863 bits, est. 6.0s CRT + 228.0s + 0.0s roots
+Decomposing with subgroup of order n=336, m=200 cosets, height bound 166047 bits (plain: 339708)
+bits = 174605.48 (classpoly degree 67200 height factor 24.00, safety margin 256 bits)
+Selected 4847 primes, maxp=181696849927, totbits = 174627.5
+=== D=-127843394223
+Using invariant w2w7e1 (14)
+root enum cost for ell=11 with relative order 64278 is 716688550 nsecs
+root enum cost for ell=23 with relative order 2 is 42151 nsecs
+3: (3,3,10653616186) relative order 2, order 2, 
+11: (11,7,2905531688) relative order 64278, order 64278, 11^64278 = 3^0 
+23: (23,9,1389602112) relative order 2, order 7142, 23^2 = 3^0 11^22572 
+Decomposition candidates for D=-127843394223 (degree 257112, plain height bound 600290 bits, P has 769 bits, 192 jobs):
+  n=3571 m=72 c=(2,18,2): 195680 bits, est. 13.1s CRT + 0.5s + 30.2s roots
+  n=7142 m=36 c=(2,18,1): 188585 bits, est. 12.6s CRT + 0.4s + 78.2s roots
+  n=7142 m=36 c=(2,9,2): 159422 bits, est. 10.7s CRT + 0.4s + 78.2s roots
+  n=7142 m=36 c=(1,18,2): 162815 bits, est. 10.9s CRT + 0.4s + 78.2s roots
+  n=36 m=7142 c=(1,3571,2): 382903 bits, est. 25.6s CRT + 78.2s + 0.4s roots
+  n=10713 m=24 c=(2,6,2): 151629 bits, est. 10.2s CRT + 0.3s + 100.3s roots
+  n=14284 m=18 c=(2,9,1): 169645 bits, est. 11.4s CRT + 0.2s + 121.6s roots
+  n=14284 m=18 c=(1,18,1): 172863 bits, est. 11.6s CRT + 0.2s + 121.6s roots
+  n=14284 m=18 c=(1,9,2): 152151 bits, est. 10.2s CRT + 0.2s + 121.6s roots
+  n=18 m=14284 c=(2,3571,2): 515904 bits, est. 34.5s CRT + 121.6s + 0.2s roots
+  n=18 m=14284 c=(1,7142,2): 437480 bits, est. 29.3s CRT + 121.6s + 0.2s roots
+  n=21426 m=12 c=(2,6,1): 175656 bits, est. 11.8s CRT + 0.1s + 162.4s roots
+  n=21426 m=12 c=(2,3,2): 182393 bits, est. 12.2s CRT + 0.1s + 162.4s roots
+  n=21426 m=12 c=(1,6,2): 164797 bits, est. 11.0s CRT + 0.1s + 162.4s roots
+  n=12 m=21426 c=(1,10713,2): 475916 bits, est. 31.9s CRT + 162.4s + 0.1s roots
+  n=28568 m=9 c=(1,9,1): 184019 bits, est. 12.3s CRT + 0.1s + 201.4s roots
+  n=9 m=28568 c=(2,7142,2): 594244 bits, est. 39.8s CRT + 201.4s + 0.1s roots
+  n=32139 m=8 c=(2,2,2): 206945 bits, est. 13.9s CRT + 0.1s + 220.4s roots
+  n=42852 m=6 c=(2,3,1): 243219 bits, est. 16.3s CRT + 0.1s + 275.7s roots
+  n=42852 m=6 c=(1,6,1): 217953 bits, est. 14.6s CRT + 0.1s + 275.7s roots
+  n=42852 m=6 c=(1,3,2): 246762 bits, est. 16.5s CRT + 0.1s + 275.7s roots
+  n=6 m=42852 c=(2,10713,2): 647840 bits, est. 43.4s CRT + 275.7s + 0.1s roots
+  n=6 m=42852 c=(1,21426,2): 558049 bits, est. 37.4s CRT + 275.7s + 0.1s roots
+  n=64278 m=4 c=(2,2,1): 291072 bits, est. 19.5s CRT + 0.0s + 381.5s roots
+  n=64278 m=4 c=(2,1,2): 333782 bits, est. 22.3s CRT + 0.0s + 381.5s roots
+  n=64278 m=4 c=(1,2,2): 295219 bits, est. 19.8s CRT + 0.0s + 381.5s roots
+  n=4 m=64278 c=(1,32139,2): 612425 bits, est. 41.0s CRT + 381.5s + 0.0s roots
+  n=85704 m=3 c=(1,3,1): 362075 bits, est. 24.2s CRT + 0.0s + 482.9s roots
+  n=3 m=85704 c=(2,21426,2): 751611 bits, est. 50.3s CRT + 482.9s + 0.0s roots
+  n=128556 m=2 c=(2,1,1): 508751 bits, est. 34.1s CRT + 0.0s + 677.5s roots
+  n=128556 m=2 c=(1,2,1): 457490 bits, est. 30.6s CRT + 0.0s + 677.5s roots
+  n=128556 m=2 c=(1,1,2): 532114 bits, est. 35.6s CRT + 0.0s + 677.5s roots
+  n=2 m=128556 c=(2,32139,2): 808274 bits, est. 54.1s CRT + 677.5s + 0.0s roots
+  n=2 m=128556 c=(1,64278,2): 711764 bits, est. 47.7s CRT + 677.5s + 0.0s roots
+Decomposing with subgroup of order n=3571, m=72 cosets, height bound 195680 bits (plain: 600290)
+Sign-free decomposition: no trace computation, height bound 259533 bits
+bits = 259788.80 (classpoly degree 257112 height factor 48.00, safety margin 256 bits)
+Selected 6997 primes, maxp=231716816659, totbits = 259801.2
+=== D=-150887559671
+Using invariant f (1)
+root enum cost for ell=5 with relative order 30566 is 98908340 nsecs
+root enum cost for ell=11 with relative order 2 is 11452 nsecs
+root enum cost for ell=13 with relative order 2 is 15531 nsecs
+root enum cost for ell=43 with relative order 2 is 199742 nsecs
+5: (5,3,7544377984) relative order 30566, order 30566, 
+11: (11,3,3429262720) relative order 2, order 61132, 11^2 = 5^14425 
+13: (13,3,2901683840) relative order 2, order 61132, 13^2 = 5^28665 11^0 
+19: (19,19,1985362632) relative order 2, order 2, 19^2 = 5^0 11^0 13^0 
+43: (43,19,877253256) relative order 2, order 61132, 43^2 = 5^3309 11^0 13^0 19^0 
+Decomposition candidates for D=-150887559671 (degree 489056, plain height bound 710644 bits, P has 769 bits, 192 jobs):
+  n=899 m=544 c=(34,2,2,2,2): 283421 bits, est. 36.1s CRT + 4.2s + 7.1s roots
+  n=527 m=928 c=(58,2,2,2,2): 320366 bits, est. 40.8s CRT + 7.3s + 4.0s roots
+  n=986 m=496 c=(62,2,2,1,2): 274379 bits, est. 34.9s CRT + 3.8s + 7.8s roots
+  n=986 m=496 c=(31,2,2,2,2): 262629 bits, est. 33.4s CRT + 3.8s + 7.8s roots
+  n=493 m=992 c=(62,2,2,2,2): 312925 bits, est. 39.9s CRT + 7.8s + 3.7s roots
+  n=1054 m=464 c=(58,2,2,1,2): 279499 bits, est. 35.6s CRT + 3.5s + 8.4s roots
+  n=1054 m=464 c=(29,2,2,2,2): 261114 bits, est. 33.3s CRT + 3.5s + 8.4s roots
+  n=1798 m=272 c=(34,2,2,1,2): 249959 bits, est. 31.8s CRT + 2.0s + 14.7s roots
+  n=1798 m=272 c=(17,2,2,2,2): 240838 bits, est. 30.7s CRT + 2.0s + 14.7s roots
+  n=1972 m=248 c=(31,2,2,1,2): 234441 bits, est. 29.9s CRT + 1.8s + 16.2s roots
+  n=2108 m=232 c=(29,2,2,1,2): 231887 bits, est. 29.5s CRT + 1.7s + 17.4s roots
+  n=3596 m=136 c=(17,2,2,1,2): 217129 bits, est. 27.7s CRT + 1.0s + 30.4s roots
+  n=124 m=3944 c=(493,2,2,1,2): 412466 bits, est. 52.5s CRT + 33.5s + 0.9s roots
+  n=116 m=4216 c=(527,2,2,1,2): 423394 bits, est. 53.9s CRT + 60.0s + 0.8s roots
+  n=68 m=7192 c=(899,2,2,1,2): 469913 bits, est. 59.8s CRT + 78.5s + 0.5s roots
+  n=62 m=7888 c=(986,2,2,1,2): 469220 bits, est. 59.8s CRT + 82.9s + 0.4s roots
+  n=62 m=7888 c=(493,2,2,2,2): 484830 bits, est. 61.7s CRT + 82.9s + 0.4s roots
+  n=58 m=8432 c=(1054,2,2,1,2): 486584 bits, est. 62.0s CRT + 86.3s + 0.4s roots
+  n=58 m=8432 c=(527,2,2,2,2): 494087 bits, est. 62.9s CRT + 86.3s + 0.4s roots
+  n=34 m=14384 c=(1798,2,2,1,2): 543462 bits, est. 69.2s CRT + 122.2s + 0.4s roots
+  n=34 m=14384 c=(899,2,2,2,2): 557657 bits, est. 71.0s CRT + 122.2s + 0.4s roots
+  n=15283 m=32 c=(2,2,2,2,2): 137708 bits, est. 17.5s CRT + 0.3s + 127.5s roots
+  n=31 m=15776 c=(986,2,2,2,2): 561995 bits, est. 71.6s CRT + 130.3s + 0.3s roots
+  n=29 m=16864 c=(1054,2,2,2,2): 577026 bits, est. 73.5s CRT + 136.6s + 0.3s roots
+  n=17 m=28768 c=(1798,2,2,2,2): 656561 bits, est. 83.6s CRT + 202.5s + 0.2s roots
+  n=30566 m=16 c=(2,2,2,1,2): 164679 bits, est. 21.0s CRT + 0.2s + 212.0s roots
+  n=30566 m=16 c=(1,2,2,2,2): 168623 bits, est. 21.5s CRT + 0.2s + 212.0s roots
+  n=61132 m=8 c=(1,2,2,2,1): 222124 bits, est. 28.3s CRT + 0.1s + 366.3s roots
+  n=61132 m=8 c=(1,2,2,1,2): 226827 bits, est. 28.9s CRT + 0.1s + 366.3s roots
+  n=61132 m=8 c=(1,2,1,2,2): 232395 bits, est. 29.6s CRT + 0.1s + 366.3s roots
+  n=61132 m=8 c=(1,1,2,2,2): 233573 bits, est. 29.7s CRT + 0.1s + 366.3s roots
+  n=122264 m=4 c=(1,2,2,1,1): 347710 bits, est. 44.3s CRT + 0.0s + 649.4s roots
+  n=122264 m=4 c=(1,2,1,2,1): 344165 bits, est. 43.8s CRT + 0.0s + 649.4s roots
+  n=122264 m=4 c=(1,1,2,2,1): 348450 bits, est. 44.4s CRT + 0.0s + 649.4s roots
+  n=122264 m=4 c=(1,2,1,1,2): 348676 bits, est. 44.4s CRT + 0.0s + 649.4s roots
+  n=122264 m=4 c=(1,1,2,1,2): 349381 bits, est. 44.5s CRT + 0.0s + 649.4s roots
+  n=122264 m=4 c=(1,1,1,2,2): 396871 bits, est. 50.5s CRT + 0.0s + 649.4s roots
+  n=4 m=122264 c=(15283,2,2,1,2): 957536 bits, est. 122.0s CRT + 649.4s + 0.0s roots
+  n=244528 m=2 c=(1,2,1,1,1): 620994 bits, est. 79.1s CRT + 0.0s + 1173.6s roots
+  n=244528 m=2 c=(1,1,2,1,1): 637954 bits, est. 81.2s CRT + 0.0s + 1173.6s roots
+  n=244528 m=2 c=(1,1,1,2,1): 627915 bits, est. 80.0s CRT + 0.0s + 1173.6s roots
+  n=244528 m=2 c=(1,1,1,1,2): 628937 bits, est. 80.1s CRT + 0.0s + 1173.6s roots
+  n=2 m=244528 c=(30566,2,2,1,2): 1127971 bits, est. 143.7s CRT + 1173.6s + 0.0s roots
+  n=2 m=244528 c=(15283,2,2,2,2): 1136497 bits, est. 144.7s CRT + 1173.6s + 0.0s roots
+Decomposing with subgroup of order n=986, m=496 cosets, height bound 262629 bits (plain: 710644)
+Sign-free decomposition: no trace computation, height bound 314935 bits
+bits = 315190.90 (classpoly degree 489056 height factor 72.00, safety margin 256 bits)
+Selected 8261 primes, maxp=7632024983879, totbits = 315194.3
+=== D=-154094250923
+Using invariant a71 (171)
+root enum cost for ell=3 with relative order 46000 is 37673181 nsecs
+root enum cost for ell=11 with relative order 2 is 11452 nsecs
+3: (3,1,12841187577) relative order 46000, order 46000, 
+11: (11,5,3502142067) relative order 2, order 46000, 11^2 = 3^35562 
+Decomposition candidates for D=-154094250923 (degree 92000, plain height bound 311657 bits, P has 769 bits, 192 jobs):
+  n=368 m=250 c=(125,2): 172744 bits, est. 4.1s CRT + 1.8s + 2.7s roots
+  n=250 m=368 c=(184,2): 180796 bits, est. 4.3s CRT + 2.7s + 1.8s roots
+  n=400 m=230 c=(115,2): 173461 bits, est. 4.2s CRT + 1.7s + 3.0s roots
+  n=230 m=400 c=(200,2): 185124 bits, est. 4.4s CRT + 3.0s + 1.7s roots
+  n=460 m=200 c=(100,2): 168278 bits, est. 4.0s CRT + 1.4s + 3.5s roots
+  n=200 m=460 c=(230,2): 188272 bits, est. 4.5s CRT + 3.5s + 1.4s roots
+  n=500 m=184 c=(92,2): 167820 bits, est. 4.0s CRT + 1.3s + 3.8s roots
+  n=184 m=500 c=(250,2): 189164 bits, est. 4.5s CRT + 3.8s + 1.3s roots
+  n=575 m=160 c=(80,2): 164201 bits, est. 3.9s CRT + 1.1s + 4.4s roots
+  n=125 m=736 c=(368,2): 196133 bits, est. 4.7s CRT + 5.7s + 0.9s roots
+  n=115 m=800 c=(400,2): 202265 bits, est. 4.8s CRT + 6.2s + 0.8s roots
+  n=920 m=100 c=(50,2): 155721 bits, est. 3.7s CRT + 0.7s + 7.2s roots
+  n=100 m=920 c=(460,2): 205951 bits, est. 4.9s CRT + 7.2s + 0.7s roots
+  n=1000 m=92 c=(46,2): 154365 bits, est. 3.7s CRT + 0.6s + 7.9s roots
+  n=92 m=1000 c=(500,2): 205026 bits, est. 4.9s CRT + 7.9s + 0.6s roots
+  n=1150 m=80 c=(40,2): 148608 bits, est. 3.6s CRT + 0.5s + 9.2s roots
+  n=80 m=1150 c=(575,2): 210560 bits, est. 5.0s CRT + 9.2s + 0.5s roots
+  n=1840 m=50 c=(25,2): 147932 bits, est. 3.5s CRT + 0.3s + 15.0s roots
+  n=50 m=1840 c=(920,2): 226260 bits, est. 5.4s CRT + 15.0s + 0.3s roots
+  n=2000 m=46 c=(23,2): 145248 bits, est. 3.5s CRT + 0.5s + 16.4s roots
+  n=46 m=2000 c=(1000,2): 227634 bits, est. 5.5s CRT + 16.4s + 0.5s roots
+  n=2300 m=40 c=(20,2): 138577 bits, est. 3.3s CRT + 0.4s + 19.0s roots
+  n=40 m=2300 c=(1150,2): 231121 bits, est. 5.5s CRT + 19.0s + 0.4s roots
+  n=2875 m=32 c=(16,2): 138300 bits, est. 3.3s CRT + 0.3s + 24.1s roots
+  n=25 m=3680 c=(1840,2): 248371 bits, est. 6.0s CRT + 31.2s + 0.3s roots
+  n=23 m=4000 c=(2000,2): 250933 bits, est. 6.0s CRT + 34.0s + 0.2s roots
+  n=4600 m=20 c=(10,2): 134938 bits, est. 3.2s CRT + 0.2s + 62.3s roots
+  n=20 m=4600 c=(2300,2): 256967 bits, est. 6.2s CRT + 62.3s + 0.2s roots
+  n=5750 m=16 c=(8,2): 135467 bits, est. 3.2s CRT + 0.2s + 69.5s roots
+  n=16 m=5750 c=(2875,2): 266083 bits, est. 6.4s CRT + 69.5s + 0.2s roots
+  n=9200 m=10 c=(5,2): 139876 bits, est. 3.4s CRT + 0.1s + 91.0s roots
+  n=10 m=9200 c=(4600,2): 288844 bits, est. 6.9s CRT + 91.0s + 0.1s roots
+  n=11500 m=8 c=(4,2): 142203 bits, est. 3.4s CRT + 0.1s + 105.1s roots
+  n=8 m=11500 c=(5750,2): 300136 bits, est. 7.2s CRT + 105.1s + 0.1s roots
+  n=5 m=18400 c=(9200,2): 325974 bits, est. 7.8s CRT + 145.4s + 0.0s roots
+  n=23000 m=4 c=(2,2): 168557 bits, est. 4.0s CRT + 0.0s + 171.1s roots
+  n=4 m=23000 c=(11500,2): 340321 bits, est. 8.2s CRT + 171.1s + 0.0s roots
+  n=46000 m=2 c=(2,1): 236748 bits, est. 5.7s CRT + 0.0s + 291.6s roots
+  n=46000 m=2 c=(1,2): 255933 bits, est. 6.1s CRT + 0.0s + 291.6s roots
+  n=2 m=46000 c=(23000,2): 381369 bits, est. 9.1s CRT + 291.6s + 0.0s roots
+Decomposing with subgroup of order n=368, m=250 cosets, height bound 172744 bits (plain: 311657)
+bits = 181636.73 (classpoly degree 92000 height factor 36.00, safety margin 256 bits)
+Selected 4992 primes, maxp=668149179917, totbits = 181655.8
+=== D=-169383168327
+Using invariant w2w13e1 (26)
+root enum cost for ell=11 with relative order 138900 is 1590671348 nsecs
+3: (3,3,14115264028) relative order 2, order 2, 
+11: (11,1,3849617462) relative order 138900, order 138900, 11^138900 = 3^0 
+Decomposition candidates for D=-169383168327 (degree 277800, plain height bound 731031 bits, P has 769 bits, 192 jobs):
+  n=600 m=463 c=(1,463): 298121 bits, est. 21.6s CRT + 3.5s + 4.6s roots
+  n=463 m=600 c=(2,300): 367198 bits, est. 26.6s CRT + 4.6s + 3.5s roots
+  n=926 m=300 c=(2,150): 328563 bits, est. 23.8s CRT + 2.2s + 7.3s roots
+  n=926 m=300 c=(1,300): 282144 bits, est. 20.4s CRT + 2.2s + 7.3s roots
+  n=300 m=926 c=(2,463): 386100 bits, est. 27.9s CRT + 7.3s + 2.2s roots
+  n=300 m=926 c=(1,926): 331145 bits, est. 24.0s CRT + 7.3s + 2.2s roots
+  n=1389 m=200 c=(2,100): 298164 bits, est. 21.6s CRT + 1.4s + 11.2s roots
+  n=200 m=1389 c=(1,1389): 345457 bits, est. 25.0s CRT + 11.2s + 1.4s roots
+  n=1852 m=150 c=(2,75): 289379 bits, est. 20.9s CRT + 1.1s + 15.1s roots
+  n=1852 m=150 c=(1,150): 256816 bits, est. 18.6s CRT + 1.1s + 15.1s roots
+  n=150 m=1852 c=(2,926): 431627 bits, est. 31.2s CRT + 15.1s + 1.1s roots
+  n=150 m=1852 c=(1,1852): 368220 bits, est. 26.6s CRT + 15.1s + 1.1s roots
+  n=2315 m=120 c=(2,60): 278775 bits, est. 20.2s CRT + 0.8s + 19.2s roots
+  n=120 m=2315 c=(1,2315): 372437 bits, est. 26.9s CRT + 19.2s + 0.8s roots
+  n=2778 m=100 c=(2,50): 266439 bits, est. 19.3s CRT + 0.7s + 23.2s roots
+  n=2778 m=100 c=(1,100): 231733 bits, est. 16.8s CRT + 0.7s + 23.2s roots
+  n=100 m=2778 c=(2,1389): 452323 bits, est. 32.7s CRT + 23.2s + 0.7s roots
+  n=100 m=2778 c=(1,2778): 386624 bits, est. 28.0s CRT + 23.2s + 0.7s roots
+  n=3704 m=75 c=(1,75): 235052 bits, est. 17.0s CRT + 0.5s + 31.4s roots
+  n=75 m=3704 c=(2,1852): 483935 bits, est. 35.0s CRT + 31.4s + 0.5s roots
+  n=4630 m=60 c=(2,30): 244966 bits, est. 17.7s CRT + 0.4s + 62.5s roots
+  n=4630 m=60 c=(1,60): 220413 bits, est. 15.9s CRT + 0.4s + 62.5s roots
+  n=60 m=4630 c=(2,2315): 491388 bits, est. 35.5s CRT + 62.5s + 0.4s roots
+  n=60 m=4630 c=(1,4630): 419382 bits, est. 30.3s CRT + 62.5s + 0.4s roots
+  n=5556 m=50 c=(2,25): 239120 bits, est. 17.3s CRT + 0.3s + 68.3s roots
+  n=5556 m=50 c=(1,50): 211311 bits, est. 15.3s CRT + 0.3s + 68.3s roots
+  n=50 m=5556 c=(2,2778): 510903 bits, est. 37.0s CRT + 68.3s + 0.3s roots
+  n=50 m=5556 c=(1,5556): 433636 bits, est. 31.4s CRT + 68.3s + 0.3s roots
+  n=6945 m=40 c=(2,20): 224237 bits, est. 16.2s CRT + 0.4s + 77.0s roots
+  n=40 m=6945 c=(1,6945): 443012 bits, est. 32.0s CRT + 77.0s + 0.4s roots
+  n=9260 m=30 c=(2,15): 231813 bits, est. 16.8s CRT + 0.3s + 91.4s roots
+  n=9260 m=30 c=(1,30): 201537 bits, est. 14.6s CRT + 0.3s + 91.4s roots
+  n=30 m=9260 c=(2,4630): 558390 bits, est. 40.4s CRT + 91.4s + 0.3s roots
+  n=30 m=9260 c=(1,9260): 472568 bits, est. 34.2s CRT + 91.4s + 0.3s roots
+  n=11112 m=25 c=(1,25): 207890 bits, est. 15.0s CRT + 0.3s + 102.7s roots
+  n=25 m=11112 c=(2,5556): 579248 bits, est. 41.9s CRT + 102.7s + 0.3s roots
+  n=11575 m=24 c=(2,12): 218863 bits, est. 15.8s CRT + 0.3s + 105.5s roots
+  n=24 m=11575 c=(1,11575): 491573 bits, est. 35.6s CRT + 105.5s + 0.3s roots
+  n=13890 m=20 c=(2,10): 225064 bits, est. 16.3s CRT + 0.2s + 119.3s roots
+  n=13890 m=20 c=(1,20): 198436 bits, est. 14.4s CRT + 0.2s + 119.3s roots
+  n=20 m=13890 c=(2,6945): 593347 bits, est. 42.9s CRT + 119.3s + 0.2s roots
+  n=20 m=13890 c=(1,13890): 508220 bits, est. 36.8s CRT + 119.3s + 0.2s roots
+  n=18520 m=15 c=(1,15): 214719 bits, est. 15.5s CRT + 0.2s + 146.1s roots
+  n=15 m=18520 c=(2,9260): 635608 bits, est. 46.0s CRT + 146.1s + 0.2s roots
+  n=23150 m=12 c=(2,6): 231394 bits, est. 16.7s CRT + 0.1s + 172.0s roots
+  n=23150 m=12 c=(1,12): 212533 bits, est. 15.4s CRT + 0.1s + 172.0s roots
+  n=12 m=23150 c=(2,11575): 663017 bits, est. 48.0s CRT + 172.0s + 0.1s roots
+  n=12 m=23150 c=(1,23150): 564970 bits, est. 40.9s CRT + 172.0s + 0.1s roots
+  n=27780 m=10 c=(2,5): 238208 bits, est. 17.2s CRT + 0.1s + 197.2s roots
+  n=27780 m=10 c=(1,10): 221471 bits, est. 16.0s CRT + 0.1s + 197.2s roots
+  n=10 m=27780 c=(2,13890): 686496 bits, est. 49.7s CRT + 197.2s + 0.1s roots
+  n=10 m=27780 c=(1,27780): 586299 bits, est. 42.4s CRT + 197.2s + 0.1s roots
+  n=34725 m=8 c=(2,4): 248268 bits, est. 18.0s CRT + 0.1s + 233.9s roots
+  n=8 m=34725 c=(1,34725): 616950 bits, est. 44.6s CRT + 233.9s + 0.1s roots
+  n=46300 m=6 c=(2,3): 270266 bits, est. 19.6s CRT + 0.1s + 293.1s roots
+  n=46300 m=6 c=(1,6): 273214 bits, est. 19.8s CRT + 0.1s + 293.1s roots
+  n=6 m=46300 c=(2,23150): 765195 bits, est. 55.4s CRT + 293.1s + 0.1s roots
+  n=6 m=46300 c=(1,46300): 657185 bits, est. 47.5s CRT + 293.1s + 0.1s roots
+  n=55560 m=5 c=(1,5): 291723 bits, est. 21.1s CRT + 0.0s + 339.1s roots
+  n=5 m=55560 c=(2,27780): 794157 bits, est. 57.5s CRT + 339.1s + 0.0s roots
+  n=69450 m=4 c=(2,2): 330654 bits, est. 23.9s CRT + 0.0s + 406.3s roots
+  n=69450 m=4 c=(1,4): 332901 bits, est. 24.1s CRT + 0.0s + 406.3s roots
+  n=4 m=69450 c=(2,34725): 833323 bits, est. 60.3s CRT + 406.3s + 0.0s roots
+  n=4 m=69450 c=(1,69450): 721096 bits, est. 52.2s CRT + 406.3s + 0.0s roots
+  n=92600 m=3 c=(1,3): 401136 bits, est. 29.0s CRT + 0.0s + 514.9s roots
+  n=3 m=92600 c=(2,46300): 882188 bits, est. 63.8s CRT + 514.9s + 0.0s roots
+  n=138900 m=2 c=(2,1): 556075 bits, est. 40.2s CRT + 0.0s + 723.3s roots
+  n=138900 m=2 c=(1,2): 539195 bits, est. 39.0s CRT + 0.0s + 723.3s roots
+  n=2 m=138900 c=(2,69450): 949614 bits, est. 68.7s CRT + 723.3s + 0.0s roots
+  n=2 m=138900 c=(1,138900): 832444 bits, est. 60.2s CRT + 723.3s + 0.0s roots
+Decomposing with subgroup of order n=600, m=463 cosets, height bound 298121 bits (plain: 731031)
+Sign-free decomposition: no trace computation, height bound 384138 bits
+bits = 384393.70 (classpoly degree 277800 height factor 42.00, safety margin 256 bits)
+Selected 10229 primes, maxp=381042052423, totbits = 384414.5
+LIST_DONE

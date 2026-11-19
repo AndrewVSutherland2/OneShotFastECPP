@@ -1,0 +1,10 @@
+2026-11-18_00:23:03 start c450 on aws-spot-7 (AMD EPYC 9R45)
+2026-11-18_06:19:49 restart helper: watching c450 (pid 21269, top level 0
+1495 bits, mode after-chunk)
+2026-11-18_09:53:24 restart helper: restarting c450 after: [09:53:21]     checkpoint: 1550605 live candidates, B = 8.192e+12, cap = 1.024e+09, 210 MB in 5.7s
+2026-11-18_09:53:24 c450 done: RUN c450 wall=34220.77 user=6113672.63 sys=55949.81 verified=0
+2026-11-18_09:53:24 ALL_DONE
+2026-11-18_09:53:27 restart helper: relaunched c450
+2026-11-18_09:53:27 start c450 on aws-spot-7 (AMD EPYC 9R45)
+2026-11-18_12:18:05 c450 done: RUN c450 wall=8677.96 user=1560336.29 sys=13991.55 verified=1
+2026-11-18_12:18:05 ALL_DONE

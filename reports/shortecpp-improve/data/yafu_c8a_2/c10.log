@@ -1,0 +1,9 @@
+[14:52:17] revised format: B = 228, log2 rad <= 7, recursion floor B^2 = 51984
+[14:52:17] proving p0 (34 bits), n2 = 1156
+[14:52:17] finishing below 64 bits with short2.gp (p has 34 bits)
+[14:52:17]   gp tail: 1 levels in 0.0s
+[14:52:17] chain complete: 1 levels, 0.0s; verifying...
+[14:52:17] vshort2.verify = True   PARI cross-check = True
+[14:52:17] certificate written to /home/ubuntu/rule/out3/c10.cert.txt (verified twice)
+RUN c10 wall=0.06 user=0.05 sys=0.00
+EXIT 0

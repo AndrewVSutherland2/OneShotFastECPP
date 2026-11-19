@@ -1,0 +1,18 @@
+Sat Nov 14 09:48:46 PM UTC 2026
+dscan B=200000000000 Bmin=0: fb 1.8s (sieve 0.0, legendre 0.0, tonelli 1.8; 2881867 roots, 0 cached), scan 254.4s, 319371/3999043332 solvable, 192 threads
+dscan: wall=256.70 user=32834.59
+319371 scan.txt
+built P: y=67108864, 3957809 primes, 97 Mbit (11 MiB), 0.58s
+saved to /home/ubuntu/exp768/P26.bin
+249648 orders.txt
+loaded P: y=67108864, 3957809 primes, 11 MiB, 0.00s
+249648 numbers, smooth_parts 11.000s (44.1 us/num), extra columns 0.210s
+strip: wall=11.88 user=115.70
+  current stack size: 8000000 (7.629 Mbytes)
+  [hint] set 'parisizemax' to a nonzero value in your GPRC
+factor s: wall=0.08
+   249648 strip.txt
+        0 strip.txt.fac
+   249648 total
+Sat Nov 14 09:53:17 PM UTC 2026
+PREP_DONE

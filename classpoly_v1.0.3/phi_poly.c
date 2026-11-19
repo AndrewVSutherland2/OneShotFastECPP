@@ -212,7 +212,8 @@ int phi_load_mpz (mpz_t Phi[], int m, int inv)
 	if ( ! fp ) {
 		sprintf (filename, "%s/phi_%s_%d.txt", PHI_DIR, inv_string(inv), m);
 		fp = fopen(filename, "r");
-		if ( ! fp ) { err_printf ("Unable to locate file %s for invariant %d (%s)\n", filename, inv, inv_string(inv));  return 0; }
+		// said on stderr whatever the verbosity: callers that run quietly (cm_method) otherwise see a bare abort
+		if ( ! fp ) { fprintf (stderr, "Unable to locate file %s for invariant %d (%s)\n", filename, inv, inv_string(inv));  return 0; }
 	}
 	if ( ! fgets(buf,sizeof(buf),fp) ) { err_printf ("Error reading file %s\n", filename); fclose (fp); return 0; }
 	start=0; // shut up compiler
@@ -277,7 +278,8 @@ int phi_load_ff (ff_t phi[], int m, int inv)
 	if ( ! fp ) {
 		sprintf (filename, "%s/phi_%s_%d.txt", PHI_DIR, inv_string(inv), m);
 		fp = fopen(filename, "r");
-		if ( ! fp ) { err_printf ("Unable to locate file %s for invariant %d (%s)\n", filename, inv, inv_string(inv));  return 0; }
+		// said on stderr whatever the verbosity: callers that run quietly (cm_method) otherwise see a bare abort
+		if ( ! fp ) { fprintf (stderr, "Unable to locate file %s for invariant %d (%s)\n", filename, inv, inv_string(inv));  return 0; }
 	}
 	if ( ! fgets(buf,sizeof(buf),fp) ) { err_printf ("Error reading file %s\n", filename); fclose (fp); return 0; }
 	info_printf ("Loading %s\n", filename);

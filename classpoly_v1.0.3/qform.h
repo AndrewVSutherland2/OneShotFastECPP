@@ -44,6 +44,19 @@ long qform_order_multiple (long a, long b, long c, long m, long m0, long m1, lon
 long qform_order_or_multiple (long *n, long a, long b, long c, long m0, long m1, long L);// given interval [m0,m1] containing order([a,b,c]) compute order or unique-mult of order in interval, return -1 if none, 0 for order, 1 for unique-mult
 double qform_sum_jbounds (long D, int n);
 void qform_sum_jbounds_subgroup (double *psummax, double *pmaxdelta, long p[IQ_MAX_GENS], long n[IQ_MAX_GENS], int k, int d0, int d1, long e, long D, double hf);
+// The coset of the exponent vector e (entries d0..k-1) modulo the lattice of all x with x_i = d[i]*y_i for an integer vector y
+// whose reduction mod 2 satisfies the nh parity checks hm (bit i-d0 of a mask is generator i): a number in [0, 2^nh*prod d[i]).
+static inline long qform_lat_coset (long e[IQ_MAX_GENS], long d[IQ_MAX_GENS], uint32_t hm[IQ_MAX_GENS], int nh, int k, int d0)
+{
+    register long coset, w;
+    register uint32_t a;
+    register int u;
+
+    for ( coset = 0, w = 1, a = 0, u = d0 ; u < k ; u++ ) { coset += (e[u]%d[u])*w;  w *= d[u];  a |= (uint32_t)((e[u]/d[u])&1) << (u-d0); }
+    for ( u = 0 ; u < nh ; u++, w <<= 1 ) if ( __builtin_parity (a & hm[u]) ) coset += w;
+    return coset;
+}
+void qform_sum_jbounds_lat (double *psummax, double *pmaxdelta, long n[IQ_MAX_GENS], long d[IQ_MAX_GENS], uint32_t hm[IQ_MAX_GENS], int nh, int k, int d0, long D, double hf);  // same, for the cosets of qform_lat_coset
 
 long qform_class_number (long D);       // returns the order of the classgroup using brute force enumeration
 long qform_class_exponent (long D);     // returns the exponent of the classgroup

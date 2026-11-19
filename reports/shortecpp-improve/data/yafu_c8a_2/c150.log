@@ -1,0 +1,24 @@
+[14:53:05] revised format: B = 27782, log2 rad <= 56, recursion floor B^2 = 771839524
+[14:53:05] proving p0 (499 bits), n2 = 249001
+[14:53:06]   yafu here: 0.0216 s per curve at B1=50000 on 499 bits with 192 processes -> cost factor 0.96
+[14:53:07]   level 499 bits: rule table in 1.0s (12 sweeps, rewards 3..304560 core-s)
+[14:53:07]   level 499 bits: dscan[0,1e+07) maxfb=1e+06 on 192 threads: +808 D -> +608 orders (551 live), 20 core-s (strip 2) = 0.0326 per order; 0 winners
+[14:53:07]   level 499 bits: dscan[1e+07,2e+07) maxfb=1e+06 on 93 threads: +240 D -> +198 orders (178 live), 5 core-s (strip 1) = 0.0239 per order; 0 winners
+[14:53:07]     WINNER D=-33223 q 219 bits, o=m*q with m=1838054248 (|D| h~182)
+[14:53:07]     search: 806 orders, scan 25 + ecm 40 core-s (20 above the rule), 0.4s wall, 251 units, 234 splits, rule R = 46 core-s; the model expected 0.26 wins from this work; measured/modelled ECM cost by B1: 2000:1.06 11000:0.96 50000:0.73; wins expected by B1: 2000:0.013 11000:0.099 50000:0.145; won at B1=50000
+[14:53:07]     cm_method D=-33223: H_D^inv(deg 57 = 3 x 19, inv 1): 0.017s   roots: 0.001s + 0.023s   1 j-candidate(s)
+[14:53:09]   level 499 bits: built D=-33223 h~182 in 1.5s; o has 251 bits, q 219 bits (total 3.5s, 806 cands, 40 ecm-s)
+[14:53:09]   level 219 bits: dscan[0,300000) maxfb=1e+06 +246 D -> +196 orders (157 live) in 0.1s (strip 0.0s), 0 winners
+[14:53:09]     WINNER D=-1711 q 77 bits, o=m*q with m=7556598308 (|D| h~41)
+[14:53:09]     ecm B1=2000 c=10 on 157 tails: 21 split, 1 winners, 0.4s (stopped at the first winner, 32 tails done)
+[14:53:09]     cm_method D=-1711: H_D^inv(deg 14, inv 159): 0.015s   root: 0.002s   1 j-candidate(s)
+[14:53:09]     D=-1711: retrying via volcano floors ells=2
+[14:53:09]     cm_method D=-1711: H_D^inv(deg 14, inv 159): 0.011s   root: 0.002s   1 j-candidate(s)   ell=2 floor
+[14:53:09]   level 219 bits: built D=-1711 h~41 in 0.2s; o has 110 bits, q 77 bits (total 0.6s, 1002 cands, 40 ecm-s)
+[14:53:09] finishing below 90 bits with short2.gp (p has 77 bits)
+[14:53:10]   gp tail: 1 levels in 0.3s
+[14:53:10] chain complete: 3 levels, 4.5s; verifying...
+[14:53:10] vshort2.verify = True   PARI cross-check = True
+[14:53:10] certificate written to /home/ubuntu/rule/out3/c150.cert.txt (verified twice)
+RUN c150 wall=4.58 user=99.79 sys=14.68
+EXIT 0

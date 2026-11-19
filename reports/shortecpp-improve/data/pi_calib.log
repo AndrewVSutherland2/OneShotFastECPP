@@ -1,0 +1,11 @@
+ecm B1=2000: 0.004s/curve, 96 primes x up to 6000 curves per cell
+ecm B1=11000: 0.014s/curve, 96 primes x up to 2194 curves per cell
+ecm B1=50000: 0.047s/curve, 96 primes x up to 671 curves per cell
+ecm B1=250000: 0.201s/curve, 96 primes x up to 155 curves per cell
+ecm B1=1000000: 0.830s/curve, 96 primes x up to 37 curves per cell
+ecm B1=3000000: 2.238s/curve, 96 primes x up to 13 curves per cell
+pm1 B1=500000: 0.076s/curve, 4000 primes x up to 1 curves per cell
+pm1 B1=10000000: 1.115s/curve, 2691 primes x up to 1 curves per cell
+193594 tasks
+PI_DONE 1881s
+ALL_DONE3

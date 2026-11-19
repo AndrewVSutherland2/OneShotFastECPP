@@ -1,0 +1,40 @@
+[17:41:21] revised format: B = 61685, log2 rad <= 81, recursion floor B^2 = 3805039225
+[17:41:21] proving p0 (769 bits), n2 = 591361
+[17:41:22]   yafu here: 0.0410 s per curve at B1=50000 on 769 bits with 32 processes -> cost factor 1.02
+[17:41:25]   level 769 bits: rule table in 3.0s (28 sweeps, rewards 30..32818515 core-s)
+[17:41:26]   level 769 bits: dscan[0,6e+07) maxfb=1e+06 on 32 threads: +14408 D -> +18360 orders (17268 live), 67 core-s (strip 14) = 0.0036 per order; 0 winners
+[17:41:30]   level 769 bits: dscan[6e+07,1.2e+08) maxfb=1e+06 on 9 threads: +4959 D -> +6312 orders (5914 live), 39 core-s (strip 12) = 0.0062 per order; 0 winners
+[17:41:36]        10s: 24672 orders, rule R = 891 core-s (0.25 core-h); the model expects 0.59 wins from the work done (0.82 once all orders are worked to R); 22 units running + scan, queued by B1 [21774, 994, 188, 18, 0, 2, 0, 0], 0 abandoned; scan 105 + ecm 209 core-s (0 above the rule)
+[17:41:38]   level 769 bits: dscan[1.2e+08,2.4e+08) maxfb=1e+06 on 9 threads: +6582 D -> +8468 orders (7932 live), 66 core-s (strip 14) = 0.0078 per order; 0 winners
+[17:41:46]        20s: 33140 orders, rule R = 952 core-s (0.26 core-h); the model expects 0.88 wins from the work done (1.35 once all orders are worked to R); 22 units running + scan, queued by B1 [28330, 2028, 379, 54, 4, 3, 0, 0], 0 abandoned; scan 172 + ecm 429 core-s (0 above the rule)
+[17:41:46]     WINNER D=-115202035 q 339 bits, o=m*q with m=63038348207536 (|D| h~10733)
+[17:41:46]     search: 33140 orders, scan 172 + ecm 463 core-s (0 above the rule), 20.4s wall, 404 units, 1523 splits, rule R = 952 core-s; the model expected 0.82 wins from this work; measured/modelled ECM cost by B1: 2000:0.88 11000:0.86 50000:0.84 250000:0.80 1e+06:0.87 3e+06:0.71; wins expected by B1: 2000:0.000 11000:0.003 50000:0.034 250000:0.431 1e+06:0.330 3e+06:0.022; won at B1=250000
+[17:41:46]     cm_method D=-115202035: H_D^inv(deg 572 = 11 x 52, inv 113): 0.171s   roots: 0.041s + 0.251s   1 j-candidate(s)
+[17:41:47]   level 769 bits: built D=-115202035 h~10733 in 1.2s; o has 388 bits, q 339 bits (total 25.5s, 33140 cands, 463 ecm-s)
+[17:41:48]   level 339 bits: dscan[0,3e+07) maxfb=1e+06 +4553 D -> +4584 orders (3906 live) in 0.7s (strip 0.4s), 0 winners
+[17:41:49]     WINNER D=-12543663 q 160 bits, o=m*q with m=966 (|D| h~3541)
+[17:41:49]     ecm B1=2000 c=10 on 3906 tails: 127 split, 1 winners, 1.1s (stopped at the first winner, 256 tails done)
+[17:41:49]     cm_method D=-12543663: H_D^inv(deg 1000 = 20 x 50, inv 141): 0.067s   roots: 0.009s + 0.030s   1 j-candidate(s)
+[17:41:50]   level 339 bits: built D=-12543663 h~3541 in 0.8s; o has 170 bits, q 160 bits (total 2.5s, 37724 cands, 497 ecm-s)
+[17:41:50]     WINNER D=-369415 q 72 bits, o=m*q with m=440 (|D| h~607)
+[17:41:50]     WINNER D=-623327 q 64 bits, o=m*q with m=95871 (|D| h~789)
+[17:41:50]     WINNER D=-697723 q 58 bits, o=m*q with m=5570650 (|D| h~835)
+[17:41:50]     WINNER D=-1108055 q 58 bits, o=m*q with m=5409812 (|D| h~1052)
+[17:41:50]     WINNER D=-1769287 q 54 bits, o=m*q with m=84461180 (|D| h~1330)
+[17:41:50]     WINNER D=-2461055 q 77 bits, o=m*q with m=12 (|D| h~1568)
+[17:41:50]     WINNER D=-2556635 q 78 bits, o=m*q with m=6 (|D| h~1598)
+[17:41:50]     WINNER D=-6188519 q 73 bits, o=m*q with m=2003 (|D| h~2487)
+[17:41:50]     WINNER D=-6771055 q 79 bits, o=m*q with m=2 (|D| h~2602)
+[17:41:50]     WINNER D=-13230743 q 70 bits, o=m*q with m=900 (|D| h~3637)
+[17:41:50]     WINNER D=-14674855 q 77 bits, o=m*q with m=10 (|D| h~3830)
+[17:41:50]     WINNER D=-29163907 q 70 bits, o=m*q with m=1796 (|D| h~5400)
+[17:41:50]   level 160 bits: dscan[0,3e+07) maxfb=1e+06 +2363 D -> +1846 orders (1224 live) in 0.4s (strip 0.3s), 12 winners
+[17:41:50]     cm_method D=-369415: H_D^inv(deg 226 = 2 x 113, inv 1): 0.016s   roots: 0.000s + 0.018s   1 j-candidate(s)
+[17:41:50]   level 160 bits: built D=-369415 h~607 in 0.1s; o has 81 bits, q 72 bits (total 0.5s, 39570 cands, 497 ecm-s)
+[17:41:50] finishing below 135 bits with short2.gp (p has 72 bits)
+[17:41:50]   gp tail: 1 levels in 0.1s
+[17:41:50] chain complete: 4 levels, 28.7s; verifying...
+[17:41:50] vshort2.verify = True   PARI cross-check = True
+[17:41:50] certificate written to /tmp/claude-1000/-home-claude-OneShotFastECPP/f1db9bbb-8f84-4630-ad02-28f9e40f5dc3/scratchpad/ylocal/y768_5.cert.txt (verified twice)
+RUN y768_5 wall=28.84 user=681.97 sys=23.38
+EXIT 0

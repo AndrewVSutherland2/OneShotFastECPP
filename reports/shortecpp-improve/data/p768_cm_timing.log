@@ -1,0 +1,9 @@
+[H_D^inv(deg 11364, inv 159): 0.491s   root: 109.730s   1 j-candidate(s)]
+D=5201738755 wall=110.35 user=6490.13
+[H_D^inv(deg 37456, inv 535): 4.947s   root: 245.817s   1 j-candidate(s)]
+D=18960475695 wall=251.06 user=16192.36
+[H_D^inv(deg 58520, inv 171): 3.432s   root: 364.378s   1 j-candidate(s)]
+D=43980816779 wall=368.22 user=18396.17
+[H_D^inv(deg 149392, inv 26): 524.706s   root: 816.391s   1 j-candidate(s)]
+D=115333393863 wall=1341.88 user=135160.81
+CM_DONE
