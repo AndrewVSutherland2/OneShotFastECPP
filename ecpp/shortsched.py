@@ -278,6 +278,8 @@ def level_loop(drv, tab, tiers, cost, par=None):
       has_winner(), abort() (kill everything in flight), build() -> result or None
       should_build(R) (optional): False keeps the search going with a winner in
                       hand, when its build would cost more than finding another
+                      (not asked once the scan is exhausted and no work is left:
+                      the winner in hand is then built)
       ckpt_every, checkpoint(counters), restore() -> (candidates, counters) or
                       None (optional): the search state is handed to the driver
                       every ckpt_every seconds, and a driver that was started
@@ -382,13 +384,17 @@ def level_loop(drv, tab, tiers, cost, par=None):
                     running[uid] = u
                     drv.start_unit(u)
                 nunits += len(units)
+        force = False
         if not running and scan is None:
-            if nxt is None:
+            if nxt is not None:
+                drv.start_scan(drv.threads)     # nothing below the relaxed rule either: buy
+                scan = drv.threads
+            elif drv.has_winner():
+                force = True                    # no search left: what is in reserve gets built
+            else:
                 raise RuntimeError("scan exhausted and nothing left to work on (%d orders)" % K)
-            drv.start_scan(drv.threads)     # nothing below the relaxed rule either: buy
-            scan = drv.threads
         # ---- events
-        for ev in drv.wait(tick):
+        for ev in (() if force else drv.wait(tick)):
             had = drv.has_winner()
             if ev[0] == "orders":
                 cands, n, cst = drv.take_orders(ev[1])
@@ -421,23 +427,24 @@ def level_loop(drv, tab, tiers, cost, par=None):
                 infl = sum(u.pw for u in running.values())
                 first = (sch.expwin - infl, drv.now() - t0)
             hold = getattr(drv, "should_build", None)
-            if hold is not None and not hold(R):
-                continue                    # a winner in reserve: its build costs more than finding another
-            drv.abort()
-            for u in running.values():
-                sch.cancel(u)
-                spent_ecm += drv.now() - u.t0
-            running.clear()
-            scan = None
-            res = drv.build({"orders": K, "scan_s": spent_scan, "ecm_s": spent_ecm,
-                             "wall": drv.now() - t0, "units": nunits, "R": R,
-                             "expwin": first[0] if hold is not None else sch.expwin, "first_win_wall": first[1],
-                             "over_s": over, "expwin_b1": dict(sch.expwin_b1), "win_b1": win_b1,
-                             "expsplit_b1": dict(sch.expsplit_b1)})
-            if res is not None:
-                return res
-            win_b1 = None
-            first = None
+            # hold(R) false: a winner in reserve, its build costs more than finding
+            # another; the search, its log and its checkpoints go on meanwhile
+            if hold is None or force or hold(R):
+                drv.abort()
+                for u in running.values():
+                    sch.cancel(u)
+                    spent_ecm += drv.now() - u.t0
+                running.clear()
+                scan = None
+                res = drv.build({"orders": K, "scan_s": spent_scan, "ecm_s": spent_ecm,
+                                 "wall": drv.now() - t0, "units": nunits, "R": R,
+                                 "expwin": first[0] if hold is not None else sch.expwin, "first_win_wall": first[1],
+                                 "over_s": over, "expwin_b1": dict(sch.expwin_b1), "win_b1": win_b1,
+                                 "expsplit_b1": dict(sch.expsplit_b1)})
+                if res is not None:
+                    return res
+                win_b1 = None
+                first = None
         now = drv.now()
         if ckpt_every and K and now - tckpt >= ckpt_every:
             tckpt = now

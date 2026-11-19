@@ -536,6 +536,61 @@ def test_small():
           len(calls) == 26 and st["wall"] > st0["wall"] and abs(st["first_win_wall"] - st0["wall"]) < 1e-9
           and st["expwin"] <= st0["expwin"] + 1e-9 and calls[-1] >= calls[0] >= 1,
           "%d more wins while waiting, %.1f s against %.1f s" % (calls[-1] - calls[0], st["wall"], st0["wall"]))
+    # the last scan chunk brings a winner and nothing to work on, and the driver
+    # would keep it in reserve: with no search left it is built all the same
+    class Last:
+        threads = 4
+
+        def __init__(self, good):
+            self.t, self.scanned, self.won, self.built, self.asked, self.good, self.ev = 0.0, False, False, 0, 0, good, []
+
+        def now(self):
+            return self.t
+
+        def log(self, m):
+            pass
+
+        def next_chunk(self):
+            return None if self.scanned else (1.0, 1.0)
+
+        def start_scan(self, ns):
+            self.scanned = True
+            self.ev.append(("orders", None))
+
+        def wait(self, timeout):
+            self.t += 1.0
+            ev, self.ev = self.ev, []
+            return ev
+
+        def take_orders(self, payload):
+            self.won = True
+            return [], 1, 1.0
+
+        def has_winner(self):
+            return self.won
+
+        def abort(self):
+            pass
+
+        def should_build(self, R):
+            self.asked += 1
+            return False
+
+        def build(self, st):
+            self.built += 1
+            self.won = False
+            return st if self.good else None
+    last = Last(True)
+    st = sd.level_loop(last, tab, tiers, cost, {"quantum": quantum})
+    bad = Last(False)
+    try:
+        sd.level_loop(bad, tab, tiers, cost, {"quantum": quantum})
+        msg = "returned"
+    except RuntimeError as e:
+        msg = str(e)
+    check("a winner in reserve is built when the scan is exhausted and no work is left",
+          last.built == 1 and last.asked == 1 and st["orders"] == 1 and bad.built == 1 and msg.startswith("scan exhausted"),
+          "built %d, asked %d; after a failed build: %s" % (last.built, last.asked, msg))
     ss.set_grid(1527)
     # build estimates and the accept-or-pass step of the prover's driver
     est = sp.build_estimate([450490639, 140861442439, 4315], 769)
