@@ -220,6 +220,33 @@ def test_queue():
     v = sch5.take(1, 1e9)
     check("a shared process stops at unit_pw expected wins", len(u[0].cands) == 2 and len(v[0].cands) > 2,
           "%d candidates at 0.03 each, %d when wins are remote" % (len(u[0].cands), len(v[0].cands)))
+    # a search taken up with the other ECM engine: the two ladders at 1362 bits
+    ty, tg = sd.default_tiers("yafu", 1362), sd.default_tiers("gmp", 1362)
+    sy, sg = sd.ladder_stages(ty), sd.ladder_stages(tg)
+    qg = sd.Sched(FakeTable(), tg, 8, lambda b1, tb: 1.0)
+    x = C(9)
+    x.st, x.sent, x.done = 7, 64, 64        # 64 of yafu's 192 curves at B1 = 3e7, where gmp-ecm's ladder has 48
+    qg.push(x)
+    limbo = not x.dead and qg.seq == 0      # read as it stands it is neither queued nor through
+    ex = (sd.restage(7, 64, ty, tg), sd.restage(7, 32, ty, tg), sd.restage(4, 40, ty, tg), sd.restage(4, 72, ty, tg),
+          sd.restage(3, 47, tg, ty, 8), sd.restage(8, 0, ty, tg),
+          sd.restage(0, 8, [("ecm", 3000000, 16)], [("ecm", 2000, 8), ("ecm", 10000000, 8)]))
+    lost = 0
+    for (old, new, q) in ((ty, tg, 1), (tg, ty, 8)):
+        so, sn = sd.ladder_stages(old), sd.ladder_stages(new)
+        sch6 = sd.Sched(FakeTable(), new, 8, lambda b1, tb: 1.0, quantum=q)
+        for st in range(len(so) + 1):
+            for done in range(so[st][2] if st < len(so) else 1):
+                y = C(9)
+                y.st, y.done = sd.restage(st, done, old, new, q)
+                y.sent = y.done
+                n0 = sch6.seq
+                sch6.push(y)
+                lost += not (y.dead or sch6.seq == n0 + 1) or y.done % q != 0 or y.st > len(sn)
+    check("a candidate's place on one engine's ladder is read onto the other's: queued or through, never neither",
+          limbo and lost == 0 and ex == ((8, 0), (7, 32), (4, 40), (5, 0), (3, 40), (8, 0), (1, 0))
+          and [t[2] for t in sy] == [16, 24, 32, 48, 80, 96, 96, 192] and [t[2] for t in sg] == [12, 20, 32, 48, 72, 96, 96, 48],
+          "%d lost; %s" % (lost, ex))
 
 
 def test_sim(tiers, lad, cost, tab, lam):
@@ -639,6 +666,40 @@ def test_small():
         bad = True
     check("checkpoint record of a candidate: round trip, curves in flight are not counted, another prime is refused",
           same and e.sent == 16 and e.infl == 0 and not e.dead and bad and len(rec) == 11)
+    # a checkpoint written with yafu and read by a run with gmp-ecm, and by one with yafu
+    import shutil
+    import tempfile
+    tmpd = tempfile.mkdtemp(prefix="test_sched_ckpt_")
+    keep = (sp.CKPT, sp.CKPT_RESUME, sp.log)
+    sp.CKPT, sp.CKPT_RESUME, sp.log = os.path.join(tmpd, "x.search.pkl"), True, (lambda m: None)
+
+    def stub(engine, nsm=10 ** 6):
+        d = D()
+        d.nsm = nsm
+        d._CKPT_FIELDS = sp.RuleDriver._CKPT_FIELDS
+        for k in d._CKPT_FIELDS:
+            setattr(d, k, 0)
+        d.act, d.est = {30000000: 5.0}, {30000000: 4.0}
+        d.p, d.nb, d.stats, d.pool, d.engine = pp, 1362, {}, [], engine
+        d.tiers, d.quantum = [tuple(t) for t in sd.default_tiers(engine, 1362)], ss.ENGINES[engine]["quantum"]
+        return d
+    w = stub("yafu")
+    c.st, c.sent, c.done, c.dead = 7, 80, 64, False
+    c2 = sp.ckpt_unpack(sp.ckpt_pack(c, pp), pp)
+    c2.st, c2.sent, c2.done, c2.dead = 4, 40, 40, False
+    w.pool = [c, c2]
+    sp.RuleDriver.checkpoint(w, {"K": 2, "spent_scan": 1.0, "spent_ecm": 2.0, "elapsed": 3.0})
+    rg, ry = stub("gmp"), stub("yafu")
+    got_g = sp.RuleDriver._load_ckpt(rg)
+    got_y = sp.RuleDriver._load_ckpt(ry)
+    got_f = sp.RuleDriver._load_ckpt(stub("yafu", nsm=10 ** 5))      # the other certificate format
+    sp.CKPT, sp.CKPT_RESUME, sp.log = keep
+    shutil.rmtree(tmpd, True)
+    check("a checkpoint taken up with the other engine: places converted; same engine: as they were; other format: refused",
+          got_g is not None and got_y is not None and got_f is None
+          and [(k.st, k.sent, k.done) for k in rg.pool] == [(8, 0, 0), (4, 40, 40)] and rg.act == {}
+          and [(k.st, k.sent, k.done) for k in ry.pool] == [(7, 64, 64), (4, 40, 40)] and ry.act == {30000000: 5.0},
+          "gmp-ecm run: %s" % [(k.st, k.done) for k in rg.pool])
     # supply: the wider bound or the higher cap, whichever is cheaper per order
     def supply(B, cap, n, cs, lo, hi, tot_n, tot_s, fixed=0, capmax=2 * 10 ** 10, Bmax=10 ** 15):
         d = D()

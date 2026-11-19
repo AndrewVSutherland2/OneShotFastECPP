@@ -681,6 +681,39 @@ def default_tiers(engine="gmp", nbits=None):
     return tiers
 
 
+def ladder_stages(tiers):
+    """[(method, B1, curves of all its sweeps)], one entry per stage of a ladder."""
+    out = []
+    for (m, b1, c) in tiers:
+        if out and out[-1][:2] == (m, b1):
+            out[-1] = (m, b1, out[-1][2] + c)
+        else:
+            out.append((m, b1, c))
+    return out
+
+
+def restage(st, done, old, new, quantum=1):
+    """Where a candidate that stood at stage st of the ladder `old`, with `done`
+    of that stage's curves run, stands on the ladder `new`: (stage, curves done).
+    The ladders differ between the ECM engines (and with the size), so a search
+    taken up with another engine has to be read this way.  The stages below the
+    candidate's B1 count as complete; at its B1 it keeps its curves, rounded
+    down to whole batches of the new engine, and moves on if they fill the new
+    stage; a B1 the new ladder does not have earns nothing at the next larger
+    one.  Past the end of `new` the candidate is through the ladder."""
+    so, sn = ladder_stages(old), ladder_stages(new)
+    if st >= len(so):
+        return len(sn), 0
+    m, b1 = so[st][:2]
+    for i, (m2, b2, tot) in enumerate(sn):
+        if (m2, b2) == (m, b1):
+            d = done - done % quantum
+            return (i + 1, 0) if d >= tot else (i, d)
+        if b2 > b1:
+            return i, 0
+    return len(sn), 0
+
+
 if __name__ == "__main__":
     if len(sys.argv) >= 3 and sys.argv[1] == "sim":
         sim_main(sys.argv[2:])

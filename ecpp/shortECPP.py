@@ -589,6 +589,8 @@ def ecm_engine():
         return _ENGINE_OK
     if not YAFU_BIN and ENGINE == "yafu":
         YAFU_BIN = shutil.which("yafu") or ""
+    if YAFU_BIN:
+        YAFU_BIN = os.path.abspath(YAFU_BIN)         # yafu is started in a scratch directory (yafu_cwd)
     why = "no yafu binary (yafu=<path> or SHORTECPP_YAFU)"
     if YAFU_BIN and os.access(YAFU_BIN, os.X_OK):
         f, g = 1191999629, (1 << 419) + 299          # both prime
@@ -645,7 +647,7 @@ class EcmRunner:
         batch in which a factor appears, so the curves it left are run on the
         composite cofactor in a further process, until none are left (gmp-ecm
         does the same within one call)."""
-        cmd = [YAFU_BIN, "-B1ecm", str(b1), "-threads", "1", "-avxecm_stg2", "1", "-aprcl_p", "1",
+        cmd = [os.path.abspath(YAFU_BIN), "-B1ecm", str(b1), "-threads", "1", "-avxecm_stg2", "1", "-aprcl_p", "1",
                "-logfile", os.devnull, "-session", os.devnull]
         res = {}
         todo = [(n, n, curves) for n in nums]         # (input, what is left of it, curves left)
@@ -1493,6 +1495,12 @@ class RuleDriver:
                  winners, process_result, settle_tail, try_build, grow=2.0, engine="gmp"):
         self.p, self.nb, self.L, self.threads, self.stats = p, nb, L, threads, stats
         self.engine = engine
+        import shortsched as sd
+        import shortsim as ss
+        # the ladder run_rule_level hands to level_loop: a candidate's place in a
+        # checkpoint is a place on this ladder
+        self.tiers = [tuple(t) for t in sd.default_tiers(engine, nb)]
+        self.quantum = ss.ENGINES[engine]["quantum"]
         self.small_primes = small_primes
         self.ecm_seen = 0.0
         self.Bmax, self.fixed_cap, self.roots, self.nsm, self.grow = Bmax, fixed_cap, roots, nsm, grow
@@ -1541,7 +1549,9 @@ class RuleDriver:
     def checkpoint(self, loop):
         """Write the search state: the scan's frontier and measurements, level_loop's
         counters (loop) and every live candidate with its tail and its place on
-        the ladder.  Units in flight are not part of it: their curves are run
+        the ladder, with the engine, the ladder and the smoothness bound these
+        refer to (_load_ckpt reads the places onto another ladder and refuses
+        another bound).  Units in flight are not part of it: their curves are run
         again after a restore.  The factor base's square roots are not saved
         either (20 GB at a cap of 4e9); the first scan after a restore computes
         them again."""
@@ -1550,6 +1560,7 @@ class RuleDriver:
         t = time.time()
         self.pool = [c for c in self.pool if not c.dead]
         st = {"v": 1, "p": str(self.p), "nb": self.nb, "time": t, "host": os.uname().nodename,
+              "engine": self.engine, "tiers": list(self.tiers), "nsm": self.nsm,
               "drv": {k: getattr(self, k) for k in self._CKPT_FIELDS},
               "stats": {k: self.stats.get(k, 0) for k in ("cands", "scan_s", "ecm_s")},
               "loop": loop, "cands": [ckpt_pack(c, self.p) for c in self.pool]}
@@ -1574,10 +1585,33 @@ class RuleDriver:
             return None
         if st.get("v") != 1 or st.get("p") != str(self.p):
             return None
+        if st.get("nsm", self.nsm) != self.nsm:
+            # the smooth parts were stripped up to another bound: a search for the
+            # other certificate format, whose candidates cannot be read here
+            log("  level %d bits: checkpoint %s is a search with smoothness bound %d, this run's is %d: not used, "
+                "starting afresh" % (self.nb, CKPT, st["nsm"], self.nsm))
+            return None
         for k in self._CKPT_FIELDS:
             setattr(self, k, st["drv"][k])
         self.stats.update(st["stats"])
         self.pool = [ckpt_unpack(r, self.p) for r in st["cands"]]
+        # a checkpoint without a ladder is from before they were recorded and is
+        # taken to be on this run's
+        old = [tuple(x) for x in (st.get("tiers") or self.tiers)]
+        if old != self.tiers:
+            # written with another ECM engine: stages and curve counts are those of
+            # its ladder (left as they are, a candidate with more curves at its B1
+            # than this ladder offers would never be queued again)
+            from shortsched import restage, ladder_stages
+            nst, through = len(ladder_stages(self.tiers)), 0
+            for c in self.pool:
+                c.st, c.done = restage(c.st, c.done, old, self.tiers, self.quantum)
+                c.sent = c.done
+                through += c.st >= nst
+            self.act, self.est = {}, {}           # measured against the other engine's costs
+            log("  level %d bits: the checkpoint's search ran on another ladder (engine %s, this run: %s): the %d live "
+                "candidates keep the curves of the B1 they were at as far as this ladder has them (%d are through it)"
+                % (self.nb, st.get("engine", "?"), self.engine, len(self.pool), through))
         self.after_restore = True
         log("  level %d bits: search resumed from the checkpoint of %s on %s: %d orders bought, %d live "
             "candidates, B = %g, cap = %g, scan %.0f + ecm %.0f core-s, %.0f s of search"
@@ -1878,7 +1912,7 @@ def run_rule_level(p, nb, L, n2, small_primes, threads, stats, B0, Bmax_given, f
         ss.set_grid(nb)
         em, sec, mcost, quantum = ss.engine_model(engine, f, ECPP_DIR)
         cost = ss.engine_model(engine, f, ECPP_DIR, scalar=True)[2]
-        tiers = sd.default_tiers(engine, nb)
+        tiers = drv.tiers                     # sd.default_tiers(engine, nb)
         lad = ss.Ladder(tiers, em, y0bits=Y0.bit_length() - 1, cost=mcost)
         # rewards of interest shrink fast with the size (a win costs 1.5 core-h
         # at 768 bits, a minute at 520 and a second at 300)

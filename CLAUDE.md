@@ -400,6 +400,9 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   (`work/shortcamp/<tag>.search.pkl`, `RuleDriver.checkpoint` / `_load_ckpt`, `level_loop`'s
   `restore`; env `SHORTECPP_CKPT` seconds, `SHORTECPP_CKPT_BITS`), and `resume=1` takes the
   search up from it (lost: units in flight and the roots cache); a build is NOT checkpointed.
+  The checkpoint records the ECM engine, its ladder and the strip's smoothness bound: taken
+  up with the other engine, the candidates' places are read onto the new ladder
+  (`shortsched.restage`); a checkpoint of the other certificate format is refused.
   `ecm_pi_yafu.json` = first + deep calibration pooled (`data/fold_yafu_calib.py`), and
   `EcmModel.pi` pools a cell's ratio to theory with its neighbours up to 100 hits (the old
   "cells with >= 8 hits" cut selected on the outcome: 1.44x / 1.49x theory beyond 110 bits at
