@@ -365,7 +365,8 @@ CM-method ("fast ECPP") approach to one-shot elliptic-curve primality proofs.
   **nextprime(10^410) = 10^410 + 67 (1362 bits) is proved**: `certs/short2/nextprime1e410.csv`,
   5 levels, 28,153 s on 192 cores, 953 core-h; search 4.8 h (362,752 orders), build 3.0 h, of
   which 2.6 h for a root at prime degree 470,279 (h = 4 x 470,279; `build_estimate` said
-  3.65 h).  It is not in the upstream table (Drew decides about a PR there).  What that prime
+  3.65 h).  It is in the upstream table since 2026-11-19, with 10^420 .. 10^450 (upstream PR #14,
+  7b02020; the paper and its [Short] pin still stop at c = 400).  What that prime
   forced:
   (1) the supply has TWO arms.  A first run stalled: 10^410 + 67 has 5,692 solvable D below
   1e9 (10^400 + 69: 20,888), and the factor-base cap stopped at 1e8, so past B = 1e11 the

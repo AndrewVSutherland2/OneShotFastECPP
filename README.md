@@ -119,7 +119,10 @@ python3 ecpp/shortECPP.py p=<decimal> tag=myprime   # any (probable) prime
 ```
 
 Needs a `gmp-ecm` binary (`CHAIN_ECM` env or `ecm` on PATH) and, for the stopping rule,
-numpy.  `CLASSPOLY_PHI_DIR` should hold the full set of modular polynomials: the repository
+numpy.  yafu is optional and not part of this repository: the runs reported here used yafu
+3.1.9 ([bbuhrow/yafu](https://github.com/bbuhrow/yafu) with its `ytools` and `ysieve`,
+gmp-ecm 7.0.6) built with `make yafu USE_AVX512IFMA=1 ECM=1`, which needs a CPU with AVX-512
+IFMA; the prover tests the binary on a planted factor before it uses it.  `CLASSPOLY_PHI_DIR` should hold the full set of modular polynomials: the repository
 carries them up to degree 71, and up to 109 for the Weber functions and eight double eta
 quotients whose polynomials are small; about one discriminant in a hundred still needs a
 file that is not bundled (the prover then says which and goes on with the search).
@@ -130,9 +133,11 @@ time: a second up to 10¹²⁰, 4 to 15 s from 10¹⁵⁰ to 10²²⁰, half a m
 minutes from 10²³⁰ to 10³²⁰ (10³¹⁰ + 733: 268 s), 17 minutes and 42 core-hours for the
 seventeen entries from 10¹⁶⁰ to 10³²⁰, and five minutes to two hours each from 10³³⁰ to 10⁴⁰⁰
 (6.0 hours and 1,020 core-hours for the eight, where the table records 51 hours and 8,290).
-Beyond the table, the least primes above 10⁴¹⁰, 10⁴²⁰, 10⁴³⁰, 10⁴⁴⁰ and 10⁴⁵⁰ (1362 to 1495
-bits; `certs/short2/nextprime1e410.csv` … `nextprime1e450.csv`) took 7.8, 2.0, 16.4, 8.5 and
-11.9 hours of one such machine each: 953, 359, 2,797, 1,537 and 2,151 core-hours.  With gmp-ecm a 768-bit prime takes about 35 seconds there
+The table's five largest entries, the least primes above 10⁴¹⁰, 10⁴²⁰, 10⁴³⁰, 10⁴⁴⁰ and 10⁴⁵⁰
+(1362 to 1495 bits; `certs/short2/nextprime1e410.csv` … `nextprime1e450.csv`), were first
+proved this way: 7.8, 2.0, 16.4, 8.5 and 11.9 hours of one such machine each, 953, 359, 2,797,
+1,537 and 2,151 core-hours (logs in `reports/shortecpp-improve/data/yafu_c8a_8/` and
+`data/yafu_big/`).  With gmp-ecm a 768-bit prime takes about 35 seconds there
 and a 1030-bit prime 3 to 20 minutes.  With its first scheduler, in August 2026, this prover produced
 the ShortPrimalityProofs table entries for nextprime(10^c), c = 210, …, 310 — the largest a
 1030-bit prime exceeding Bernstein's 1025-bit AKS example — in one day on spot instances
@@ -188,7 +193,7 @@ Verify any of them with `python3 voneshot.py $(cat certs/<file>)`.
 
 - **gcc** 13+ and **GMP** 6+ (the build and `oneshotECPP` itself).
 - **PARI/GP** 2.x — only for the correctness test suites, *not* for `oneshotECPP`.
-- Modular polynomials: a **46 MB subset** is bundled (`phi_files/`, see
+- Modular polynomials: a **52 MB subset** is bundled (`phi_files/`, see
   [`INSTALL`](INSTALL)); it covers the class invariants and levels the CM method
   uses over the 128–384-bit range.
 
@@ -207,7 +212,7 @@ python3 ecpp/test_dscan.py        # discriminant scan vs PARI + brute force
 Makefile        setenv.sh          design.md
 ff_poly_v2.0.0/   classpoly_v1.0.3/    (vendored: word-size F_p / class polynomials,
                  including the zp_poly large-p F_p[x] code: fast gcd, invariant->j)
-phi_files/      (28 MB subset of modular polynomials; see INSTALL)
+phi_files/      (52 MB subset of modular polynomials; see INSTALL)
 ecpp/           (this project: discriminant search, smoothness, root-finding,
                  invariant->j, curve assembly, oneshotECPP)
 tests/          (classpoly correctness suites vs PARI)
